@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HealthTrace</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+
+  <body>
+    <div class="popup">
+      <div class="header">
+        <div>
+          <h1>HealthTrace</h1>
+          <p>Live privacy monitor</p>
+        </div>
+
+        <span class="status-dot"></span>
+      </div>
+
+      <div class="status-row">
+        <span>Monitoring this page</span>
+      </div>
+
+      <div class="summary">
+        <span class="summary-label">
+          Information is going to
+        </span>
+
+        <strong class="summary-number">
+          6 destinations
+        </strong>
+      </div>
+
+      <div class="warning">
+        <span class="warning-dot"></span>
+
+        <div>
+          <strong>3 sensitive events</strong>
+          <span>detected this session</span>
+        </div>
+      </div>
+
+      <button id="openMap">
+        Open Data Map
+      </button>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
