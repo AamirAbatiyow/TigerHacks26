@@ -1,20 +1,20 @@
 # Scriptwell
 
-A prescription-savings website for testing a health-data disclosure browser extension. Built with React, TypeScript, Vite, and a small Node HTTP receiver. No real coupons, payments, pharmacies, email, or health services are connected.
+A prescription-savings website for testing a health-data disclosure browser extension. Its checkout accepts synthetic demo-card values only. No real coupons, payments, pharmacies, email, or health services are connected.
 
 ## Start
 
 ```sh
 cd demoapp
 npm ci
-npm run dev
+python3 server/bridge.py
 ```
 
-Node 20.12+ required. Visit **http://localhost:5173**. The browser sends analytics directly to the team-controlled **http://fly-analytics.fly.dev/collect** receiver. The local receiver is not needed for this mode. Vite fails instead of silently switching ports. Stop with Ctrl+C.
+In another terminal run `cd demoapp && npm run dev`. Node 20.12+ is required. Visit **http://localhost:5173**. The browser sends one analytics event to **http://localhost:4319/collect**; the Python bridge forwards it over plaintext HTTP to the team-controlled Fly receiver. This HTTP path is intentional for the synthetic tshark demonstration.
 
 ## Demonstrate
 
-Browse a concern or search a medication, choose a pharmacy, and manually fill both questionnaire steps using information. Confirm the offer with **Optional analytics sharing** on. The browser POSTs JSON to `http://fly-analytics.fly.dev/collect`. Inspect it with the extension or Chrome DevTools.
+Browse a concern or search a medication, choose a pharmacy, and manually fill the identity and health steps with synthetic information. At **Demo Checkout**, click **Use Demo Card**, then confirm with **Optional analytics sharing** on. The single JSON POST includes the synthetic payment object. No payment request is made.
 
 Turn sharing off using `#analytics-sharing-toggle`, click `#reset-flow-button`, and repeat. The offer still confirms; no analytics event is built or sent. Reset preserves the privacy choice. A fresh profile defaults to on. Only this preference is saved; answers are not persisted. “Sharing details” exposes the destination and last delivery result for troubleshooting.
 

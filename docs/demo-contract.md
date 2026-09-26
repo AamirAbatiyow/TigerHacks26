@@ -1,6 +1,6 @@
 # Prescription savings demonstration contract
 
-> **Current default destination:** `POST http://fly-analytics.fly.dev/collect` (HTTP for the tshark presentation). See [Fly receiver integration](./fly-receiver.md) for the current run commands and verification. The localhost receiver details below remain the optional offline setup. Fly may log submitted payloads; the local receiver’s non-retention guarantees do not apply to Fly. The JSON schema, trigger, toggle, and reset selectors are unchanged.
+> **Current browser destination:** `POST http://localhost:4319/collect`. The local HTTP bridge forwards the same JSON body over plaintext HTTP to `http://fly-analytics.fly.dev/collect` for the tshark demonstration. Do not use real personal, health, or payment information.
 
 ## Run locally
 
@@ -9,28 +9,28 @@ Requires Node 20.12+ and npm. From the repository root:
 ```sh
 cd demoapp
 npm ci
-npm run dev:all
+python3 server/bridge.py
 ```
 
-Alternatively run `npm run dev` and `npm run dev:analytics` in separate terminals. Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`). `npm run build` type-checks and creates `dist/`; `npm run preview` serves that build on 5173. `npm test` checks the real receiver, CORS, errors, and non-retention.
+In another terminal, run `cd demoapp && npm run dev`. Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`). `npm run build` type-checks and creates `dist/`. `npm test` runs the analytics, opt-out, failure-handling, and local-receiver regression tests.
 
 ## Origins and request
 
 - First-party website: `http://localhost:5173`.
--   third-party analytics service: `http://localhost:4318`.
-- Destination: `http://localhost:4318/v1/events`.
+- Browser analytics destination: `http://localhost:4319/collect`.
+- Plaintext forwarding destination: `http://fly-analytics.fly.dev/collect`.
 - Method: `POST`; header `Content-Type: application/json`.
 - Real browser `fetch`, `mode: cors`, `credentials: omit`, `cache: no-store`, `referrerPolicy: no-referrer`.
 - Trigger: final valid submission of `#offer-intake-form` via `#confirm-offer-button` (button text “Confirm my offer”). Enter-key submission also works. Search, choosing a pharmacy, typing, and continuing from step 1 do not emit analytics.
-- The browser ordinarily sends an `OPTIONS` CORS preflight before the POST. Preflight does not contain the health payload. The receiver permits the configured first-party origin, POST, OPTIONS, and Content-Type; accepted POST returns **204**.
-- Different ports are different origins, though these localhost origins are same-site. This is a   analytics receiver, not an actual commercial analytics service. Extensions that classify third parties only by registrable domain may need to treat this origin explicitly as the demo destination.
-- No proxy: requests go directly from browser to the second port.
+- The browser sends an `OPTIONS` CORS preflight before the POST. Preflight does not contain the sensitive-looking payload. The bridge returns **204** for OPTIONS and **200** after successful forwarding.
+- Different ports are different origins, though these localhost origins are same-site. The bridge and Fly app are team-controlled demo services, not commercial analytics or payment providers.
+- The bridge forwards the original JSON body unchanged. No second request is made by the browser, and the checkout UI itself makes no request.
 
 ## JSON contract
 
 The full machine-readable schema is [demo-event.schema.json](./demo-event.schema.json). All properties in it are required; no additional properties are expected. The receiver checks the event envelope, not the complete schema. An event is one JSON object, not an array or encoded string.
 
-Example **entirely  ** payload:
+Example using entirely synthetic values:
 
 ```json
 {
@@ -49,13 +49,21 @@ Example **entirely  ** payload:
     "medication_allergies": "None"
   },
   "prescription": { "medication": "Sertraline", "strength": "50 mg", "quantity": "30 tablets" },
+  "payment": {
+    "cardholder_name": "Jamie Demo",
+    "card_number": "4242424242424242",
+    "expiration": "12/34",
+    "cvc": "123",
+    "billing_zip": "64093",
+    "demo_only": true
+  },
   "offer": { "pharmacy_id": "meadow", "pharmacy_name": "Meadow Pharmacy", "illustrative_price_usd": 9.6 },
   "interaction": { "search_term": "mental", "pharmacy_preference": "lowest_price", "language": "en-US", "viewport_width": 1440, "trigger": "confirm_offer" },
   "privacy": { "optional_analytics_enabled": true }
 }
 ```
 
-`event_id` is a new browser-generated UUID on each submission. `occurred_at` is the client UTC ISO timestamp. Names, email and ZIP are identifying/contact fields. The `health` and `prescription` objects carry explicit health information. Search terms and pharmacy choices may also reveal health context. Language, viewport width, event name, and preference are ordinary interaction metadata, but association with a person can still matter. Do not describe this demonstration as a confirmed HIPAA violation.
+`event_id` is a new browser-generated UUID on each submission. `occurred_at` is the client UTC ISO timestamp. Names, email and ZIP are identifying/contact fields. The `health` and `prescription` objects carry explicit health information. The `payment` object contains synthetic test values generated solely for this hackathon privacy demonstration. The displayed card number is serialized without spaces for predictable packet inspection. It is never sent to a payment processor and no authorization, charge, reservation, or purchase occurs. Search terms and pharmacy choices may also reveal health context. Do not describe this demonstration as a confirmed HIPAA violation.
 
 ## Privacy integration
 
@@ -63,38 +71,40 @@ Stable selector: **`#analytics-sharing-toggle`**, a native checkbox (`checked=tr
 
 ## Configuration
 
-Copy `demoapp/.env.example` to `demoapp/.env` to override defaults. The file is ignored by Git. `VITE_ANALYTICS_URL` is the full destination URL, `ANALYTICS_PORT` is the receiver port, `ANALYTICS_HOST` is the bind host, `ALLOWED_ORIGIN` is the exact permitted website origin, and `APP_PORT` changes the Vite dev port. Update corresponding values together and restart both processes. Vite variables are compiled into production builds: rebuild after changing the endpoint. Use two different HTTPS origins when deploying; an HTTPS website cannot use an HTTP analytics destination. Provision only a team-controlled   receiver. This task does not deploy anything.
+The checked-in default in `demoapp/src/analytics.ts` is the local bridge URL. `VITE_ANALYTICS_URL` may override it, but the hackathon packet-capture flow should keep `http://localhost:4319/collect`. The bridge's Fly destination is defined in `demoapp/server/bridge.py`. HTTP is intentional for synthetic packet inspection; do not deploy this pattern for real personal or payment data.
 
 Branding is centralized in `demoapp/src/config.ts`; catalog and illustrative prices are in `demoapp/src/catalog.ts`; payload mapping and destination are in `demoapp/src/analytics.ts`.
 
 ## Chrome DevTools verification
 
 1. Open the website in Chrome with your unpacked extension installed and permitted on both origins.
-2. Open DevTools → Network, enable Preserve log, and filter by `4318` or `v1/events`. Keep Fetch/XHR selected or use All to also see preflight.
-3. Choose Mental wellness → Sertraline → Meadow Pharmacy. Manually type   details. Submit the final questionnaire.
-4. Select the POST, inspect Headers (destination, method, Origin), Payload (person, health, prescription), and Timing. Verify 204. The extension should identify the request independently; this app does not fake an extension alert.
-5. The receiver terminal prints an event number and receipt timestamp, never submitted values. `curl http://localhost:4318/health` returns the in-memory accepted event count. Restart the receiver to zero this count. There is no endpoint for reading submissions.
-6. Disable optional analytics, reset the offer flow, manually fill it again, and submit. Verify confirmation still appears, no new POST is recorded, and the receiver count is unchanged. Clear the Network list between rounds if necessary. With no earlier preflight cached, the enabled round typically shows OPTIONS + POST; the disabled round must show neither caused by submission.
+2. Open DevTools → Network, enable Preserve log, and filter by `4319` or `collect`. Keep Fetch/XHR selected or use All to also see preflight.
+3. Choose Mental wellness → Sertraline → Meadow Pharmacy. Manually type synthetic identity and health details, continue to Demo Checkout, and click **Use Demo Card**.
+4. Click **Confirm my offer**. Select the POST and inspect Headers, Payload, and Timing. Verify OPTIONS is 204 and POST is 200. The payload contains person, health, prescription, payment, offer, interaction, and privacy objects.
+5. The extension should identify the request independently; this app does not fake an extension alert. The bridge forwards the JSON to Fly without storing it.
+6. Disable optional analytics, reset the offer flow, manually fill it again, and submit. Verify confirmation still appears and no new POST is recorded. Clear the Network list between rounds if necessary. The disabled round must show neither OPTIONS nor POST caused by submission.
 
 ## Storage and failure behavior
 
-Form fields live only in React memory. No form submission is written to local storage, session storage, cookies, URLs, a database, or files. Only the on/off sharing preference is stored locally. The confirmation retains a first name and selected offer until reset/reload. Receiver bodies are discarded after processing; response and console logs never echo them. DevTools or the extension may retain their own captures; clear those separately. The receiver count is aggregate, in memory only. No email, pharmacy, payment, health-provider, or real analytics service is connected.
+Form fields, including demo payment fields, live only in React memory. No form submission is written to local storage, session storage, cookies, URLs, a database, or files. Only the on/off sharing preference is stored locally. The confirmation retains a first name and selected offer until reset/reload. DevTools, tshark, the extension, bridge/Fly logs, or other capture tools may retain their own copies; clear those separately. No email, pharmacy, payment processor, or health provider is connected.
 
 Analytics failure, non-2xx, CORS rejection, or a five-second timeout never prevents first-party confirmation. There is no retry, beacon fallback, unload transmission, background queue, or replay. The technical delivery status is available as `[data-analytics-status]` for integration checks; it is not an extension finding.
 
 ## Judge script
 
-1. Start both services and open the website. Confirm “Optional analytics sharing” is On; previously saved choices survive reload. Explain verbally that all people, pharmacy offers, and entered health details are  .
+1. Start both services and open the website. Confirm “Optional analytics sharing” is On; previously saved choices survive reload. Explain verbally that all people, pharmacy offers, health details, and payment values are synthetic.
 2. Browse a health concern or search for a medication. Compare three illustrative prices and choose a pharmacy.
-3. Manually enter Avery Example, avery@example.test, 65201, 160 lb; choose Lowest price. Continue and enter the   health details from the example above.
-4. Confirm the offer. Show the extension’s explanation of the actual outgoing request and its destination.
-5. Disable optional analytics; start a fresh flow and manually enter the   details again. Confirm that the offer works without a new analytics request.
+3. Manually enter synthetic identity and health details. Continue to Demo Checkout and click **Use Demo Card**.
+4. Confirm the offer. Show the extension’s explanation and the single outgoing event's synthetic payment fields.
+5. Disable optional analytics; start a fresh flow and manually enter synthetic details again. Confirm that the offer works without a new analytics request.
 6. Use `#reset-flow-button` (“Reset offer flow”) for the next judge. It clears search, selected medication/pharmacy, questionnaire answers, confirmation, and delivery status, but preserves the sharing preference. “Explore another medication” also starts a blank flow. Re-enable sharing explicitly before repeating the enabled demonstration.
 
 ## Verification performed
 
 - TypeScript check and production build: `npm run build` passed.
-- Receiver and privacy regression tests: `npm test` passed (4 tests), including CORS, wrong origin, malformed JSON, invalid envelope, incorrect content type, body-size cap, non-retention, opt-out callback gating, no replay, failure isolation, and blocked preference storage.
+- Analytics, receiver, and privacy regression tests: `npm test` passed (5 tests), including exact demo-card serialization, single-request behavior, opt-out callback gating, failure isolation, CORS, receiver validation, non-retention, and preference storage.
+- Browser verification passed through all three intake steps. **Use Demo Card** populated only synthetic text inputs with `autocomplete="off"`; bridge delivery returned `sent` and the offer confirmation rendered.
+- With sharing disabled, the same fake checkout completed and delivery status was `disabled`.
 - In a real browser, condition browsing → medication → pharmacy → blank two-step form → confirmation passed.
 - Empty first-step submission was blocked by native required validation.
 - Enabled browser submission received an HTTP-success acknowledgement; local receiver count rose from 1 to 2. (Count 1 was the earlier analytics-branch browser check.)
