@@ -1,208 +1,481 @@
-import { Canvas } from "@react-three/fiber";
 import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  Canvas,
+  useFrame,
+  useThree,
+} from "@react-three/fiber";
+
+import {
+  Billboard,
   OrbitControls,
-  Line,
-  Text,
+  QuadraticBezierLine,
   Stars,
+  Text,
 } from "@react-three/drei";
 
-const nodes = [
-  {
-    id: "analytics",
-    name: "Analytics Provider",
-    position: [2.8, 1.4, -0.5],
-    color: "#8B5CF6",
-    category: "Analytics",
-    fields: ["symptom", "session_id", "device_id"],
-    method: "POST",
-    endpoint: "/collect",
-  },
-  {
-    id: "advertising",
-    name: "Ad Network",
-    position: [-3.1, 1.6, -0.8],
-    color: "#EC4899",
-    category: "Advertising",
-    fields: ["session_id", "page_view"],
-    method: "POST",
-    endpoint: "/events",
-  },
-  {
-    id: "metrics",
-    name: "Metrics API",
-    position: [3.2, -1.2, 0.4],
-    color: "#2DD4BF",
-    category: "API",
-    fields: ["medication", "timestamp"],
-    method: "POST",
-    endpoint: "/metrics",
-  },
-  {
-    id: "auth",
-    name: "Authentication",
-    position: [-2.8, -1.7, 0.5],
-    color: "#22D3EE",
-    category: "First party",
-    fields: ["user_id", "session_token"],
-    method: "POST",
-    endpoint: "/auth/session",
-  },
-  {
-    id: "unknown",
-    name: "Unknown Service",
-    position: [0.4, 2.7, -1.1],
-    color: "#FBBF24",
-    category: "Unknown",
-    fields: ["device_id"],
-    method: "GET",
-    endpoint: "/pixel",
-  },
-  {
-    id: "logging",
-    name: "Logging Service",
-    position: [-0.6, -2.7, -0.8],
-    color: "#8B5CF6",
-    category: "Analytics",
-    fields: ["error_event", "browser"],
-    method: "POST",
-    endpoint: "/log",
-  },
-  {
-    id: "cdn",
-    name: "CDN",
-    position: [4.1, 0.1, -1.8],
-    color: "#22D3EE",
-    category: "First party",
-    fields: ["asset_request"],
-    method: "GET",
-    endpoint: "/assets",
-  },
-  {
-    id: "tracker2",
-    name: "Tracking Pixel",
-    position: [-4, 0, -1.6],
-    color: "#EC4899",
-    category: "Advertising",
-    fields: ["page_view", "browser_id"],
-    method: "GET",
-    endpoint: "/track",
-  },
-  {
-    id: "api2",
-    name: "Health API",
-    position: [1.5, -2.7, -1.3],
-    color: "#2DD4BF",
-    category: "API",
-    fields: ["symptom"],
-    method: "POST",
-    endpoint: "/health/events",
-  },
-  {
-    id: "analytics2",
-    name: "Session Analytics",
-    position: [-1.7, 2.5, -1.3],
-    color: "#8B5CF6",
-    category: "Analytics",
-    fields: ["click_event", "session_id"],
-    method: "POST",
-    endpoint: "/session",
-  },
-];
+import * as THREE from "three";
 
-function ServiceNode({ node, onSelectNode }) {
+function ResponsiveCamera() {
+  const { camera, size } = useThree();
+
+  useEffect(() => {
+    const aspect = size.width / size.height;
+
+    let distance = 8.5;
+
+    if (aspect > 1.8) {
+      distance = 10.5;
+    } else if (aspect > 1.4) {
+      distance = 9.4;
+    }
+
+    camera.position.set(0, 0, distance);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }, [camera, size.width, size.height]);
+
+  return null;
+}
+
+function getCurve(node) {
+  const start =
+    new THREE.Vector3(0, 0, 0);
+
+  const midpoint =
+    new THREE.Vector3(
+      node.position[0] * 0.5,
+      node.position[1] * 0.5 + 0.25,
+      node.position[2] * 0.45 + 0.4
+    );
+
+  const end =
+    new THREE.Vector3(
+      ...node.position
+    );
+
+  return new THREE.QuadraticBezierCurve3(
+    start,
+    midpoint,
+    end
+  );
+}
+
+function FlowParticle({
+  node,
+  offset,
+  active,
+}) {
+  const ref = useRef();
+
+  const curve = useMemo(
+    () => getCurve(node),
+    [node]
+  );
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+
+    const speed =
+      active && node.sensitive
+        ? 0.22
+        : 0.13;
+
+    const progress =
+      (clock.getElapsedTime() * speed + offset) % 1;
+
+    ref.current.position.copy(
+      curve.getPoint(progress)
+    );
+  });
+
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry
+        args={[
+          active ? 0.04 : 0.025,
+          10,
+          10,
+        ]}
+      />
+
+      <meshBasicMaterial
+        color={
+          active && node.sensitive
+            ? "#FB4D6D"
+            : node.color
+        }
+        transparent
+        opacity={active ? 1 : 0.75}
+      />
+    </mesh>
+  );
+}
+
+function SelectionRing({ color }) {
+  const ref = useRef();
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+
+    ref.current.rotation.y =
+      clock.getElapsedTime() * 0.3;
+  });
+
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry
+        args={[0.19, 24, 24]}
+      />
+
+      <meshBasicMaterial
+        color={color}
+        wireframe
+        transparent
+        opacity={0.45}
+      />
+    </mesh>
+  );
+}
+
+function ServiceNode({
+  node,
+  selectedNode,
+  activeNodeId,
+  onSelectNode,
+}) {
+  const meshRef = useRef();
+  const [hovered, setHovered] =
+    useState(false);
+
+  const isSelected =
+    selectedNode?.id === node.id;
+
+  const isActive =
+    activeNodeId === node.id;
+
+  const anotherSelected =
+    selectedNode &&
+    selectedNode.id !== node.id;
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+
+    let targetScale = 1;
+
+    if (hovered) {
+      targetScale = 1.1;
+    }
+
+    if (isSelected) {
+      targetScale = 1.16;
+    }
+
+    if (isActive) {
+      targetScale = 1.12;
+    }
+
+    meshRef.current.scale.lerp(
+      new THREE.Vector3(
+        targetScale,
+        targetScale,
+        targetScale
+      ),
+      0.1
+    );
+  });
+
   return (
     <group position={node.position}>
+      {isSelected && (
+        <SelectionRing
+          color={node.color}
+        />
+      )}
+
       <mesh
+        ref={meshRef}
         onClick={(event) => {
           event.stopPropagation();
           onSelectNode(node);
         }}
-        onPointerOver={() => {
-          document.body.style.cursor = "pointer";
+        onPointerOver={(event) => {
+          event.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor =
+            "pointer";
         }}
         onPointerOut={() => {
-          document.body.style.cursor = "default";
+          setHovered(false);
+          document.body.style.cursor =
+            "default";
         }}
       >
-        <sphereGeometry args={[0.22, 32, 32]} />
+        <sphereGeometry
+          args={[0.14, 28, 28]}
+        />
 
         <meshStandardMaterial
-          color={node.color}
-          emissive={node.color}
-          emissiveIntensity={0.65}
+          color={
+            isActive &&
+            node.sensitive
+              ? "#FB4D6D"
+              : node.color
+          }
+          emissive={
+            isActive &&
+            node.sensitive
+              ? "#FB4D6D"
+              : node.color
+          }
+          emissiveIntensity={
+            isActive
+              ? 1.5
+              : isSelected
+              ? 1.1
+              : hovered
+              ? 0.8
+              : 0.35
+          }
+          transparent
+          opacity={
+            anotherSelected
+              ? 0.25
+              : 1
+          }
           roughness={0.35}
+          metalness={0.05}
         />
       </mesh>
 
-      <Text
-        position={[0, -0.42, 0]}
-        fontSize={0.14}
-        color="#CBD5E1"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {node.name}
-      </Text>
+      <Billboard>
+        <Text
+          position={[0, -0.28, 0]}
+          fontSize={0.085}
+          color={
+            anotherSelected
+              ? "#475569"
+              : isSelected ||
+                hovered ||
+                isActive
+              ? "#FFFFFF"
+              : "#AAB8CC"
+          }
+          anchorX="center"
+          anchorY="middle"
+        >
+          {node.name}
+        </Text>
+
+        {isActive &&
+          node.sensitive && (
+            <Text
+              position={[0, 0.3, 0]}
+              fontSize={0.06}
+              color="#FB4D6D"
+              anchorX="center"
+            >
+              SENSITIVE
+            </Text>
+          )}
+      </Billboard>
     </group>
   );
 }
 
 function CenterNode() {
+  const ref = useRef();
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+
+    const pulse =
+      1 +
+      Math.sin(
+        clock.getElapsedTime() * 1.7
+      ) *
+        0.012;
+
+    ref.current.scale.setScalar(
+      pulse
+    );
+  });
+
   return (
     <group>
-      <mesh>
-        <sphereGeometry args={[0.62, 48, 48]} />
+      <mesh ref={ref}>
+        <sphereGeometry
+          args={[0.36, 40, 40]}
+        />
 
         <meshStandardMaterial
           color="#22D3EE"
           emissive="#22D3EE"
-          emissiveIntensity={0.7}
+          emissiveIntensity={0.65}
           roughness={0.3}
         />
       </mesh>
 
-      <Text
-        position={[0, -0.9, 0]}
-        fontSize={0.18}
-        color="#F8FAFC"
-        anchorX="center"
-      >
-        MyHealth App
-      </Text>
+      <Billboard>
+        <Text
+          position={[0, -0.56, 0]}
+          fontSize={0.105}
+          color="#F8FAFC"
+          anchorX="center"
+          anchorY="middle"
+        >
+          MyHealth App
+        </Text>
+      </Billboard>
     </group>
   );
 }
 
-function Scene({ onSelectNode }) {
+function Connection({
+  node,
+  selectedNode,
+  activeNodeId,
+  onSelectNode,
+}) {
+  const isSelected =
+    selectedNode?.id === node.id;
+
+  const isActive =
+    activeNodeId === node.id;
+
+  const anotherSelected =
+    selectedNode &&
+    selectedNode.id !== node.id;
+
+  const midpoint = [
+    node.position[0] * 0.5,
+    node.position[1] * 0.5 + 0.25,
+    node.position[2] * 0.45 + 0.4,
+  ];
+
+  let lineColor =
+    node.color;
+
+  if (
+    isActive &&
+    node.sensitive
+  ) {
+    lineColor = "#FB4D6D";
+  }
+
+  let opacity = 0.16;
+  let width = 0.4;
+
+  if (anotherSelected) {
+    opacity = 0.04;
+  }
+
+  if (isSelected) {
+    opacity = 0.8;
+    width = 1.25;
+  }
+
+  if (isActive) {
+    opacity = 0.95;
+    width = node.sensitive
+      ? 1.8
+      : 1.15;
+  }
+
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[4, 5, 6]} intensity={8} />
+      <QuadraticBezierLine
+        start={[0, 0, 0]}
+        end={node.position}
+        mid={midpoint}
+        color={lineColor}
+        lineWidth={width}
+        transparent
+        opacity={opacity}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelectNode(node);
+        }}
+      />
+
+      {!anotherSelected && (
+        <>
+          <FlowParticle
+            node={node}
+            offset={0}
+            active={isActive}
+          />
+
+          <FlowParticle
+            node={node}
+            offset={0.33}
+            active={isActive}
+          />
+
+          <FlowParticle
+            node={node}
+            offset={0.66}
+            active={isActive}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function Scene({
+  nodes,
+  selectedNode,
+  activeNodeId,
+  onSelectNode,
+}) {
+  return (
+    <>
+      <ResponsiveCamera />
+
+      <ambientLight intensity={0.45} />
+
+      <pointLight
+        position={[4, 5, 6]}
+        intensity={5}
+      />
+
+      <pointLight
+        position={[-4, -2, 3]}
+        intensity={1.5}
+        color="#8B5CF6"
+      />
 
       <Stars
-        radius={35}
-        depth={20}
-        count={500}
-        factor={1}
+        radius={45}
+        depth={25}
+        count={180}
+        factor={0.6}
         saturation={0}
         fade
-        speed={0.1}
+        speed={0.025}
       />
 
       <CenterNode />
 
       {nodes.map((node) => (
         <group key={node.id}>
-          <Line
-            points={[[0, 0, 0], node.position]}
-            color={node.color}
-            lineWidth={0.7}
-            transparent
-            opacity={0.35}
+          <Connection
+            node={node}
+            selectedNode={selectedNode}
+            activeNodeId={activeNodeId}
+            onSelectNode={onSelectNode}
           />
 
           <ServiceNode
             node={node}
+            selectedNode={selectedNode}
+            activeNodeId={activeNodeId}
             onSelectNode={onSelectNode}
           />
         </group>
@@ -210,25 +483,43 @@ function Scene({ onSelectNode }) {
 
       <OrbitControls
         enablePan={false}
-        minDistance={5}
-        maxDistance={11}
-        autoRotate
-        autoRotateSpeed={0.12}
+        minDistance={7}
+        maxDistance={16}
+        zoomSpeed={0.55}
+        autoRotate={!selectedNode}
+        autoRotateSpeed={0.035}
+        enableDamping
+        dampingFactor={0.06}
       />
     </>
   );
 }
 
-export default function NetworkScene({ onSelectNode }) {
+export default function NetworkScene({
+  nodes,
+  selectedNode,
+  activeNodeId,
+  onSelectNode,
+}) {
   return (
     <Canvas
       camera={{
-        position: [0, 0, 8],
-        fov: 45,
+        position: [0, 0, 9],
+        fov: 40,
+        near: 0.1,
+        far: 100,
       }}
-      onPointerMissed={() => onSelectNode(null)}
+      dpr={[1, 2]}
+      onPointerMissed={() =>
+        onSelectNode(null)
+      }
     >
-      <Scene onSelectNode={onSelectNode} />
+      <Scene
+        nodes={nodes}
+        selectedNode={selectedNode}
+        activeNodeId={activeNodeId}
+        onSelectNode={onSelectNode}
+      />
     </Canvas>
   );
 }
