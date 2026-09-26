@@ -1,7 +1,10 @@
+import ServiceSymbol from "./ServiceSymbol";
+
 export default function DetailsPanel({
   selectedNode,
   selectedRequest,
   mode,
+  onSelectRequest,
 }) {
   if (!selectedNode) {
     return (
@@ -27,7 +30,8 @@ export default function DetailsPanel({
 
   if (!selectedRequest) {
     return (
-      <aside className="details-panel">
+      <aside className="details-panel" style={{ "--service-color": selectedNode.color }}>
+        <div className="inspector-symbol"><ServiceSymbol category={selectedNode.category} /></div>
         <span className="panel-label">
           Service
         </span>
@@ -54,6 +58,17 @@ export default function DetailsPanel({
           <p className="human-summary">
             {selectedNode.message}
           </p>
+        </section>
+
+        <section className="detail-section request-list">
+          <h3>Observed requests</h3>
+          {selectedNode.requests.map((request) => (
+            <button key={request.id} onClick={() => onSelectRequest(request)}>
+              <span>{request.name.replaceAll("_", " ")}</span>
+              <small>{request.method} {request.endpoint}</small>
+              <span aria-hidden="true" className="request-chevron">›</span>
+            </button>
+          ))}
         </section>
 
         <section className="detail-section">

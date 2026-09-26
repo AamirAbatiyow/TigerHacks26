@@ -8,6 +8,7 @@ import {
 import NetworkScene from "./components/NetworkScene";
 import DetailsPanel from "./components/DetailsPanel";
 import PrivacyPanel from "./components/PrivacyPanel";
+import ServiceSymbol from "./components/ServiceSymbol";
 
 import { mockNodes } from "./data/mockNodes";
 import { mockEventSequence } from "./data/mockEvents";
@@ -33,7 +34,7 @@ function App() {
     useState("normal");
 
   const [selectedNode, setSelectedNode] =
-    useState(null);
+    useState(mockNodes[0]);
 
   const [selectedRequest, setSelectedRequest] =
     useState(null);
@@ -100,7 +101,7 @@ function App() {
       }, 2200);
     }
 
-    addNextEvent();
+    if (eventNumber.current === 0) addNextEvent();
 
     const interval =
       window.setInterval(
@@ -193,10 +194,11 @@ function App() {
     <div className={`app ${privacyOpen ? "privacy-mode" : ""}`}>
       <header className="topbar">
         <div className="brand">
+          <img className="brand-logo" src="./healthtrace-mark.svg" alt="" />
           <h1>HealthTrace</h1>
 
           <span className="subtitle">
-            Live data flow
+            See where your data travels
           </span>
         </div>
 
@@ -215,7 +217,7 @@ function App() {
                 setMode("normal")
               }
             >
-              Normal
+              Simple view
             </button>
 
             <button
@@ -228,7 +230,7 @@ function App() {
                 setMode("technical")
               }
             >
-              Technical
+              Technical view
             </button>
           </div>
 
@@ -241,6 +243,7 @@ function App() {
 
       <main className={`workspace ${privacyOpen ? "privacy-open" : ""}`}>
         <section className="visualization">
+          {!drillService && <div className="app-node-mark"><ServiceSymbol /><span>MyHealth App</span></div>}
           <div className="legend">
             <span>
               <i className="cyan" />
@@ -392,6 +395,7 @@ function App() {
         </section>
 
         {privacyOpen ? <PrivacyPanel /> : <DetailsPanel
+          onSelectRequest={setSelectedRequest}
           selectedNode={
             selectedNode
           }
