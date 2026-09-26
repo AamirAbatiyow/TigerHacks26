@@ -1,4 +1,3 @@
-import json
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -24,27 +23,20 @@ TSHARK_CMD = [
     "-e", "tcp.dstport",
     "-e", "http.host",
     "-e", "http.content_type",
+    "-e", "http.content_encoding",
     "-e", "http.file_data",
 ]
 
 
 def decode_file_data(field):
+    # Keep bytes. classifier.py decides whether the body is text, JSON, or binary.
     if not field:
-        return ""
+        return None
     cleaned = "".join(field.split()).replace(":", "")
     try:
-        return bytes.fromhex(cleaned).decode("utf-8", errors="replace")
+        return bytes.fromhex(cleaned)
     except ValueError:
         return field
-
-
-def parse_body(text):
-    if text is None or text == "":
-        return None
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return text
 
 
 def parse_tshark_line(line):
@@ -53,7 +45,7 @@ def parse_tshark_line(line):
     if not any(part.strip() for part in fields):
         return None
 
-    while len(fields) < 7:
+    while len(fields) < 8:
         fields.append("")
 
     method = fields[0].strip()
@@ -62,7 +54,8 @@ def parse_tshark_line(line):
     destination_port = fields[3].strip()
     host = fields[4].strip()
     content_type = fields[5].strip()
-    file_data = "\t".join(fields[6:])
+    content_encoding = fields[6].strip()
+    file_data = "\t".join(fields[7:])
     if not method:
         return None
 
@@ -77,7 +70,12 @@ def parse_tshark_line(line):
         "destination_ip": destination_ip or None,
         "destination_port": port if port is not None else (destination_port or None),
         "content_type": content_type or None,
-        "body": parse_body(decode_file_data(file_data)),
+        "content_encoding": content_encoding or None,
+        "initiator": None,
+        "tab_id": None,
+        "third_party": None,
+        "request_type": None,
+        "body": decode_file_data(file_data),
     }
 
 

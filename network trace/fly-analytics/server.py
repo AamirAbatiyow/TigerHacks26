@@ -9,13 +9,17 @@ from privacy.contract import LocalPrivacyFindingProvider, ValidationError
 from privacy.engine import OptOutEngine, ROOT
 from privacy.store import EventConflict, ResultStore
 
+# Local demo page only. Observability events from the extension do not come here.
+ALLOWED_ORIGIN = "http://localhost:3000"
+
 
 class Handler(BaseHTTPRequestHandler):
     def _cors_headers(self):
-        # Preserve the trace collector's existing behavior only on /collect.
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        if self.headers.get("Origin") == ALLOWED_ORIGIN:
+            self.send_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
+            self.send_header("Vary", "Origin")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
     def extension_findings_origin(self):
         # Only the redacted, read-only provider previews are available to the extension.

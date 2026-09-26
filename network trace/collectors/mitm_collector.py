@@ -1,7 +1,7 @@
-import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from mitmproxy import http
 
@@ -12,27 +12,40 @@ if str(ROOT) not in sys.path:
 from classifier import analyze
 
 
-def _body(request):
-    if not request.content:
-        return None
-    try:
-        return json.loads(request.get_text())
-    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
-        return request.get_text()
+def _raw_body(request):
+    # Bytes as sent on the wire (still compressed if Content-Encoding is set).
+    # classifier.py decides what is safe to keep.
+    return getattr(request, "raw_content", None)
 
 
-def _content_type(request):
+def _header(request, name):
     headers = getattr(request, "headers", None)
     if headers is None:
         return None
     try:
-        value = headers.get("Content-Type")
+        value = headers.get(name)
     except (AttributeError, TypeError):
         return None
     if value is None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _initiator(request):
+    origin = _header(request, "Origin")
+    if origin and origin != "null":
+        return origin
+    referer = _header(request, "Referer")
+    if not referer:
+        return None
+    try:
+        parts = urlsplit(referer)
+    except ValueError:
+        return None
+    if not parts.scheme or not parts.netloc:
+        return None
+    return f"{parts.scheme}://{parts.netloc}"
 
 
 def _destination(flow, request):
@@ -68,8 +81,13 @@ def _event(flow: http.HTTPFlow):
         "path": getattr(request, "path", None),
         "destination_ip": destination_ip,
         "destination_port": destination_port,
-        "content_type": _content_type(request),
-        "body": _body(request),
+        "content_type": _header(request, "Content-Type"),
+        "content_encoding": _header(request, "Content-Encoding"),
+        "initiator": _initiator(request),
+        "tab_id": None,
+        "third_party": None,
+        "request_type": None,
+        "body": _raw_body(request),
     }
 
 

@@ -38,6 +38,14 @@ export function createOfferEvent(
       strength: medication.dose,
       quantity: medication.quantity,
     },
+    payment: {
+      cardholder_name: data.payment.cardholderName,
+      card_number: data.payment.cardNumber.replace(/\s/g, ""),
+      expiration: data.payment.expiration,
+      cvc: data.payment.cvc,
+      billing_zip: data.payment.billingZip,
+      demo_only: true,
+    },
     offer: {
       pharmacy_id: pharmacy.id,
       pharmacy_name: pharmacy.name,

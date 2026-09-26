@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Synthetic payload test</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    button { margin-right: 0.5rem; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Synthetic payload test</h1>
+  <p>These buttons send test health data to the Fly collect endpoint only.</p>
+  <button id="http" type="button">Send via HTTP (Chrome upgrades to HTTPS)</button>
+  <button id="https" type="button">Send via HTTPS</button>
+  <pre id="status">Idle</pre>
+  <script>
+    const payload = {
+      user_id: "12345",
+      profile: {
+        name: "Test Patient",
+        email: "patient@example.com",
+        age: 24
+      },
+      reproductive_health: {
+        birth_control: "IUD",
+        pregnancy_goal: "trying_to_conceive",
+        last_period: "2026-09-15"
+      },
+      symptoms: {
+        nausea: true,
+        cramping: true,
+        fatigue: true
+      },
+      mental_health: {
+        anxiety: true,
+        depression_screen_score: 8
+      },
+      medical: {
+        medications: ["Sertraline", "Iron"],
+        conditions: ["Anemia"]
+      }
+    };
+
+    const status = document.getElementById("status");
+
+    // Every *.dev host is on Chrome's built-in HSTS preload list, so Chrome
+    // rewrites http:// to https:// before sending (307 Internal Redirect).
+    // A CORS preflight may not follow a redirect, so the HTTP button sends a
+    // simple request (text/plain, no preflight) that can follow the upgrade.
+    // Plaintext HTTP for tshark is tested with `python client.py http` instead.
+    async function send(url, label, contentType) {
+      status.textContent = label + " request sending...";
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": contentType },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(20000)
+        });
+        const text = await response.text();
+        const outcome = response.ok ? "sent successfully" : "failed";
+        const upgraded = response.redirected && response.url.startsWith("https://")
+          ? "\nNote: Chrome upgraded this request to " + response.url + " (HSTS preload for .dev)"
+          : "";
+        status.textContent =
+          label + " request " + outcome + "\n" +
+          "Status: " + response.status + "\n" +
+          "Response: " + text + upgraded;
+      } catch (error) {
+        if (error.name === "TimeoutError") {
+          status.textContent =
+            label + " request timed out.\n" +
+            "For HTTPS, start mitmdump on 127.0.0.1:8081 before turning the browser proxy on.";
+          return;
+        }
+        status.textContent = label + " request failed\n" + error;
+      }
+    }
+
+    document.getElementById("http").addEventListener("click", function () {
+      send("http://fly-analytics.fly.dev/collect", "HTTP", "text/plain");
+    });
+    document.getElementById("https").addEventListener("click", function () {
+      send("https://fly-analytics.fly.dev/collect", "HTTPS", "application/json");
+    });
+  </script>
+</body>
+</html>
