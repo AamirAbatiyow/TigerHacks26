@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 510 300">
+  <defs>
+    <linearGradient id="left"><stop stop-color="#a4bdcb"/><stop offset=".33" stop-color="#9edfff"/><stop offset=".8" stop-color="#008dff"/><stop offset="1" stop-color="#0057ef"/></linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#004bfc"/><stop offset=".42" stop-color="#009dff"/><stop offset=".72" stop-color="#00e7c5"/><stop offset="1" stop-color="#94ffd8"/></linearGradient>
+    <linearGradient id="bottom" x1="0" y1="1" x2="1" y2=".3"><stop stop-color="#0059ff"/><stop offset=".45" stop-color="#00bbed"/><stop offset=".8" stop-color="#00d3ba"/><stop offset="1" stop-color="#009da9"/></linearGradient>
+    <linearGradient id="right"><stop stop-color="#00a4c8"/><stop offset=".5" stop-color="#56efce"/><stop offset=".8" stop-color="#a0e4d8"/><stop offset="1" stop-color="#a3cbd1"/></linearGradient>
+    <linearGradient id="blue"><stop stop-color="#0043e9"/><stop offset="1" stop-color="#009aff"/></linearGradient>
+    <linearGradient id="teal"><stop stop-color="#0099d6"/><stop offset="1" stop-color="#00d8b6"/></linearGradient>
+    <linearGradient id="lower" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#00cfc4"/><stop offset="1" stop-color="#009bc5"/></linearGradient>
+    <radialGradient id="dotBlue" cx=".3" cy=".3" r=".8"><stop stop-color="#a1e7ff"/><stop offset=".55" stop-color="#39c4ff"/><stop offset="1" stop-color="#008afa"/></radialGradient>
+    <radialGradient id="dotTeal" cx=".35" cy=".3" r=".8"><stop stop-color="#64ffe0"/><stop offset=".6" stop-color="#00d8c0"/><stop offset="1" stop-color="#00a4bd"/></radialGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round">
+    <path d="M9 18H146Q173 18 183 38M9 50H170M9 83H140Q162 83 175 66" stroke="url(#left)" stroke-width="17"/>
+    <path d="M213 40H267C349 40 349 141 271 141" stroke="url(#top)" stroke-width="44"/>
+    <path d="M250 178C163 175 144 263 221 263H330" stroke="url(#bottom)" stroke-width="38"/>
+    <path d="M342 233Q356 215 383 215H501M353 247H501M343 263Q358 280 382 280H501" stroke="url(#right)" stroke-width="17"/>
+    <circle fill="#fff" cx="194" cy="44" r="32" stroke="url(#blue)" stroke-width="22"/>
+    <circle fill="#fff" cx="251" cy="158" r="31" stroke="url(#teal)" stroke-width="21"/>
+    <circle fill="#fff" cx="332" cy="257" r="31" stroke="url(#lower)" stroke-width="22"/>
+  </g>
+  <g stroke="#f8fcff" stroke-width="5">
+    <circle cx="78" cy="18" r="14" fill="url(#dotBlue)"/><circle cx="52" cy="50" r="14" fill="url(#dotBlue)"/><circle cx="78" cy="83" r="14" fill="url(#dotBlue)"/>
+    <circle cx="442" cy="215" r="14" fill="url(#dotTeal)"/><circle cx="428" cy="247" r="14" fill="url(#dotTeal)"/><circle cx="442" cy="280" r="14" fill="url(#dotTeal)"/>
+  </g>
+  <g fill="none" stroke-width="1.7"><g stroke="#0088f4"><circle cx="78" cy="18" r="14"/><circle cx="52" cy="50" r="14"/><circle cx="78" cy="83" r="14"/></g><g stroke="#009cac"><circle cx="442" cy="215" r="14"/><circle cx="428" cy="247" r="14"/><circle cx="442" cy="280" r="14"/></g></g>
+</svg>
+

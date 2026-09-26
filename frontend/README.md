@@ -1,3 +1,14 @@
+# HealthTrace frontend
+
+Run the site locally from this directory:
+
+```sh
+npm install
+npm run dev -- --host 127.0.0.1
+```
+
+Open http://127.0.0.1:5173/ to view the interactive 3D network. To bundle the same site into the Chrome extension, run `npm run build:extension`, then reload the unpacked extension. Its popup's **View detailed report** button opens the bundled site. When the popup is opened outside Chrome's extension context, that button opens the local Vite server instead.
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

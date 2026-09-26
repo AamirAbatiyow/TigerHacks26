@@ -1,152 +1,36 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HealthTrace</title>
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<main class="popup" aria-labelledby="popupTitle">
+<button class="close-button" id="closePopup" type="button" aria-label="Close popup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19" /></svg></button>
+<img class="brand-art" src="assets/healthtrace-mark.svg" alt="" width="254" height="150" />
+<h1 id="popupTitle">Your data’s being shared!</h1>
+<p class="packet-copy">We’ve intercepted <strong id="packetCount">247</strong> packets</p>
+<section class="privacy-finding-section" aria-label="Privacy finding">
+<label for="privacyFinding">Privacy issue</label>
+<select id="privacyFinding" disabled><option value="">Loading privacy findings…</option></select>
+<p id="privacyReason"></p>
+<button class="primary-button" id="privacyOptOut" type="button" disabled>
+<svg class="opt-out-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="14" /><path d="M8 28 28 8" /></svg>
+<span id="privacyOptOutLabel">Opt out</span>
+<span class="primary-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-8-8 8 8-8 8" /></svg></span>
+</button>
+<p id="privacyStatus" role="status">Loading privacy findings…</p>
+<button class="refresh-button" id="refreshPrivacyFindings" type="button">Refresh privacy issues</button>
+</section>
+<button class="secondary-button" id="viewDetails" type="button">
+<svg class="report-icon" viewBox="0 0 24 28" aria-hidden="true"><path d="M5 2h9l7 7v15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" /><path d="M14 2v7h7M8 11h3M8 15h9M8 19h9" /></svg>
+<span>View detailed report</span>
+<svg class="report-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-8-8 8 8-8 8" /></svg>
+</button>
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
-
-    <title>HealthTrace</title>
-
-    <link
-      rel="stylesheet"
-      href="popup.css"
-    />
-  </head>
-
-  <body>
-    <main class="popup">
-      <div class="top-row">
-        <div class="brand">
-          <div class="brand-mark">
-            H
-          </div>
-
-          <div>
-            <strong>
-              HealthTrace
-            </strong>
-
-            <span>
-              Privacy monitor
-            </span>
-          </div>
-        </div>
-
-        <div class="monitoring">
-          <span></span>
-          Live
-        </div>
-      </div>
-
-      <section class="hero">
-        <div class="shield">
-          <div class="shield-ring ring-one"></div>
-          <div class="shield-ring ring-two"></div>
-
-          <svg
-            viewBox="0 0 64 64"
-            aria-hidden="true"
-          >
-            <path
-              d="M32 5L52 13V29C52 43 43 53 32 59C21 53 12 43 12 29V13L32 5Z"
-              fill="currentColor"
-            />
-
-            <path
-              d="M23 32L29 38L42 24"
-              fill="none"
-              stroke="white"
-              stroke-width="5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </div>
-
-        <h1>
-          Your data is being shared
-        </h1>
-
-        <p class="destination-copy">
-          Information is going to
-          <strong id="destinationCount">
-            6 places
-          </strong>
-        </p>
-      </section>
-
-      <section class="alert-card">
-        <div class="alert-icon">
-          !
-        </div>
-
-        <div class="alert-copy">
-          <strong id="sensitiveCount">
-            3 sensitive events
-          </strong>
-
-          <span>
-            detected on this page
-          </span>
-        </div>
-      </section>
-
-      <button
-        class="primary-button"
-        id="openMap"
-        type="button"
-      >
-        <span class="button-icon">
-          ↗
-        </span>
-
-        <span>
-          Open Data Map
-        </span>
-
-        <span class="arrow">
-          →
-        </span>
-      </button>
-
-      <button
-        class="secondary-button"
-        id="viewDetails"
-        type="button"
-      >
-        <span>
-          View detailed report
-        </span>
-
-        <span>
-          →
-        </span>
-      </button>
-
-      <section class="privacy-finding-section" aria-label="Privacy finding">
-        <label for="privacyFinding">Privacy issue</label>
-        <select id="privacyFinding" disabled>
-          <option value="">Loading privacy findings…</option>
-        </select>
-        <p id="privacyReason"></p>
-        <button class="primary-button opt-out-button" id="privacyOptOut" type="button" disabled>
-          <span id="privacyOptOutLabel">Opt out</span>
-          <span aria-hidden="true">→</span>
-        </button>
-        <p id="privacyStatus" role="status">Loading privacy findings…</p>
-        <button class="secondary-button" id="refreshPrivacyFindings" type="button">Refresh privacy issues</button>
-      </section>
-
-      <div class="footer-status">
-        <span class="green-dot"></span>
-
-        Monitoring this page
-      </div>
-    </main>
-
-    <script type="module" src="popup.js"></script>
-  </body>
+</main>
+<script type="module" src="popup.js"></script>
+</body>
 </html>

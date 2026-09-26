@@ -19,8 +19,10 @@ const deletion = {
 function popup(initial) {
   const nodes = new Map();
   const opened = [];
+  const documentListeners = {};
+  let closed = false;
   let data = initial;
-  for (const id of ['openMap', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel', 'privacyFinding',
+  for (const id of ['closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel', 'privacyFinding',
     'privacyReason', 'privacyStatus', 'refreshPrivacyFindings']) {
     nodes.set(id, {
       value: '', listeners: {}, disabled: false, textContent: '',
@@ -34,10 +36,11 @@ function popup(initial) {
     loadPrivacyFindings: async () => { if (data instanceof Error) throw data; return typeof data === 'function' ? data() : data; },
     officialDestination, actionLabel,
     Option: class { constructor(label, value) { this.label = label; this.value = value; } },
-    document: { getElementById: (id) => nodes.get(id) },
+    document: { getElementById: (id) => nodes.get(id), addEventListener: (event, callback) => { documentListeners[event] = callback; } },
+    window: { close: () => { closed = true; }, open: (url) => opened.push(url) },
     chrome: { runtime: { getURL: (path) => path }, tabs: { create: ({ url }) => opened.push(url) } },
   });
-  return { nodes, opened, setData: (next) => { data = next; } };
+  return { nodes, opened, documentListeners, isClosed: () => closed, setData: (next) => { data = next; } };
 }
 const flush = () => new Promise(setImmediate);
 
@@ -117,4 +120,28 @@ test('changing selected issue cancels an in-flight click for the old issue', asy
   await click;
   assert.deepEqual(ui.opened, []);
   assert.equal(ui.nodes.get('privacyOptOutLabel').textContent, 'Request deletion');
+});
+
+test('merged popup keeps report navigation, close button, and Escape handling', async () => {
+  const ui = popup([ads]);
+  await flush();
+  ui.nodes.get('viewDetails').listeners.click();
+  assert.deepEqual(ui.opened, ['visualization/index.html']);
+  ui.nodes.get('closePopup').listeners.click();
+  assert.equal(ui.isClosed(), true);
+  const keyboardUi = popup([]);
+  await flush();
+  keyboardUi.documentListeners.keydown({ key: 'Escape' });
+  assert.equal(keyboardUi.isClosed(), true);
+});
+
+test('merged markup supplies every popup script control and has only one opt-out action', () => {
+  const html = fs.readFileSync(new URL('../popup.html', import.meta.url), 'utf8');
+  for (const id of ['closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel',
+    'privacyFinding', 'privacyReason', 'privacyStatus', 'refreshPrivacyFindings']) {
+    assert.ok(html.includes(`id="${id}"`), `Missing ${id}`);
+  }
+  assert.equal((html.match(/id="privacyOptOut"/g) || []).length, 1);
+  assert.ok(html.includes('type="module" src="popup.js"'));
+  assert.ok(!html.includes('optOutDialog'));
 });
