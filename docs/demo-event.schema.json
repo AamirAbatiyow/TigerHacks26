@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Fictional prescription offer analytics event",
+  "title": "  prescription offer analytics event",
   "type": "object",
   "additionalProperties": false,
   "required": [

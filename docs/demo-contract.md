@@ -1,5 +1,7 @@
 # Prescription savings demonstration contract
 
+> **Current default destination:** `POST http://fly-analytics.fly.dev/collect` (HTTP for the tshark presentation). See [Fly receiver integration](./fly-receiver.md) for the current run commands and verification. The localhost receiver details below remain the optional offline setup. Fly may log submitted payloads; the local receiver’s non-retention guarantees do not apply to Fly. The JSON schema, trigger, toggle, and reset selectors are unchanged.
+
 ## Run locally
 
 Requires Node 20.12+ and npm. From the repository root:
@@ -15,20 +17,20 @@ Alternatively run `npm run dev` and `npm run dev:analytics` in separate terminal
 ## Origins and request
 
 - First-party website: `http://localhost:5173`.
-- Fictional third-party analytics service: `http://localhost:4318`.
+-   third-party analytics service: `http://localhost:4318`.
 - Destination: `http://localhost:4318/v1/events`.
 - Method: `POST`; header `Content-Type: application/json`.
 - Real browser `fetch`, `mode: cors`, `credentials: omit`, `cache: no-store`, `referrerPolicy: no-referrer`.
 - Trigger: final valid submission of `#offer-intake-form` via `#confirm-offer-button` (button text “Confirm my offer”). Enter-key submission also works. Search, choosing a pharmacy, typing, and continuing from step 1 do not emit analytics.
 - The browser ordinarily sends an `OPTIONS` CORS preflight before the POST. Preflight does not contain the health payload. The receiver permits the configured first-party origin, POST, OPTIONS, and Content-Type; accepted POST returns **204**.
-- Different ports are different origins, though these localhost origins are same-site. This is a fictional analytics receiver, not an actual commercial analytics service. Extensions that classify third parties only by registrable domain may need to treat this origin explicitly as the demo destination.
+- Different ports are different origins, though these localhost origins are same-site. This is a   analytics receiver, not an actual commercial analytics service. Extensions that classify third parties only by registrable domain may need to treat this origin explicitly as the demo destination.
 - No proxy: requests go directly from browser to the second port.
 
 ## JSON contract
 
 The full machine-readable schema is [demo-event.schema.json](./demo-event.schema.json). All properties in it are required; no additional properties are expected. The receiver checks the event envelope, not the complete schema. An event is one JSON object, not an array or encoded string.
 
-Example **entirely fictional** payload:
+Example **entirely  ** payload:
 
 ```json
 {
@@ -40,8 +42,8 @@ Example **entirely fictional** payload:
   "person": { "full_name": "Avery Example", "email": "avery@example.test", "zip_code": "65201" },
   "health": {
     "weight_lb": 160,
-    "concern": "Fictional anxiety",
-    "symptoms": "Fictional restlessness and difficulty sleeping",
+    "concern": "  anxiety",
+    "symptoms": "  restlessness and difficulty sleeping",
     "duration": "1_to_6_months",
     "current_medications": "None",
     "medication_allergies": "None"
@@ -61,7 +63,7 @@ Stable selector: **`#analytics-sharing-toggle`**, a native checkbox (`checked=tr
 
 ## Configuration
 
-Copy `demoapp/.env.example` to `demoapp/.env` to override defaults. The file is ignored by Git. `VITE_ANALYTICS_URL` is the full destination URL, `ANALYTICS_PORT` is the receiver port, `ANALYTICS_HOST` is the bind host, `ALLOWED_ORIGIN` is the exact permitted website origin, and `APP_PORT` changes the Vite dev port. Update corresponding values together and restart both processes. Vite variables are compiled into production builds: rebuild after changing the endpoint. Use two different HTTPS origins when deploying; an HTTPS website cannot use an HTTP analytics destination. Provision only a team-controlled fictional receiver. This task does not deploy anything.
+Copy `demoapp/.env.example` to `demoapp/.env` to override defaults. The file is ignored by Git. `VITE_ANALYTICS_URL` is the full destination URL, `ANALYTICS_PORT` is the receiver port, `ANALYTICS_HOST` is the bind host, `ALLOWED_ORIGIN` is the exact permitted website origin, and `APP_PORT` changes the Vite dev port. Update corresponding values together and restart both processes. Vite variables are compiled into production builds: rebuild after changing the endpoint. Use two different HTTPS origins when deploying; an HTTPS website cannot use an HTTP analytics destination. Provision only a team-controlled   receiver. This task does not deploy anything.
 
 Branding is centralized in `demoapp/src/config.ts`; catalog and illustrative prices are in `demoapp/src/catalog.ts`; payload mapping and destination are in `demoapp/src/analytics.ts`.
 
@@ -69,7 +71,7 @@ Branding is centralized in `demoapp/src/config.ts`; catalog and illustrative pri
 
 1. Open the website in Chrome with your unpacked extension installed and permitted on both origins.
 2. Open DevTools → Network, enable Preserve log, and filter by `4318` or `v1/events`. Keep Fetch/XHR selected or use All to also see preflight.
-3. Choose Mental wellness → Sertraline → Meadow Pharmacy. Manually type fictional details. Submit the final questionnaire.
+3. Choose Mental wellness → Sertraline → Meadow Pharmacy. Manually type   details. Submit the final questionnaire.
 4. Select the POST, inspect Headers (destination, method, Origin), Payload (person, health, prescription), and Timing. Verify 204. The extension should identify the request independently; this app does not fake an extension alert.
 5. The receiver terminal prints an event number and receipt timestamp, never submitted values. `curl http://localhost:4318/health` returns the in-memory accepted event count. Restart the receiver to zero this count. There is no endpoint for reading submissions.
 6. Disable optional analytics, reset the offer flow, manually fill it again, and submit. Verify confirmation still appears, no new POST is recorded, and the receiver count is unchanged. Clear the Network list between rounds if necessary. With no earlier preflight cached, the enabled round typically shows OPTIONS + POST; the disabled round must show neither caused by submission.
@@ -82,11 +84,11 @@ Analytics failure, non-2xx, CORS rejection, or a five-second timeout never preve
 
 ## Judge script
 
-1. Start both services and open the website. Confirm “Optional analytics sharing” is On; previously saved choices survive reload. Explain verbally that all people, pharmacy offers, and entered health details are fictional.
+1. Start both services and open the website. Confirm “Optional analytics sharing” is On; previously saved choices survive reload. Explain verbally that all people, pharmacy offers, and entered health details are  .
 2. Browse a health concern or search for a medication. Compare three illustrative prices and choose a pharmacy.
-3. Manually enter Avery Example, avery@example.test, 65201, 160 lb; choose Lowest price. Continue and enter the fictional health details from the example above.
+3. Manually enter Avery Example, avery@example.test, 65201, 160 lb; choose Lowest price. Continue and enter the   health details from the example above.
 4. Confirm the offer. Show the extension’s explanation of the actual outgoing request and its destination.
-5. Disable optional analytics; start a fresh flow and manually enter the fictional details again. Confirm that the offer works without a new analytics request.
+5. Disable optional analytics; start a fresh flow and manually enter the   details again. Confirm that the offer works without a new analytics request.
 6. Use `#reset-flow-button` (“Reset offer flow”) for the next judge. It clears search, selected medication/pharmacy, questionnaire answers, confirmation, and delivery status, but preserves the sharing preference. “Explore another medication” also starts a blank flow. Re-enable sharing explicitly before repeating the enabled demonstration.
 
 ## Verification performed

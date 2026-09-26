@@ -1,7 +1,7 @@
 import type { IntakeData } from "./Intake";
 import type { Medication, Pharmacy } from "./catalog";
 export const ANALYTICS_URL =
-  import.meta.env.VITE_ANALYTICS_URL || "http://localhost:4318/v1/events";
+  import.meta.env?.VITE_ANALYTICS_URL || "http://fly-analytics.fly.dev/collect";
 export type DeliveryStatus =
   "idle" | "sending" | "sent" | "failed" | "disabled";
 export function createOfferEvent(
