@@ -1,0 +1,38 @@
+[
+  {
+    "id": "microsoft-gpc",
+    "company": "Microsoft",
+    "aliases": ["Microsoft Corporation"],
+    "canonical_domain": "microsoft.com",
+    "domains": ["microsoft.com", "account.microsoft.com"],
+    "rights": ["targeted_advertising_opt_out", "sale_sharing_opt_out"],
+    "jurisdiction": ["CA"],
+    "applicability": "Company U.S. notice expressly acknowledges CCPA sharing and the opt-out right. This flow covers sharing for advertising, not a sale claim.",
+    "submission_method": "gpc",
+    "verified_endpoint": "https://account.microsoft.com/privacy/third-party-ads",
+    "required_fields": [],
+    "verification_requirements": ["user_enabled_gpc", "user_browser_visit", "account_login_for_account_scope"],
+    "source": "https://www.microsoft.com/en-us/privacy/usstateprivacynotice",
+    "last_verified": "2026-09-26",
+    "status": "verified",
+    "instructions": "Enable Global Privacy Control in a browser that supports it, then visit the official Microsoft page in that browser. Microsoft says it honors this signal for ad sharing. Sign in yourself for account settings. This app does not emit GPC or verify Microsoft completion. You may also turn off Share my data with third parties for personalized ads on the linked page."
+  },
+  {
+    "id": "microsoft-deletion",
+    "company": "Microsoft",
+    "aliases": ["Microsoft Corporation"],
+    "canonical_domain": "microsoft.com",
+    "domains": ["microsoft.com", "account.microsoft.com"],
+    "rights": ["deletion"],
+    "jurisdiction": ["CA"],
+    "applicability": "Company U.S. notice explicitly offers deletion subject to exceptions; account data requires a valid login.",
+    "submission_method": "portal",
+    "verified_endpoint": "https://account.microsoft.com/privacy",
+    "required_fields": [],
+    "verification_requirements": ["account_login", "identity_verification"],
+    "source": "https://www.microsoft.com/en-us/privacy/usstateprivacynotice",
+    "last_verified": "2026-09-26",
+    "status": "verified",
+    "instructions": "Sign in yourself to the official Microsoft privacy dashboard and choose the specific data to delete. Account closure is a separate choice. This app cannot bypass login or confirm that Microsoft completed deletion."
+  }
+]

@@ -412,3 +412,32 @@ button {
 
   background: #2dd4bf;
 }
+
+/* Official privacy choice, opened directly from the extension popup. */
+.opt-out-button {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
+}
+
+.opt-out-button:hover {
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.27);
+}
+
+.privacy-finding-section { margin-top: 16px; }
+.privacy-finding-section label { font-size: 11px; font-weight: 650; color: #475569; }
+.privacy-finding-section select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  background: white;
+  font: inherit;
+  font-size: 11px;
+}
+.privacy-finding-section p { color: #64748b; font-size: 11px; line-height: 1.5; }
+.opt-out-button:disabled { opacity: .5; cursor: not-allowed; transform: none; }

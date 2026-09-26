@@ -1,0 +1,6 @@
+{
+  "event_id": "mock-unknown-001",
+  "company": {"name": "Example Company", "domain": "example.com"},
+  "reason": {"code": "sensitive_data", "label": "Limit sensitive data", "description": "No verified company strategy exists."},
+  "user": {"state": "CA"}
+}

@@ -1,0 +1,6 @@
+{
+  "event_id": "mock-microsoft-delete-001",
+  "company": {"name": "Microsoft", "domain": "microsoft.com"},
+  "reason": {"code": "deletion", "label": "Request deletion", "description": "Explicit deletion fixture; not inferred from a health alert."},
+  "user": {"state": "CA"}
+}

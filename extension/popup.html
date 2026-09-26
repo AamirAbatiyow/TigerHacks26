@@ -126,6 +126,20 @@
         </span>
       </button>
 
+      <section class="privacy-finding-section" aria-label="Privacy finding">
+        <label for="privacyFinding">Privacy issue</label>
+        <select id="privacyFinding" disabled>
+          <option value="">Loading privacy findings…</option>
+        </select>
+        <p id="privacyReason"></p>
+        <button class="primary-button opt-out-button" id="privacyOptOut" type="button" disabled>
+          <span id="privacyOptOutLabel">Opt out</span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <p id="privacyStatus" role="status">Loading privacy findings…</p>
+        <button class="secondary-button" id="refreshPrivacyFindings" type="button">Refresh privacy issues</button>
+      </section>
+
       <div class="footer-status">
         <span class="green-dot"></span>
 
@@ -133,6 +147,6 @@
       </div>
     </main>
 
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>
