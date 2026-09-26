@@ -1,0 +1,340 @@
+:root {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #eaf2ff;
+  background: #050816;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+
+  display: grid;
+  grid-template-rows: 58px 1fr 88px;
+
+  background: #050816;
+}
+
+/* HEADER */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 22px;
+
+  border-bottom: 1px solid #172033;
+  background: #080c18;
+}
+
+.topbar h1 {
+  display: inline;
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.subtitle {
+  margin-left: 12px;
+
+  color: #64748b;
+  font-size: 12px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+  background: #2dd4bf;
+
+  box-shadow: 0 0 8px rgba(45, 212, 191, 0.5);
+}
+
+/* MAIN WORKSPACE */
+
+.workspace {
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+}
+
+.visualization {
+  position: relative;
+  min-width: 0;
+
+  background:
+    radial-gradient(
+      circle at center,
+      #0b1630 0%,
+      #050816 55%,
+      #03050b 100%
+    );
+}
+
+.visualization canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* LEGEND */
+
+.legend {
+  position: absolute;
+
+  top: 16px;
+  left: 18px;
+  z-index: 10;
+
+  display: flex;
+  gap: 14px;
+
+  padding: 8px 10px;
+
+  border: 1px solid #172033;
+  border-radius: 6px;
+
+  background: rgba(8, 12, 24, 0.76);
+
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend i {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+}
+
+.cyan {
+  background: #22d3ee;
+}
+
+.purple {
+  background: #8b5cf6;
+}
+
+.pink {
+  background: #ec4899;
+}
+
+.green {
+  background: #2dd4bf;
+}
+
+.yellow {
+  background: #fbbf24;
+}
+
+/* SIDEBAR */
+
+.details-panel {
+  padding: 22px 18px;
+
+  border-left: 1px solid #172033;
+
+  background: #080c18;
+
+  overflow-y: auto;
+}
+
+.empty-panel {
+  display: flex;
+  align-items: center;
+}
+
+.panel-label {
+  color: #64748b;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.details-panel h2 {
+  margin: 8px 0 5px;
+
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.details-panel p {
+  margin: 5px 0;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-top: 12px;
+
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.category-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+}
+
+.detail-section {
+  margin-top: 28px;
+}
+
+.detail-section h3 {
+  margin-bottom: 10px;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.field {
+  padding: 5px 7px;
+
+  border: 1px solid #243047;
+  border-radius: 4px;
+
+  background: #0d1424;
+
+  color: #cbd5e1;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.request-grid {
+  display: grid;
+  grid-template-columns: 75px 1fr;
+
+  gap: 9px 10px;
+
+  font-size: 11px;
+}
+
+.request-grid span {
+  color: #64748b;
+}
+
+.request-grid strong {
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+/* TIMELINE */
+
+.timeline {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 12px 18px;
+
+  border-top: 1px solid #172033;
+
+  background: #080c18;
+
+  overflow-x: auto;
+}
+
+.timeline-event {
+  min-width: 190px;
+
+  display: flex;
+  gap: 10px;
+
+  padding-right: 18px;
+
+  border-right: 1px solid #172033;
+}
+
+.timeline-time {
+  color: #64748b;
+
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.timeline-event strong {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #cbd5e1;
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.timeline-event div span {
+  color: #64748b;
+
+  font-size: 10px;
+}
