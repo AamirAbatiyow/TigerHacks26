@@ -1,0 +1,161 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background: #080c18;
+  color: #eaf2ff;
+}
+
+.popup {
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.header p {
+  margin: 3px 0 0;
+
+  color: #64748b;
+  font-size: 10px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  background: #2dd4bf;
+
+  box-shadow:
+    0 0 8px
+    rgba(45, 212, 191, 0.6);
+}
+
+.status-row {
+  padding: 10px 12px;
+
+  border: 1px solid #172033;
+  border-radius: 6px;
+
+  background: #0b1120;
+
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.summary {
+  margin-top: 12px;
+  padding: 14px 12px;
+
+  border: 1px solid #172033;
+  border-radius: 6px;
+
+  background: #0b1120;
+}
+
+.summary-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #64748b;
+  font-size: 10px;
+}
+
+.summary-number {
+  font-size: 20px;
+  font-weight: 600;
+
+  color: #f8fafc;
+}
+
+.warning {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  margin-top: 12px;
+  padding: 10px 12px;
+
+  border: 1px solid rgba(251, 77, 109, 0.25);
+  border-radius: 6px;
+
+  background: rgba(251, 77, 109, 0.06);
+}
+
+.warning-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #fb4d6d;
+
+  box-shadow:
+    0 0 7px
+    rgba(251, 77, 109, 0.5);
+}
+
+.warning strong {
+  display: block;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  color: #f1f5f9;
+}
+
+.warning span {
+  color: #64748b;
+  font-size: 9px;
+}
+
+#openMap {
+  width: 100%;
+
+  margin-top: 14px;
+  padding: 10px 12px;
+
+  border: 1px solid #164e63;
+  border-radius: 6px;
+
+  background: #0e7490;
+
+  color: white;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+#openMap:hover {
+  background: #0891b2;
+}
