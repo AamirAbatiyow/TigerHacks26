@@ -2,49 +2,136 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
     <title>HealthTrace</title>
-    <link rel="stylesheet" href="popup.css" />
+
+    <link
+      rel="stylesheet"
+      href="popup.css"
+    />
   </head>
 
   <body>
-    <div class="popup">
-      <div class="header">
-        <div>
-          <h1>HealthTrace</h1>
-          <p>Live privacy monitor</p>
+    <main class="popup">
+      <div class="top-row">
+        <div class="brand">
+          <div class="brand-mark">
+            H
+          </div>
+
+          <div>
+            <strong>
+              HealthTrace
+            </strong>
+
+            <span>
+              Privacy monitor
+            </span>
+          </div>
         </div>
 
-        <span class="status-dot"></span>
+        <div class="monitoring">
+          <span></span>
+          Live
+        </div>
       </div>
 
-      <div class="status-row">
-        <span>Monitoring this page</span>
-      </div>
+      <section class="hero">
+        <div class="shield">
+          <div class="shield-ring ring-one"></div>
+          <div class="shield-ring ring-two"></div>
 
-      <div class="summary">
-        <span class="summary-label">
+          <svg
+            viewBox="0 0 64 64"
+            aria-hidden="true"
+          >
+            <path
+              d="M32 5L52 13V29C52 43 43 53 32 59C21 53 12 43 12 29V13L32 5Z"
+              fill="currentColor"
+            />
+
+            <path
+              d="M23 32L29 38L42 24"
+              fill="none"
+              stroke="white"
+              stroke-width="5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+
+        <h1>
+          Your data is being shared
+        </h1>
+
+        <p class="destination-copy">
           Information is going to
+          <strong id="destinationCount">
+            6 places
+          </strong>
+        </p>
+      </section>
+
+      <section class="alert-card">
+        <div class="alert-icon">
+          !
+        </div>
+
+        <div class="alert-copy">
+          <strong id="sensitiveCount">
+            3 sensitive events
+          </strong>
+
+          <span>
+            detected on this page
+          </span>
+        </div>
+      </section>
+
+      <button
+        class="primary-button"
+        id="openMap"
+        type="button"
+      >
+        <span class="button-icon">
+          ↗
         </span>
 
-        <strong class="summary-number">
-          6 destinations
-        </strong>
-      </div>
+        <span>
+          Open Data Map
+        </span>
 
-      <div class="warning">
-        <span class="warning-dot"></span>
-
-        <div>
-          <strong>3 sensitive events</strong>
-          <span>detected this session</span>
-        </div>
-      </div>
-
-      <button id="openMap">
-        Open Data Map
+        <span class="arrow">
+          →
+        </span>
       </button>
-    </div>
+
+      <button
+        class="secondary-button"
+        id="viewDetails"
+        type="button"
+      >
+        <span>
+          View detailed report
+        </span>
+
+        <span>
+          →
+        </span>
+      </button>
+
+      <div class="footer-status">
+        <span class="green-dot"></span>
+
+        Monitoring this page
+      </div>
+    </main>
 
     <script src="popup.js"></script>
   </body>
