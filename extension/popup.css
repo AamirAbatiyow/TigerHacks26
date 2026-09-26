@@ -34,6 +34,15 @@ h1 { font-size: 36px; letter-spacing: -1.4px; }
 .primary-button { position: relative; margin-top: 14px; }
 .primary-arrow { position: absolute; right: 30px; width: 75px; transform: none; }
 
-/* Keep every element proportional while reducing the extension popup by 40%. */
-body { width: 340px; height: 259px; overflow: hidden; }
-.popup { transform: scale(.6); transform-origin: top left; }
+/* Preserve the compact reference design while allowing provider-driven controls to grow. */
+body { width: 340px; max-height: 600px; overflow-x: hidden; overflow-y: auto; }
+.popup { height: auto; min-height: 432px; zoom: .6; }
+.privacy-finding-section { margin-top: 14px; text-align: left; }
+.privacy-finding-section label { color: #586c92; font-size: 16px; font-weight: 600; }
+.privacy-finding-section select { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #cfd5df; border-radius: 12px; background: white; color: #071331; font: inherit; font-size: 16px; }
+.privacy-finding-section p { margin: 10px 0; color: #65728e; font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
+.primary-button { display: grid; grid-template-columns: 35px minmax(0, 1fr) 45px; gap: 12px; padding: 0 24px; }
+.primary-button > span:not(.primary-arrow) { margin-left: 0; font-size: 22px; white-space: normal; text-align: center; }
+.primary-arrow { position: static; width: 45px; margin: 0; transform: none; }
+.primary-button:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+.refresh-button { padding: 0; border: 0; background: transparent; color: #0665ff; font-size: 15px; text-decoration: underline; }

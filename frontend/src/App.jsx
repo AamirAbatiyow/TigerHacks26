@@ -7,6 +7,7 @@ import {
 
 import NetworkScene from "./components/NetworkScene";
 import DetailsPanel from "./components/DetailsPanel";
+import PrivacyPanel from "./components/PrivacyPanel";
 
 import { mockNodes } from "./data/mockNodes";
 import { mockEventSequence } from "./data/mockEvents";
@@ -27,6 +28,7 @@ function createEvent(template, number) {
 }
 
 function App() {
+  const [privacyOpen, setPrivacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
   const [mode, setMode] =
     useState("normal");
 
@@ -188,7 +190,7 @@ function App() {
     ).size;
 
   return (
-    <div className="app">
+    <div className={`app ${privacyOpen ? "privacy-mode" : ""}`}>
       <header className="topbar">
         <div className="brand">
           <h1>HealthTrace</h1>
@@ -199,6 +201,9 @@ function App() {
         </div>
 
         <div className="topbar-actions">
+          <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>
+            {privacyOpen ? "Network inspector" : "Privacy opt-outs"}
+          </button>
           <div className="mode-toggle">
             <button
               className={
@@ -234,7 +239,7 @@ function App() {
         </div>
       </header>
 
-      <main className="workspace">
+      <main className={`workspace ${privacyOpen ? "privacy-open" : ""}`}>
         <section className="visualization">
           <div className="legend">
             <span>
@@ -386,7 +391,7 @@ function App() {
           />
         </section>
 
-        <DetailsPanel
+        {privacyOpen ? <PrivacyPanel /> : <DetailsPanel
           selectedNode={
             selectedNode
           }
@@ -394,7 +399,7 @@ function App() {
             selectedRequest
           }
           mode={mode}
-        />
+        />}
       </main>
 
       <footer className="timeline">

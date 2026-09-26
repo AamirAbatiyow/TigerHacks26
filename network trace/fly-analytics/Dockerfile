@@ -3,6 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY server.py .
+COPY privacy ./privacy
 
 ENV PYTHONUNBUFFERED=1
 

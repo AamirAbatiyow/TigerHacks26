@@ -12,18 +12,25 @@
 <img class="brand-art" src="assets/healthtrace-mark.svg" alt="" width="254" height="150" />
 <h1 id="popupTitle">Your data’s being shared!</h1>
 <p class="packet-copy">We’ve intercepted <strong id="packetCount">247</strong> packets</p>
-<button class="primary-button" id="optOut" type="button">
+<section class="privacy-finding-section" aria-label="Privacy finding">
+<label for="privacyFinding">Privacy issue</label>
+<select id="privacyFinding" disabled><option value="">Loading privacy findings…</option></select>
+<p id="privacyReason"></p>
+<button class="primary-button" id="privacyOptOut" type="button" disabled>
 <svg class="opt-out-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="14" /><path d="M8 28 28 8" /></svg>
-<span>OPT OUT</span>
+<span id="privacyOptOutLabel">Opt out</span>
 <span class="primary-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-8-8 8 8-8 8" /></svg></span>
 </button>
+<p id="privacyStatus" role="status">Loading privacy findings…</p>
+<button class="refresh-button" id="refreshPrivacyFindings" type="button">Refresh privacy issues</button>
+</section>
 <button class="secondary-button" id="viewDetails" type="button">
 <svg class="report-icon" viewBox="0 0 24 28" aria-hidden="true"><path d="M5 2h9l7 7v15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" /><path d="M14 2v7h7M8 11h3M8 15h9M8 19h9" /></svg>
 <span>View detailed report</span>
 <svg class="report-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-8-8 8 8-8 8" /></svg>
 </button>
-<dialog id="optOutDialog" aria-labelledby="optOutTitle"><h2 id="optOutTitle">Opt out of data sharing</h2><p>This preview doesn’t submit opt-out requests yet. View the detailed report to see where your data is going.</p><form method="dialog"><button class="dialog-button">Got it</button></form></dialog>
+
 </main>
-<script src="popup.js"></script>
+<script type="module" src="popup.js"></script>
 </body>
 </html>

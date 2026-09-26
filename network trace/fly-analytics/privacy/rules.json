@@ -1,0 +1,17 @@
+{
+  "reason_to_right": {
+    "targeted_advertising": "targeted_advertising_opt_out",
+    "sale_or_sharing": "sale_sharing_opt_out",
+    "sensitive_data": "limit_sensitive_data",
+    "deletion": "deletion"
+  },
+  "jurisdictions": {
+    "CA": {
+      "name": "California CCPA/CPRA",
+      "rights": ["targeted_advertising_opt_out", "sale_sharing_opt_out", "limit_sensitive_data", "deletion"],
+      "effective": "2023-01-01",
+      "source": "https://www.oag.ca.gov/privacy/ccpa"
+    }
+  },
+  "verification_max_age_days": 180
+}

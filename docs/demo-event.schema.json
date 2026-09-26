@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "  prescription offer analytics event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_name",
+    "event_id",
+    "occurred_at",
+    "source",
+    "person",
+    "health",
+    "prescription",
+    "offer",
+    "interaction",
+    "privacy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "event_name": {
+      "const": "offer_confirmed"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "path",
+        "application"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "path": {
+          "type": "string"
+        },
+        "application": {
+          "const": "prescription_savings"
+        }
+      }
+    },
+    "person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "full_name",
+        "email",
+        "zip_code"
+      ],
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 150
+        },
+        "zip_code": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weight_lb",
+        "concern",
+        "symptoms",
+        "duration",
+        "current_medications",
+        "medication_allergies"
+      ],
+      "properties": {
+        "weight_lb": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1500
+        },
+        "concern": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "symptoms": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "duration": {
+          "enum": [
+            "under_1_month",
+            "1_to_6_months",
+            "over_6_months"
+          ]
+        },
+        "current_medications": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "medication_allergies": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "prescription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "medication",
+        "strength",
+        "quantity"
+      ],
+      "properties": {
+        "medication": {
+          "type": "string"
+        },
+        "strength": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "string"
+        }
+      }
+    },
+    "offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pharmacy_id",
+        "pharmacy_name",
+        "illustrative_price_usd"
+      ],
+      "properties": {
+        "pharmacy_id": {
+          "type": "string"
+        },
+        "pharmacy_name": {
+          "type": "string"
+        },
+        "illustrative_price_usd": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "search_term",
+        "pharmacy_preference",
+        "language",
+        "viewport_width",
+        "trigger"
+      ],
+      "properties": {
+        "search_term": {
+          "type": "string"
+        },
+        "pharmacy_preference": {
+          "enum": [
+            "lowest_price",
+            "nearby",
+            "familiar"
+          ]
+        },
+        "language": {
+          "type": "string"
+        },
+        "viewport_width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trigger": {
+          "const": "confirm_offer"
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "optional_analytics_enabled"
+      ],
+      "properties": {
+        "optional_analytics_enabled": {
+          "const": true
+        }
+      }
+    }
+  }
+}

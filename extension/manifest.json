@@ -3,7 +3,6 @@
   "name": "HealthTrace",
   "version": "1.0.0",
   "description": "See where your health-related data is going.",
-
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -20,9 +19,11 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-
   "permissions": [
     "storage",
     "tabs"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8080/*"
   ]
 }

@@ -1,0 +1,10 @@
+{
+  "event_id": "mock-microsoft-ads-001",
+  "company": {"name": "Microsoft", "domain": "microsoft.com"},
+  "reason": {
+    "code": "targeted_advertising",
+    "label": "Your data may be used for targeted advertising",
+    "description": "Placeholder finding; not an observed network event."
+  },
+  "user": {"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com", "state": "CA"}
+}

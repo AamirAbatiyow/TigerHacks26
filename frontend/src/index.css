@@ -867,3 +867,29 @@ button {
       240px;
   }
 }
+.privacy-button {
+  border: 1px solid #334155;
+  border-radius: 5px;
+  padding: 7px 10px;
+  background: #172033;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 11px;
+}
+.privacy-button:disabled { opacity: .6; cursor: wait; }
+.privacy-panel a { color: #67e8f9; overflow-wrap: anywhere; }
+.privacy-panel dl { font-size: 10px; line-height: 1.6; }
+.privacy-panel dt { color: #94a3b8; margin-top: 6px; }
+.privacy-panel dd { margin: 0; overflow-wrap: anywhere; }
+.privacy-panel summary { cursor: pointer; color: #94a3b8; font-size: 11px; }
+.privacy-result { border-top: 1px solid #172033; padding-top: 14px; }
+
+@media (max-width: 700px) {
+  .privacy-mode .topbar { padding: 0 12px; gap: 8px; }
+  .privacy-mode .subtitle, .privacy-mode .status { display: none; }
+  .privacy-mode .topbar-actions { gap: 6px; }
+  .privacy-mode .privacy-button { padding: 6px; font-size: 10px; }
+  .privacy-open { display: block; }
+  .privacy-open .visualization { display: none; }
+  .privacy-open .privacy-panel { height: 100%; border-left: none; }
+}
