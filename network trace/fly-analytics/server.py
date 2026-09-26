@@ -3,6 +3,16 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._cors_headers()
+        self.end_headers()
+
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)
@@ -13,6 +23,7 @@ class Handler(BaseHTTPRequestHandler):
         print("Body:", body.decode(), flush=True)
 
         self.send_response(200)
+        self._cors_headers()
         self.end_headers()
         self.wfile.write(b"OK")
 
