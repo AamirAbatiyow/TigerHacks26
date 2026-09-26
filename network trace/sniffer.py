@@ -4,8 +4,7 @@ import json
 cmd = [
     "tshark",
     "-l",
-    "-i", "lo0",
-    "-f", "tcp port 8000",
+    "-i", "en0",
     "-Y", "http.request",
     "-T", "fields",
     "-e", "http.request.method",

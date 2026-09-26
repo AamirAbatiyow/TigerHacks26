@@ -9,7 +9,7 @@ data = {
 }
 
 req = urllib.request.Request(
-    "http://127.0.0.1:8000/analytics",
+    "http://fly-analytics.fly.dev/collect",
     data=json.dumps(data).encode(),
     headers={"Content-Type": "application/json"},
     method="POST"
