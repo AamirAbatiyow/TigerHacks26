@@ -21,313 +21,800 @@ import {
 
 import * as THREE from "three";
 
-function ResponsiveCamera() {
-  const { camera, size } = useThree();
+const requestOffsets = [
+  [1.55, 0.35, 0.1],
+  [-1.4, 0.8, -0.2],
+  [0.5, 1.45, 0.2],
+  [-0.7, -1.4, 0.25],
+  [1.25, -1.05, -0.25],
+  [-1.55, -0.45, -0.1],
+];
+
+function ResponsiveCamera({
+  drillService,
+  controlsRef,
+}) {
+  const {
+    camera,
+    size,
+  } = useThree();
+
+  const targetZ = useRef(9);
+  const transitioning =
+    useRef(true);
 
   useEffect(() => {
-    const aspect = size.width / size.height;
+    const aspect =
+      size.width /
+      size.height;
 
-    let distance = 8.5;
-
-    if (aspect > 1.8) {
-      distance = 10.5;
+    if (drillService) {
+      targetZ.current = 6.2;
+    } else if (aspect > 1.8) {
+      targetZ.current = 10.5;
     } else if (aspect > 1.4) {
-      distance = 9.4;
+      targetZ.current = 9.4;
+    } else {
+      targetZ.current = 8.5;
     }
 
-    camera.position.set(0, 0, distance);
-    camera.lookAt(0, 0, 0);
+    transitioning.current =
+      true;
+  }, [
+    drillService,
+    size.width,
+    size.height,
+  ]);
+
+  useFrame(() => {
+    if (
+      !transitioning.current
+    ) {
+      return;
+    }
+
+    camera.position.z =
+      THREE.MathUtils.lerp(
+        camera.position.z,
+        targetZ.current,
+        0.07
+      );
+
+    if (
+      controlsRef.current
+    ) {
+      controlsRef.current
+        .target
+        .lerp(
+          new THREE.Vector3(
+            0,
+            0,
+            0
+          ),
+          0.08
+        );
+
+      controlsRef.current.update();
+    }
+
+    if (
+      Math.abs(
+        camera.position.z -
+          targetZ.current
+      ) < 0.03
+    ) {
+      camera.position.z =
+        targetZ.current;
+
+      transitioning.current =
+        false;
+    }
+
     camera.updateProjectionMatrix();
-  }, [camera, size.width, size.height]);
+  });
 
   return null;
 }
 
-function getCurve(node) {
-  const start =
-    new THREE.Vector3(0, 0, 0);
-
-  const midpoint =
-    new THREE.Vector3(
-      node.position[0] * 0.5,
-      node.position[1] * 0.5 + 0.25,
-      node.position[2] * 0.45 + 0.4
-    );
-
-  const end =
-    new THREE.Vector3(
-      ...node.position
-    );
-
-  return new THREE.QuadraticBezierCurve3(
-    start,
-    midpoint,
-    end
-  );
-}
-
-function FlowParticle({
-  node,
-  offset,
-  active,
+function GlowSphere({
+  color,
+  radius,
+  opacity,
 }) {
-  const ref = useRef();
-
-  const curve = useMemo(
-    () => getCurve(node),
-    [node]
-  );
-
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-
-    const speed =
-      active && node.sensitive
-        ? 0.22
-        : 0.13;
-
-    const progress =
-      (clock.getElapsedTime() * speed + offset) % 1;
-
-    ref.current.position.copy(
-      curve.getPoint(progress)
-    );
-  });
-
   return (
-    <mesh ref={ref}>
+    <mesh>
       <sphereGeometry
         args={[
-          active ? 0.04 : 0.025,
-          10,
-          10,
+          radius,
+          32,
+          32,
         ]}
       />
 
       <meshBasicMaterial
-        color={
-          active && node.sensitive
-            ? "#FB4D6D"
-            : node.color
-        }
+        color={color}
         transparent
-        opacity={active ? 1 : 0.75}
+        opacity={opacity}
+        depthWrite={false}
+        blending={
+          THREE.AdditiveBlending
+        }
       />
     </mesh>
   );
 }
 
-function SelectionRing({ color }) {
-  const ref = useRef();
+function getServiceCurve(node) {
+  return new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(
+      0,
+      0,
+      0
+    ),
 
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
+    new THREE.Vector3(
+      node.position[0] *
+        0.5,
+      node.position[1] *
+        0.5 +
+        0.25,
+      node.position[2] *
+        0.45 +
+        0.4
+    ),
 
-    ref.current.rotation.y =
-      clock.getElapsedTime() * 0.3;
-  });
+    new THREE.Vector3(
+      ...node.position
+    )
+  );
+}
+
+function ServiceParticle({
+  node,
+  offset,
+  active,
+}) {
+  const ref =
+    useRef();
+
+  const curve =
+    useMemo(
+      () =>
+        getServiceCurve(
+          node
+        ),
+      [node]
+    );
+
+  useFrame(
+    ({ clock }) => {
+      if (
+        !ref.current
+      ) {
+        return;
+      }
+
+      const speed =
+        active &&
+        node.sensitive
+          ? 0.22
+          : 0.13;
+
+      const t =
+        (clock.getElapsedTime() *
+          speed +
+          offset) %
+        1;
+
+      ref.current.position.copy(
+        curve.getPoint(t)
+      );
+    }
+  );
+
+  const color =
+    active &&
+    node.sensitive
+      ? "#FB4D6D"
+      : node.color;
 
   return (
-    <mesh ref={ref}>
-      <sphereGeometry
-        args={[0.19, 24, 24]}
-      />
+    <group ref={ref}>
+      <mesh>
+        <sphereGeometry
+          args={[
+            0.025,
+            10,
+            10,
+          ]}
+        />
 
-      <meshBasicMaterial
+        <meshBasicMaterial
+          color={color}
+        />
+      </mesh>
+
+      <GlowSphere
         color={color}
-        wireframe
-        transparent
-        opacity={0.45}
+        radius={0.055}
+        opacity={0.16}
       />
-    </mesh>
+    </group>
   );
 }
 
 function ServiceNode({
   node,
-  selectedNode,
+  drillService,
   activeNodeId,
-  onSelectNode,
+  onEnterService,
 }) {
-  const meshRef = useRef();
   const [hovered, setHovered] =
     useState(false);
 
-  const isSelected =
-    selectedNode?.id === node.id;
+  const isDrilled =
+    drillService?.id ===
+    node.id;
 
-  const isActive =
-    activeNodeId === node.id;
+  const anotherDrilled =
+    drillService &&
+    !isDrilled;
 
-  const anotherSelected =
-    selectedNode &&
-    selectedNode.id !== node.id;
+  const active =
+    activeNodeId ===
+    node.id;
 
-  useFrame(() => {
-    if (!meshRef.current) return;
-
-    let targetScale = 1;
-
-    if (hovered) {
-      targetScale = 1.1;
-    }
-
-    if (isSelected) {
-      targetScale = 1.16;
-    }
-
-    if (isActive) {
-      targetScale = 1.12;
-    }
-
-    meshRef.current.scale.lerp(
-      new THREE.Vector3(
-        targetScale,
-        targetScale,
-        targetScale
-      ),
-      0.1
-    );
-  });
+  const color =
+    active &&
+    node.sensitive
+      ? "#FB4D6D"
+      : node.color;
 
   return (
-    <group position={node.position}>
-      {isSelected && (
-        <SelectionRing
-          color={node.color}
-        />
-      )}
-
+    <group
+      position={
+        node.position
+      }
+    >
       <mesh
-        ref={meshRef}
         onClick={(event) => {
           event.stopPropagation();
-          onSelectNode(node);
+
+          onEnterService(
+            node
+          );
         }}
         onPointerOver={(event) => {
           event.stopPropagation();
+
           setHovered(true);
+
           document.body.style.cursor =
             "pointer";
         }}
         onPointerOut={() => {
           setHovered(false);
+
           document.body.style.cursor =
             "default";
         }}
       >
         <sphereGeometry
-          args={[0.14, 28, 28]}
+          args={[
+            isDrilled
+              ? 0.2
+              : 0.14,
+            48,
+            48,
+          ]}
         />
 
-        <meshStandardMaterial
-          color={
-            isActive &&
-            node.sensitive
-              ? "#FB4D6D"
-              : node.color
-          }
-          emissive={
-            isActive &&
-            node.sensitive
-              ? "#FB4D6D"
-              : node.color
-          }
+        <meshPhysicalMaterial
+          color={color}
+          emissive={color}
           emissiveIntensity={
-            isActive
-              ? 1.5
-              : isSelected
-              ? 1.1
-              : hovered
-              ? 0.8
-              : 0.35
+            active
+              ? 1.4
+              : hovered ||
+                isDrilled
+              ? 0.95
+              : 0.55
+          }
+          roughness={0.18}
+          metalness={0.12}
+          clearcoat={1}
+          clearcoatRoughness={
+            0.12
           }
           transparent
           opacity={
-            anotherSelected
-              ? 0.25
+            anotherDrilled
+              ? 0.08
               : 1
           }
-          roughness={0.35}
-          metalness={0.05}
         />
       </mesh>
 
+      {!anotherDrilled && (
+        <>
+          <GlowSphere
+            color={color}
+            radius={
+              isDrilled
+                ? 0.27
+                : 0.19
+            }
+            opacity={
+              active
+                ? 0.28
+                : 0.13
+            }
+          />
+
+          <GlowSphere
+            color={color}
+            radius={
+              isDrilled
+                ? 0.34
+                : 0.23
+            }
+            opacity={0.06}
+          />
+        </>
+      )}
+
       <Billboard>
         <Text
-          position={[0, -0.28, 0]}
-          fontSize={0.085}
+          position={[
+            0,
+            isDrilled
+              ? -0.38
+              : -0.29,
+            0,
+          ]}
+          fontSize={
+            isDrilled
+              ? 0.11
+              : 0.085
+          }
           color={
-            anotherSelected
-              ? "#475569"
-              : isSelected ||
-                hovered ||
-                isActive
-              ? "#FFFFFF"
-              : "#AAB8CC"
+            anotherDrilled
+              ? "#334155"
+              : "#E2E8F0"
           }
           anchorX="center"
-          anchorY="middle"
         >
           {node.name}
         </Text>
-
-        {isActive &&
-          node.sensitive && (
-            <Text
-              position={[0, 0.3, 0]}
-              fontSize={0.06}
-              color="#FB4D6D"
-              anchorX="center"
-            >
-              SENSITIVE
-            </Text>
-          )}
       </Billboard>
     </group>
   );
 }
 
-function CenterNode() {
-  const ref = useRef();
+function RequestParticle({
+  start,
+  end,
+  color,
+  offset,
+}) {
+  const ref =
+    useRef();
 
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
+  const curve =
+    useMemo(() => {
+      const a =
+        new THREE.Vector3(
+          ...start
+        );
 
-    const pulse =
-      1 +
-      Math.sin(
-        clock.getElapsedTime() * 1.7
-      ) *
-        0.012;
+      const b =
+        new THREE.Vector3(
+          ...end
+        );
 
-    ref.current.scale.setScalar(
-      pulse
-    );
-  });
+      const midpoint =
+        a.clone()
+          .lerp(b, 0.5);
+
+      midpoint.z +=
+        0.25;
+
+      return new THREE.QuadraticBezierCurve3(
+        a,
+        midpoint,
+        b
+      );
+    }, [
+      start,
+      end,
+    ]);
+
+  useFrame(
+    ({ clock }) => {
+      if (
+        !ref.current
+      ) {
+        return;
+      }
+
+      const t =
+        (clock.getElapsedTime() *
+          0.2 +
+          offset) %
+        1;
+
+      ref.current.position.copy(
+        curve.getPoint(t)
+      );
+    }
+  );
 
   return (
-    <group>
-      <mesh ref={ref}>
+    <group ref={ref}>
+      <mesh>
         <sphereGeometry
-          args={[0.36, 40, 40]}
+          args={[
+            0.025,
+            8,
+            8,
+          ]}
         />
 
-        <meshStandardMaterial
-          color="#22D3EE"
-          emissive="#22D3EE"
-          emissiveIntensity={0.65}
-          roughness={0.3}
+        <meshBasicMaterial
+          color={color}
         />
       </mesh>
 
+      <GlowSphere
+        color={color}
+        radius={0.055}
+        opacity={0.18}
+      />
+    </group>
+  );
+}
+
+function RequestNode({
+  request,
+  service,
+  position,
+  selectedRequest,
+  onSelectRequest,
+}) {
+  const [hovered, setHovered] =
+    useState(false);
+
+  const ref =
+    useRef();
+
+  const selected =
+    selectedRequest?.id ===
+    request.id;
+
+  useFrame(() => {
+    if (!ref.current) {
+      return;
+    }
+
+    const target =
+      selected
+        ? 1.2
+        : hovered
+        ? 1.1
+        : 1;
+
+    ref.current.scale.lerp(
+      new THREE.Vector3(
+        target,
+        target,
+        target
+      ),
+      0.1
+    );
+  });
+
+  const color =
+    request.sensitive
+      ? "#FB4D6D"
+      : service.color;
+
+  return (
+    <group
+      position={
+        position
+      }
+    >
+      <mesh
+        ref={ref}
+        onClick={(event) => {
+          event.stopPropagation();
+
+          onSelectRequest(
+            request
+          );
+        }}
+        onPointerOver={(event) => {
+          event.stopPropagation();
+
+          setHovered(true);
+
+          document.body.style.cursor =
+            "pointer";
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+
+          document.body.style.cursor =
+            "default";
+        }}
+      >
+        <sphereGeometry
+          args={[
+            0.1,
+            36,
+            36,
+          ]}
+        />
+
+        <meshPhysicalMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={
+            selected
+              ? 1.3
+              : hovered
+              ? 1
+              : 0.6
+          }
+          roughness={0.2}
+          clearcoat={1}
+          clearcoatRoughness={
+            0.15
+          }
+        />
+      </mesh>
+
+      <GlowSphere
+        color={color}
+        radius={0.145}
+        opacity={
+          selected
+            ? 0.26
+            : 0.12
+        }
+      />
+
       <Billboard>
         <Text
-          position={[0, -0.56, 0]}
+          position={[
+            0,
+            -0.22,
+            0,
+          ]}
+          fontSize={0.07}
+          color={
+            selected
+              ? "#FFFFFF"
+              : "#CBD5E1"
+          }
+          anchorX="center"
+        >
+          {request.name}
+        </Text>
+
+        <Text
+          position={[
+            0,
+            -0.31,
+            0,
+          ]}
+          fontSize={0.05}
+          color="#64748B"
+          anchorX="center"
+        >
+          {request.method}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+function DrillRequests({
+  service,
+  selectedRequest,
+  onSelectRequest,
+}) {
+  if (!service) {
+    return null;
+  }
+
+  return (
+    <>
+      {service.requests.map(
+        (
+          request,
+          index
+        ) => {
+          const offset =
+            requestOffsets[
+              index %
+                requestOffsets.length
+            ];
+
+          const requestPosition =
+            [
+              service.position[0] +
+                offset[0],
+
+              service.position[1] +
+                offset[1],
+
+              service.position[2] +
+                offset[2],
+            ];
+
+          const color =
+            request.sensitive
+              ? "#FB4D6D"
+              : service.color;
+
+          const midpoint = [
+            (service.position[0] +
+              requestPosition[0]) /
+              2,
+
+            (service.position[1] +
+              requestPosition[1]) /
+                2 +
+              0.15,
+
+            (service.position[2] +
+              requestPosition[2]) /
+                2 +
+              0.2,
+          ];
+
+          return (
+            <group
+              key={
+                request.id
+              }
+            >
+              <QuadraticBezierLine
+                start={
+                  service.position
+                }
+                end={
+                  requestPosition
+                }
+                mid={
+                  midpoint
+                }
+                color={
+                  color
+                }
+                lineWidth={
+                  selectedRequest?.id ===
+                  request.id
+                    ? 1.5
+                    : 0.65
+                }
+                transparent
+                opacity={
+                  selectedRequest &&
+                  selectedRequest.id !==
+                    request.id
+                    ? 0.12
+                    : 0.55
+                }
+              />
+
+              <RequestParticle
+                start={
+                  service.position
+                }
+                end={
+                  requestPosition
+                }
+                color={
+                  color
+                }
+                offset={0}
+              />
+
+              <RequestParticle
+                start={
+                  service.position
+                }
+                end={
+                  requestPosition
+                }
+                color={
+                  color
+                }
+                offset={0.5}
+              />
+
+              <RequestNode
+                request={
+                  request
+                }
+                service={
+                  service
+                }
+                position={
+                  requestPosition
+                }
+                selectedRequest={
+                  selectedRequest
+                }
+                onSelectRequest={
+                  onSelectRequest
+                }
+              />
+            </group>
+          );
+        }
+      )}
+    </>
+  );
+}
+
+function CenterNode({
+  drillService,
+}) {
+  if (drillService) {
+    return null;
+  }
+
+  return (
+    <group>
+      <mesh>
+        <sphereGeometry
+          args={[
+            0.36,
+            64,
+            64,
+          ]}
+        />
+
+        <meshPhysicalMaterial
+          color="#22D3EE"
+          emissive="#22D3EE"
+          emissiveIntensity={
+            0.9
+          }
+          roughness={0.16}
+          metalness={0.12}
+          clearcoat={1}
+          clearcoatRoughness={
+            0.1
+          }
+        />
+      </mesh>
+
+      <GlowSphere
+        color="#22D3EE"
+        radius={0.46}
+        opacity={0.18}
+      />
+
+      <GlowSphere
+        color="#22D3EE"
+        radius={0.58}
+        opacity={0.08}
+      />
+
+      <Billboard>
+        <Text
+          position={[
+            0,
+            -0.58,
+            0,
+          ]}
           fontSize={0.105}
           color="#F8FAFC"
           anchorX="center"
-          anchorY="middle"
         >
           MyHealth App
         </Text>
@@ -336,119 +823,100 @@ function CenterNode() {
   );
 }
 
-function Connection({
-  node,
-  selectedNode,
-  activeNodeId,
-  onSelectNode,
+function GraphRoot({
+  children,
+  drillService,
 }) {
-  const isSelected =
-    selectedNode?.id === node.id;
+  const ref =
+    useRef();
 
-  const isActive =
-    activeNodeId === node.id;
+  useFrame(() => {
+    if (!ref.current) {
+      return;
+    }
 
-  const anotherSelected =
-    selectedNode &&
-    selectedNode.id !== node.id;
+    const target =
+      drillService
+        ? new THREE.Vector3(
+            -drillService
+              .position[0],
+            -drillService
+              .position[1],
+            -drillService
+              .position[2]
+          )
+        : new THREE.Vector3(
+            0,
+            0,
+            0
+          );
 
-  const midpoint = [
-    node.position[0] * 0.5,
-    node.position[1] * 0.5 + 0.25,
-    node.position[2] * 0.45 + 0.4,
-  ];
-
-  let lineColor =
-    node.color;
-
-  if (
-    isActive &&
-    node.sensitive
-  ) {
-    lineColor = "#FB4D6D";
-  }
-
-  let opacity = 0.16;
-  let width = 0.4;
-
-  if (anotherSelected) {
-    opacity = 0.04;
-  }
-
-  if (isSelected) {
-    opacity = 0.8;
-    width = 1.25;
-  }
-
-  if (isActive) {
-    opacity = 0.95;
-    width = node.sensitive
-      ? 1.8
-      : 1.15;
-  }
+    ref.current.position.lerp(
+      target,
+      0.08
+    );
+  });
 
   return (
-    <>
-      <QuadraticBezierLine
-        start={[0, 0, 0]}
-        end={node.position}
-        mid={midpoint}
-        color={lineColor}
-        lineWidth={width}
-        transparent
-        opacity={opacity}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSelectNode(node);
-        }}
-      />
-
-      {!anotherSelected && (
-        <>
-          <FlowParticle
-            node={node}
-            offset={0}
-            active={isActive}
-          />
-
-          <FlowParticle
-            node={node}
-            offset={0.33}
-            active={isActive}
-          />
-
-          <FlowParticle
-            node={node}
-            offset={0.66}
-            active={isActive}
-          />
-        </>
-      )}
-    </>
+    <group ref={ref}>
+      {children}
+    </group>
   );
 }
 
 function Scene({
   nodes,
-  selectedNode,
+  selectedRequest,
+  drillService,
   activeNodeId,
-  onSelectNode,
+  onEnterService,
+  onSelectRequest,
 }) {
+  const controlsRef =
+    useRef();
+
   return (
     <>
-      <ResponsiveCamera />
+      <ResponsiveCamera
+        drillService={
+          drillService
+        }
+        controlsRef={
+          controlsRef
+        }
+      />
 
-      <ambientLight intensity={0.45} />
+      <ambientLight
+        intensity={0.22}
+      />
 
-      <pointLight
-        position={[4, 5, 6]}
-        intensity={5}
+      <directionalLight
+        position={[
+          5,
+          6,
+          8,
+        ]}
+        intensity={2.8}
       />
 
       <pointLight
-        position={[-4, -2, 3]}
-        intensity={1.5}
-        color="#8B5CF6"
+        position={[
+          -5,
+          2,
+          4,
+        ]}
+        intensity={3}
+        color="#38BDF8"
+      />
+
+      <pointLight
+        position={[
+          4,
+          -4,
+          2,
+        ]}
+        intensity={2.4}
+        color="#A855F7"
       />
 
       <Stars
@@ -461,35 +929,144 @@ function Scene({
         speed={0.025}
       />
 
-      <CenterNode />
+      <GraphRoot
+        drillService={
+          drillService
+        }
+      >
+        <CenterNode
+          drillService={
+            drillService
+          }
+        />
 
-      {nodes.map((node) => (
-        <group key={node.id}>
-          <Connection
-            node={node}
-            selectedNode={selectedNode}
-            activeNodeId={activeNodeId}
-            onSelectNode={onSelectNode}
-          />
+        {nodes.map(
+          (node) => (
+            <group
+              key={
+                node.id
+              }
+            >
+              {!drillService && (
+                <>
+                  <QuadraticBezierLine
+                    start={[
+                      0,
+                      0,
+                      0,
+                    ]}
+                    end={
+                      node.position
+                    }
+                    mid={[
+                      node.position[0] *
+                        0.5,
+                      node.position[1] *
+                          0.5 +
+                        0.25,
+                      node.position[2] *
+                          0.45 +
+                        0.4,
+                    ]}
+                    color={
+                      node.color
+                    }
+                    lineWidth={
+                      activeNodeId ===
+                      node.id
+                        ? 1.2
+                        : 0.45
+                    }
+                    transparent
+                    opacity={
+                      activeNodeId ===
+                      node.id
+                        ? 0.85
+                        : 0.18
+                    }
+                  />
 
-          <ServiceNode
-            node={node}
-            selectedNode={selectedNode}
-            activeNodeId={activeNodeId}
-            onSelectNode={onSelectNode}
-          />
-        </group>
-      ))}
+                  <ServiceParticle
+                    node={
+                      node
+                    }
+                    offset={
+                      0
+                    }
+                    active={
+                      activeNodeId ===
+                      node.id
+                    }
+                  />
+
+                  <ServiceParticle
+                    node={
+                      node
+                    }
+                    offset={
+                      0.5
+                    }
+                    active={
+                      activeNodeId ===
+                      node.id
+                    }
+                  />
+                </>
+              )}
+
+              <ServiceNode
+                node={node}
+                drillService={
+                  drillService
+                }
+                activeNodeId={
+                  activeNodeId
+                }
+                onEnterService={
+                  onEnterService
+                }
+              />
+            </group>
+          )
+        )}
+
+        <DrillRequests
+          service={
+            drillService
+          }
+          selectedRequest={
+            selectedRequest
+          }
+          onSelectRequest={
+            onSelectRequest
+          }
+        />
+      </GraphRoot>
 
       <OrbitControls
+        ref={controlsRef}
         enablePan={false}
-        minDistance={7}
-        maxDistance={16}
+        minDistance={
+          drillService
+            ? 4.5
+            : 7
+        }
+        maxDistance={
+          drillService
+            ? 10
+            : 16
+        }
         zoomSpeed={0.55}
-        autoRotate={!selectedNode}
-        autoRotateSpeed={0.035}
+        autoRotate={
+          !drillService
+        }
+        autoRotateSpeed={
+          0.04
+        }
         enableDamping
-        dampingFactor={0.06}
+        dampingFactor={
+          0.06
+        }
       />
     </>
   );
@@ -497,28 +1074,57 @@ function Scene({
 
 export default function NetworkScene({
   nodes,
-  selectedNode,
+  selectedRequest,
+  drillService,
   activeNodeId,
-  onSelectNode,
+  onEnterService,
+  onSelectRequest,
+  onClear,
 }) {
   return (
     <Canvas
       camera={{
-        position: [0, 0, 9],
+        position: [
+          0,
+          0,
+          9,
+        ],
         fov: 40,
         near: 0.1,
         far: 100,
       }}
       dpr={[1, 2]}
-      onPointerMissed={() =>
-        onSelectNode(null)
+      gl={{
+        antialias: true,
+
+        toneMapping:
+          THREE
+            .ACESFilmicToneMapping,
+
+        toneMappingExposure:
+          1.15,
+      }}
+      onPointerMissed={
+        onClear
       }
     >
       <Scene
         nodes={nodes}
-        selectedNode={selectedNode}
-        activeNodeId={activeNodeId}
-        onSelectNode={onSelectNode}
+        selectedRequest={
+          selectedRequest
+        }
+        drillService={
+          drillService
+        }
+        activeNodeId={
+          activeNodeId
+        }
+        onEnterService={
+          onEnterService
+        }
+        onSelectRequest={
+          onSelectRequest
+        }
       />
     </Canvas>
   );

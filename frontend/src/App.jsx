@@ -17,6 +17,7 @@ function createEvent(template, number) {
   return {
     ...template,
     runtimeId: `${template.id}-${number}`,
+
     timestamp: new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -26,11 +27,17 @@ function createEvent(template, number) {
 }
 
 function App() {
+  const [mode, setMode] =
+    useState("normal");
+
   const [selectedNode, setSelectedNode] =
     useState(null);
 
-  const [mode, setMode] =
-    useState("normal");
+  const [selectedRequest, setSelectedRequest] =
+    useState(null);
+
+  const [viewServiceId, setViewServiceId] =
+    useState(null);
 
   const [events, setEvents] =
     useState([]);
@@ -41,8 +48,17 @@ function App() {
   const eventIndex = useRef(0);
   const eventNumber = useRef(0);
 
+  const drillService = useMemo(
+    () =>
+      mockNodes.find(
+        (node) =>
+          node.id === viewServiceId
+      ) || null,
+    [viewServiceId]
+  );
+
   useEffect(() => {
-    const addNextEvent = () => {
+    function addNextEvent() {
       const template =
         mockEventSequence[
           eventIndex.current %
@@ -51,47 +67,76 @@ function App() {
 
       eventNumber.current += 1;
 
-      const event = createEvent(
-        template,
-        eventNumber.current
-      );
+      const event =
+        createEvent(
+          template,
+          eventNumber.current
+        );
 
       setEvents((current) => {
-        const updated = [...current, event];
+        const updated = [
+          ...current,
+          event,
+        ];
 
         return updated.slice(-8);
       });
 
-      setActiveNodeId(template.nodeId);
+      setActiveNodeId(
+        template.nodeId
+      );
 
       eventIndex.current += 1;
 
       window.setTimeout(() => {
         setActiveNodeId((current) =>
-          current === template.nodeId
+          current ===
+          template.nodeId
             ? null
             : current
         );
       }, 2200);
-    };
+    }
 
     addNextEvent();
 
-    const interval = window.setInterval(
-      addNextEvent,
-      4200
-    );
+    const interval =
+      window.setInterval(
+        addNextEvent,
+        4200
+      );
 
     return () =>
-      window.clearInterval(interval);
+      window.clearInterval(
+        interval
+      );
   }, []);
 
+  function enterService(service) {
+    setSelectedNode(service);
+    setSelectedRequest(null);
+    setViewServiceId(service.id);
+  }
+
+  function goBack() {
+    setViewServiceId(null);
+    setSelectedRequest(null);
+    setSelectedNode(null);
+  }
+
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setSelectedNode(null);
+    function handleKeyDown(event) {
+      if (event.key !== "Escape") {
+        return;
       }
-    };
+
+      if (viewServiceId) {
+        goBack();
+      } else {
+        setSelectedNode(null);
+        setSelectedRequest(null);
+      }
+    }
 
     window.addEventListener(
       "keydown",
@@ -103,42 +148,51 @@ function App() {
         "keydown",
         handleKeyDown
       );
-  }, []);
+  }, [viewServiceId]);
 
-  const sensitiveCount = useMemo(
-    () =>
-      events.filter(
-        (event) => event.sensitive
-      ).length,
-    [events]
-  );
+  function selectTimelineEvent(event) {
+    const service =
+      mockNodes.find(
+        (node) =>
+          node.id === event.nodeId
+      );
 
-  const contactedServices = useMemo(
-    () =>
-      new Set(
-        events.map(
-          (event) => event.nodeId
-        )
-      ).size,
-    [events]
-  );
+    if (!service) return;
 
-  function selectFromTimeline(event) {
-    const node = mockNodes.find(
-      (item) =>
-        item.id === event.nodeId
-    );
+    const request =
+      service.requests.find(
+        (item) =>
+          item.id ===
+          event.requestId
+      );
 
-    if (node) {
-      setSelectedNode(node);
+    setSelectedNode(service);
+    setViewServiceId(service.id);
+
+    if (request) {
+      setSelectedRequest(request);
     }
   }
+
+  const sensitiveCount =
+    events.filter(
+      (event) => event.sensitive
+    ).length;
+
+  const contactedServices =
+    new Set(
+      events.map(
+        (event) =>
+          event.nodeId
+      )
+    ).size;
 
   return (
     <div className="app">
       <header className="topbar">
         <div className="brand">
           <h1>HealthTrace</h1>
+
           <span className="subtitle">
             Live data flow
           </span>
@@ -209,49 +263,136 @@ function App() {
             </span>
           </div>
 
-          <div className="session-summary">
-            <span className="session-label">
-              Current session
-            </span>
+          <div className="breadcrumb">
+            <button
+              className={
+                drillService
+                  ? "breadcrumb-link"
+                  : "breadcrumb-current"
+              }
+              onClick={
+                drillService
+                  ? goBack
+                  : undefined
+              }
+            >
+              MyHealth App
+            </button>
 
-            <div className="summary-stat">
-              <strong>
-                {contactedServices}
-              </strong>
-              <span>
-                services contacted
-              </span>
-            </div>
+            {drillService && (
+              <>
+                <span className="breadcrumb-arrow">
+                  ›
+                </span>
 
-            <div className="summary-stat">
-              <strong>
-                {sensitiveCount}
-              </strong>
-              <span>
-                sensitive events
-              </span>
-            </div>
-
-            <div className="summary-stat">
-              <strong>
-                {events.length}
-              </strong>
-              <span>
-                events observed
-              </span>
-            </div>
+                <span className="breadcrumb-current">
+                  {drillService.name}
+                </span>
+              </>
+            )}
           </div>
+
+          {!drillService && (
+            <div className="session-summary">
+              <span className="session-label">
+                Current session
+              </span>
+
+              <div className="summary-stat">
+                <strong>
+                  {contactedServices}
+                </strong>
+
+                <span>
+                  services contacted
+                </span>
+              </div>
+
+              <div className="summary-stat">
+                <strong>
+                  {sensitiveCount}
+                </strong>
+
+                <span>
+                  sensitive events
+                </span>
+              </div>
+
+              <div className="summary-stat">
+                <strong>
+                  {events.length}
+                </strong>
+
+                <span>
+                  events observed
+                </span>
+              </div>
+            </div>
+          )}
+
+          {drillService && (
+            <div className="drill-summary">
+              <span className="session-label">
+                Service requests
+              </span>
+
+              <strong>
+                {
+                  drillService
+                    .requests
+                    .length
+                }
+              </strong>
+
+              <span>
+                observed requests
+              </span>
+            </div>
+          )}
 
           <NetworkScene
             nodes={mockNodes}
-            selectedNode={selectedNode}
-            activeNodeId={activeNodeId}
-            onSelectNode={setSelectedNode}
+            selectedNode={
+              selectedNode
+            }
+            selectedRequest={
+              selectedRequest
+            }
+            drillService={
+              drillService
+            }
+            activeNodeId={
+              activeNodeId
+            }
+            onEnterService={
+              enterService
+            }
+            onSelectRequest={
+              setSelectedRequest
+            }
+            onClear={() => {
+              if (
+                !drillService
+              ) {
+                setSelectedNode(
+                  null
+                );
+              }
+
+              setSelectedRequest(
+                null
+              );
+            }}
           />
         </section>
 
         <DetailsPanel
-          selectedNode={selectedNode}
+          selectedNode={
+            selectedNode
+          }
+          selectedRequest={
+            selectedRequest
+          }
           mode={mode}
         />
       </main>
@@ -269,25 +410,27 @@ function App() {
         </div>
 
         <div className="timeline-events">
-          {events.length === 0 ? (
-            <div className="timeline-empty">
-              Waiting for network activity…
-            </div>
-          ) : (
-            events.map((event) => (
+          {events.map(
+            (event) => (
               <button
-                key={event.runtimeId}
+                key={
+                  event.runtimeId
+                }
                 className={`timeline-event ${
                   event.sensitive
                     ? "sensitive"
                     : ""
                 }`}
                 onClick={() =>
-                  selectFromTimeline(event)
+                  selectTimelineEvent(
+                    event
+                  )
                 }
               >
                 <span className="timeline-time">
-                  {event.timestamp}
+                  {
+                    event.timestamp
+                  }
                 </span>
 
                 <span className="timeline-event-body">
@@ -304,7 +447,7 @@ function App() {
                   <span className="sensitive-dot" />
                 )}
               </button>
-            ))
+            )
           )}
         </div>
       </footer>
