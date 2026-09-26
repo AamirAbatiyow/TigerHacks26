@@ -37,12 +37,15 @@ def analyze(event):
         return
 
     print("\n=== OBSERVED REQUEST ===", flush=True)
+    print("Timestamp:", _shown(event, "timestamp"), flush=True)
     print("Source:", _shown(event, "source"), flush=True)
+    print("Scheme:", _shown(event, "scheme"), flush=True)
     print("Method:", _shown(event, "method"), flush=True)
     print("Host:", _shown(event, "host"), flush=True)
     print("Path:", _shown(event, "path"), flush=True)
     print("Destination IP:", _shown(event, "destination_ip"), flush=True)
     print("Destination Port:", _shown(event, "destination_port"), flush=True)
+    print("Content-Type:", _shown(event, "content_type"), flush=True)
 
     body = event.get("body")
     if isinstance(body, (dict, list)):

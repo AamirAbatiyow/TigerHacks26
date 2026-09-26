@@ -1,6 +1,7 @@
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,6 +23,7 @@ TSHARK_CMD = [
     "-e", "ip.dst",
     "-e", "tcp.dstport",
     "-e", "http.host",
+    "-e", "http.content_type",
     "-e", "http.file_data",
 ]
 
@@ -51,22 +53,30 @@ def parse_tshark_line(line):
     if not any(part.strip() for part in fields):
         return None
 
-    while len(fields) < 6:
+    while len(fields) < 7:
         fields.append("")
 
-    method, path, destination_ip, destination_port, host = fields[:5]
-    file_data = "\t".join(fields[5:])
+    method = fields[0].strip()
+    path = fields[1].strip()
+    destination_ip = fields[2].strip()
+    destination_port = fields[3].strip()
+    host = fields[4].strip()
+    content_type = fields[5].strip()
+    file_data = "\t".join(fields[6:])
     if not method:
         return None
 
     port = int(destination_port) if destination_port.isdigit() else None
     return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": "tshark",
+        "scheme": "http",
         "method": method,
         "host": host or None,
         "path": path or None,
         "destination_ip": destination_ip or None,
         "destination_port": port if port is not None else (destination_port or None),
+        "content_type": content_type or None,
         "body": parse_body(decode_file_data(file_data)),
     }
 
