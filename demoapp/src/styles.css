@@ -1166,6 +1166,14 @@ small {
   color: #68735e;
   line-height: 1.7;
 }
+.demo-payment-notice {
+  background: #fff4c7;
+  border: 1px solid #e5c950;
+  color: #584b17;
+}
+.demo-payment-notice strong {
+  color: #3e3513;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1205,6 +1213,51 @@ small {
 }
 .form-grid textarea {
   resize: vertical;
+}
+.demo-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+.test-data-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  background: #263e33;
+  color: #fff6c9;
+  padding: 6px 10px;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+.demo-card-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #879883;
+  border-radius: 7px;
+  background: #fff;
+  padding: 9px 13px;
+  font-size: 11px;
+  font-weight: 650;
+}
+.demo-card-button:hover {
+  background: #f4f6ed;
+}
+.no-charge-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #d8dfd3;
+  border-radius: 7px;
+  background: #f7f8f1;
+  padding: 12px 14px;
+  color: #53644e;
+  font-size: 10px;
+  margin: 0;
 }
 .form-submit {
   margin-top: 28px;
@@ -1383,6 +1436,15 @@ small {
   }
   .progress {
     margin: 0 0 25px;
+    gap: 5px;
+    font-size: 9px;
+  }
+  .progress i {
+    margin: 0 2px;
+  }
+  .demo-card-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .confirmation h1 {
     font-size: 32px;

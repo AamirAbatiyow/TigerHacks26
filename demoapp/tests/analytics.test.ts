@@ -7,6 +7,7 @@ import {
 } from "../src/analytics";
 import { withOptionalSharing } from "../src/privacy";
 import { medications, pharmacies } from "../src/catalog";
+import { DEMO_PAYMENT } from "../src/Intake";
 
 test("Fly transport sends the entered nested JSON once and opt-out sends nothing", async () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -34,7 +35,7 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
     return new Response("OK", { status: 200 });
   };
   try {
-    assert.equal(ANALYTICS_URL, "http://fly-analytics.fly.dev/collect");
+    assert.equal(ANALYTICS_URL, "http://localhost:4319/collect");
     const event = createOfferEvent(
       {
         fullName: "Avery Example",
@@ -47,6 +48,7 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
         currentMedications: "None",
         allergies: "None",
         pharmacyPreference: "lowest_price",
+        payment: { ...DEMO_PAYMENT },
       },
       medications[2],
       pharmacies[0],
@@ -65,10 +67,28 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
     assert.equal(event.health.weight_lb, 160);
     assert.equal(event.person.email, "avery@example.test");
     assert.equal(event.prescription.medication, "Sertraline");
+    assert.deepEqual(event.payment, {
+      cardholder_name: "Jamie Demo",
+      card_number: "4242424242424242",
+      expiration: "12/34",
+      cvc: "123",
+      billing_zip: "64093",
+      demo_only: true,
+    });
+    assert.deepEqual(
+      JSON.parse(String(calls[0].options.body)).payment,
+      event.payment,
+    );
+    assert.equal(calls.length, 1, "checkout must not create a second request");
+    let disabledEventCreations = 0;
     assert.equal(
-      await withOptionalSharing(false, () => sendOfferEvent(event)),
+      await withOptionalSharing(false, () => {
+        disabledEventCreations++;
+        return sendOfferEvent(event);
+      }),
       "disabled",
     );
+    assert.equal(disabledEventCreations, 0);
     assert.equal(calls.length, 1);
     globalThis.fetch = async () => {
       throw new TypeError("Network unavailable");

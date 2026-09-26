@@ -1,6 +1,32 @@
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, Pill, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CreditCard,
+  Pill,
+  ShieldCheck,
+} from "lucide-react";
 import { money, type Medication, type Pharmacy } from "./catalog";
+
+export type DemoPaymentData = {
+  cardholderName: string;
+  cardNumber: string;
+  expiration: string;
+  cvc: string;
+  billingZip: string;
+  demoOnly: true;
+};
+
+export const DEMO_PAYMENT: DemoPaymentData = {
+  cardholderName: "Jamie Demo",
+  cardNumber: "4242 4242 4242 4242",
+  expiration: "12/34",
+  cvc: "123",
+  billingZip: "64093",
+  demoOnly: true,
+};
+
 export type IntakeData = {
   fullName: string;
   email: string;
@@ -12,6 +38,7 @@ export type IntakeData = {
   allergies: string;
   duration: string;
   pharmacyPreference: string;
+  payment: DemoPaymentData;
 };
 const empty: IntakeData = {
   fullName: "",
@@ -24,6 +51,29 @@ const empty: IntakeData = {
   allergies: "",
   duration: "",
   pharmacyPreference: "",
+  payment: {
+    cardholderName: "",
+    cardNumber: "",
+    expiration: "",
+    cvc: "",
+    billingZip: "",
+    demoOnly: true,
+  },
+};
+
+const digitsOnly = (value: string, maxLength: number) =>
+  value.replace(/\D/g, "").slice(0, maxLength);
+
+const formatCardNumber = (value: string) =>
+  digitsOnly(value, 16)
+    .replace(/(.{4})/g, "$1 ")
+    .trim();
+
+const formatExpiration = (value: string) => {
+  const digits = digitsOnly(value, 4);
+  return digits.length > 2
+    ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+    : digits;
 };
 export type CompletedOffer = {
   medication: Medication;
@@ -44,8 +94,25 @@ export function Intake({
   const [data, setData] = useState<IntakeData>({ ...empty });
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
-  const update = (name: keyof IntakeData, value: string) => {
+  const update = (
+    name: Exclude<keyof IntakeData, "payment">,
+    value: string,
+  ) => {
     setData((d) => ({ ...d, [name]: value }));
+    setError("");
+  };
+  const updatePayment = (
+    name: Exclude<keyof DemoPaymentData, "demoOnly">,
+    value: string,
+  ) => {
+    setData((current) => ({
+      ...current,
+      payment: { ...current.payment, [name]: value },
+    }));
+    setError("");
+  };
+  const useDemoCard = () => {
+    setData((current) => ({ ...current, payment: { ...DEMO_PAYMENT } }));
     setError("");
   };
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -60,6 +127,7 @@ export function Intake({
       return;
     }
     if (
+      step === 2 &&
       ![
         data.healthConcern,
         data.symptoms,
@@ -72,47 +140,105 @@ export function Intake({
       );
       return;
     }
-    onComplete(
-      Object.fromEntries(
-        Object.entries(data).map(([key, value]) => [key, value.trim()]),
-      ) as IntakeData,
-    );
+    if (step === 2) {
+      setStep(3);
+      window.scrollTo(0, 0);
+      return;
+    }
+    if (
+      ![
+        data.payment.cardholderName,
+        data.payment.cardNumber,
+        data.payment.expiration,
+        data.payment.cvc,
+        data.payment.billingZip,
+      ].every((value) => value.trim())
+    ) {
+      setError("Please complete every demo payment field.");
+      return;
+    }
+    onComplete({
+      fullName: data.fullName.trim(),
+      email: data.email.trim(),
+      zipCode: data.zipCode.trim(),
+      weightLb: data.weightLb.trim(),
+      healthConcern: data.healthConcern.trim(),
+      symptoms: data.symptoms.trim(),
+      currentMedications: data.currentMedications.trim(),
+      allergies: data.allergies.trim(),
+      duration: data.duration.trim(),
+      pharmacyPreference: data.pharmacyPreference.trim(),
+      payment: {
+        cardholderName: data.payment.cardholderName.trim(),
+        cardNumber: data.payment.cardNumber.trim(),
+        expiration: data.payment.expiration.trim(),
+        cvc: data.payment.cvc.trim(),
+        billingZip: data.payment.billingZip.trim(),
+        demoOnly: true,
+      },
+    });
   };
   return (
     <section className="wrap section intake-section">
       <button
         className="text-btn"
-        onClick={step === 1 ? onBack : () => setStep(1)}
+        onClick={step === 1 ? onBack : () => setStep((current) => current - 1)}
       >
         <ArrowLeft size={16} />{" "}
-        {step === 1 ? "Back to pharmacy offers" : "Back to your details"}
+        {step === 1
+          ? "Back to pharmacy offers"
+          : step === 2
+            ? "Back to your details"
+            : "Back to health profile"}
       </button>
       <div className="intake-layout">
         <div>
-          <div className="progress" aria-label={`Step ${step} of 2`}>
+          <div className="progress" aria-label={`Step ${step} of 3`}>
             <span className={step === 1 ? "current" : "done"}>
-              {step === 2 ? <Check size={12} /> : "1"}
+              {step > 1 ? <Check size={12} /> : "1"}
             </span>{" "}
             Your details <i />
-            <span className={step === 2 ? "current" : ""}>2</span> Health
-            profile
+            <span className={step === 2 ? "current" : step > 2 ? "done" : ""}>
+              {step > 2 ? <Check size={12} /> : "2"}
+            </span>{" "}
+            Health profile <i />
+            <span className={step === 3 ? "current" : ""}>3</span> Demo checkout
           </div>
           <span className="eyebrow">
-            {step === 1 ? "LET’S MAKE IT PERSONAL" : "A LITTLE MORE ABOUT YOU"}
+            {step === 1
+              ? "LET’S MAKE IT PERSONAL"
+              : step === 2
+                ? "A LITTLE MORE ABOUT YOU"
+                : "TEST DATA ONLY"}
           </span>
           <h1>
             {step === 1
               ? "Your next step starts here."
-              : "Tell us about your health."}
+              : step === 2
+                ? "Tell us about your health."
+                : "Demo Checkout"}
           </h1>
           <p>
             {step === 1
               ? "Add your details to prepare your selected offer."
-              : "Share a little context for your personal offer summary."}
+              : step === 2
+                ? "Share a little context for your personal offer summary."
+                : "This is a fictional checkout used only for the network privacy demonstration. No payment will be processed."}
           </p>
-          <p className="form-note">
-            Use   details only. All fields are required. This
-            questionnaire does not provide a medical assessment.
+          <p className={`form-note ${step === 3 ? "demo-payment-notice" : ""}`}>
+            {step === 3 ? (
+              <>
+                <strong>
+                  Demo payment — use fictional test information only.
+                </strong>{" "}
+                Do not enter a real credit card.
+              </>
+            ) : (
+              <>
+                Use fictional details only. All fields are required. This
+                questionnaire does not provide a medical assessment.
+              </>
+            )}
           </p>
           <form id="offer-intake-form" autoComplete="off" onSubmit={submit}>
             <div className="form-grid">
@@ -193,7 +319,7 @@ export function Intake({
                     </select>
                   </label>
                 </>
-              ) : (
+              ) : step === 2 ? (
                 <>
                   <label className="full">
                     What health concern brings you here?
@@ -263,6 +389,119 @@ export function Intake({
                     />
                   </label>
                 </>
+              ) : (
+                <>
+                  <div className="full demo-card-heading">
+                    <span className="test-data-badge">TEST DATA ONLY</span>
+                    <button
+                      id="use-demo-card-button"
+                      className="demo-card-button"
+                      type="button"
+                      onClick={useDemoCard}
+                    >
+                      <CreditCard size={16} /> Use Demo Card
+                    </button>
+                  </div>
+                  <label className="full">
+                    Cardholder name
+                    <input
+                      name="demoCardholderName"
+                      autoComplete="off"
+                      required
+                      maxLength={100}
+                      value={data.payment.cardholderName}
+                      onChange={(event) =>
+                        updatePayment("cardholderName", event.target.value)
+                      }
+                      placeholder="Jamie Demo"
+                    />
+                  </label>
+                  <label className="full">
+                    Demo card number
+                    <input
+                      name="demoCardNumber"
+                      autoComplete="off"
+                      inputMode="numeric"
+                      required
+                      pattern="4242 4242 4242 4242"
+                      title="Use the displayed demo card number: 4242 4242 4242 4242"
+                      maxLength={19}
+                      value={data.payment.cardNumber}
+                      onChange={(event) =>
+                        updatePayment(
+                          "cardNumber",
+                          formatCardNumber(event.target.value),
+                        )
+                      }
+                      placeholder="4242 4242 4242 4242"
+                      aria-describedby="demo-card-safety"
+                    />
+                    <small id="demo-card-safety">
+                      Only the displayed synthetic demo number is accepted.
+                    </small>
+                  </label>
+                  <label>
+                    Expiration date
+                    <input
+                      name="demoExpiration"
+                      autoComplete="off"
+                      inputMode="numeric"
+                      required
+                      pattern="(0[1-9]|1[0-2])/[0-9]{2}"
+                      title="Use MM/YY format"
+                      maxLength={5}
+                      value={data.payment.expiration}
+                      onChange={(event) =>
+                        updatePayment(
+                          "expiration",
+                          formatExpiration(event.target.value),
+                        )
+                      }
+                      placeholder="MM/YY"
+                    />
+                  </label>
+                  <label>
+                    CVC
+                    <input
+                      name="demoCvc"
+                      autoComplete="off"
+                      inputMode="numeric"
+                      required
+                      pattern="[0-9]{3}"
+                      title="Enter three digits"
+                      maxLength={3}
+                      value={data.payment.cvc}
+                      onChange={(event) =>
+                        updatePayment("cvc", digitsOnly(event.target.value, 3))
+                      }
+                      placeholder="123"
+                    />
+                  </label>
+                  <label className="full">
+                    Billing ZIP
+                    <input
+                      name="demoBillingZip"
+                      autoComplete="off"
+                      inputMode="numeric"
+                      required
+                      pattern="[0-9]{5}"
+                      title="Enter five digits"
+                      maxLength={5}
+                      value={data.payment.billingZip}
+                      onChange={(event) =>
+                        updatePayment(
+                          "billingZip",
+                          digitsOnly(event.target.value, 5),
+                        )
+                      }
+                      placeholder="64093"
+                    />
+                  </label>
+                  <p className="full no-charge-note">
+                    <ShieldCheck size={17} /> No charge, authorization, or
+                    payment-provider request will occur.
+                  </p>
+                </>
               )}
             </div>
             {error && (
@@ -272,17 +511,21 @@ export function Intake({
             )}
             <button
               id={
-                step === 2 ? "confirm-offer-button" : "continue-intake-button"
+                step === 3 ? "confirm-offer-button" : "continue-intake-button"
               }
               className="dark-btn form-submit"
               type="submit"
             >
-              {step === 1 ? "Continue to health profile" : "Confirm my offer"}
+              {step === 1
+                ? "Continue to health profile"
+                : step === 2
+                  ? "Continue to demo checkout"
+                  : "Confirm my offer"}
               <ArrowRight size={17} />
             </button>
             <p className="form-footnote">
-              <ShieldCheck size={14} /> Your selected offer is free to explore.
-              No payment details needed.
+              <ShieldCheck size={14} /> This is a fictional demonstration. No
+              purchase or payment will be processed.
             </p>
           </form>
         </div>
@@ -302,7 +545,7 @@ export function Intake({
             </span>
             <div>
               <strong>{pharmacy.name}</strong>
-              <small>  pharmacy</small>
+              <small>Fictional pharmacy</small>
             </div>
           </div>
           <div className="summary-price">
