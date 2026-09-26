@@ -127,7 +127,7 @@ export function Intake({
                       maxLength={100}
                       value={data.fullName}
                       onChange={(e) => update("fullName", e.target.value)}
-                      placeholder="Enter a   full name"
+                      placeholder="Enter a full name"
                     />
                   </label>
                   <label className="full">
@@ -140,7 +140,7 @@ export function Intake({
                       maxLength={150}
                       value={data.email}
                       onChange={(e) => update("email", e.target.value)}
-                      placeholder="Enter a   email address"
+                      placeholder="Enter a email address"
                     />
                     <small>No email will be sent.</small>
                   </label>
@@ -204,7 +204,7 @@ export function Intake({
                       maxLength={200}
                       value={data.healthConcern}
                       onChange={(e) => update("healthConcern", e.target.value)}
-                      placeholder="Describe a   health concern"
+                      placeholder="Describe a health concern"
                     />
                   </label>
                   <label className="full">
