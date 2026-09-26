@@ -867,3 +867,74 @@ button {
       240px;
   }
 }
+/* Network observatory: restrained color, clear controls, spacious inspector. */
+:root { color: #d9e4f5; background: #060a17; }
+.app { grid-template-rows: 82px minmax(0, 1fr) 128px; background: #060a17; }
+.topbar { position: relative; padding: 0 28px; background: #090f22; border-color: #202b46; }
+.brand { position: relative; display: grid; grid-template-columns: 44px auto; column-gap: 12px; align-items: center; }
+.brand-logo { width: 43px; height: 34px; grid-row: 1 / 3; object-fit: contain; }
+.topbar h1 { color: #f2f6ff; font-size: 21px; font-weight: 650; letter-spacing: -.5px; }
+.subtitle { margin: 3px 0 0; color: #99aac3; font-size: 12px; }
+.topbar-actions { gap: 22px; }
+.mode-toggle { position: absolute; left: 50%; transform: translateX(-50%); padding: 3px; border-color: #293754; border-radius: 9px; background: #0c152b; }
+.mode-toggle button { padding: 10px 20px; border-radius: 6px; font-size: 12px; color: #a6b6cc; }
+.mode-toggle button.active { color: #eaf7ff; background: #174667; box-shadow: inset 0 0 0 1px #2c6485; }
+.status { font-size: 12px; color: #a8b8cc; }
+.status-dot { display: none; }
+.workspace { grid-template-columns: minmax(0, 1fr) 326px; }
+.visualization { background: radial-gradient(ellipse 65% 80% at 20% 15%, #18185085, transparent 75%), radial-gradient(ellipse 45% 70% at 82% 85%, #07344765, transparent 80%), #060b1c; }
+.legend { top: 65px; left: 22px; flex-direction: column; gap: 12px; padding: 16px; border-color: #263352; border-radius: 10px; background: #0a1127b8; color: #c1cde0; font-size: 11px; }
+.legend span { gap: 9px; }
+.legend i { width: 12px; height: 3px; border-radius: 2px; }
+.breadcrumb { top: 20px; left: 22px; padding: 8px 12px; border-color: #273652; border-radius: 7px; background: #0b1226b8; font-size: 11px; }
+.breadcrumb-link { color: #8adce8; }
+.session-summary, .drill-summary { left: 22px; bottom: 20px; padding: 12px 15px; border-color: #263352; border-radius: 10px; background: #0a1127b8; }
+.session-label { color: #96a8c1; font-size: 10px; letter-spacing: .4px; }
+.summary-stat strong { font-size: 13px; color: #e3ecfa; }
+.summary-stat span, .drill-summary span { font-size: 11px; color: #a0b1ca; }
+.service-symbol { width: 21px; height: 21px; color: #fff; filter: drop-shadow(0 1px 2px #0008); }
+.center-symbol { width: 40px; height: 40px; color: #d9ffff; filter: drop-shadow(0 1px 3px #00677a); }
+.details-panel { margin: 16px 16px 16px 0; padding: 22px; border: 1px solid #283652; border-radius: 12px; background: linear-gradient(150deg, #101a30, #0a1022); }
+.inspector-symbol { float: left; display: grid; place-items: center; width: 44px; height: 44px; margin: 0 12px 14px 0; color: var(--service-color); background: #151f3b; border: 1px solid #33405f; border-radius: 10px; }
+.inspector-symbol svg { width: 25px; height: 25px; }
+.panel-label { color: #9baac4; font-size: 10px; letter-spacing: .5px; }
+.details-panel h2 { margin-top: 7px; color: #ecf2fc; font-size: 20px; font-weight: 600; letter-spacing: -.4px; }
+.category-row { clear: both; color: #a7b9d3; font-size: 12px; }
+.category-dot { display: none; }
+.details-panel p { color: #aebed5; font-size: 12px; line-height: 1.65; }
+.human-summary { font-size: 12px !important; color: #c4d0e2 !important; }
+.detail-section { margin-top: 23px; }
+.detail-section h3 { color: #b8c7dc; font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.request-list button { display: block; position: relative; width: 100%; padding: 10px 26px 10px 12px; margin-top: 7px; text-align: left; color: #d6e3f5; border: 1px solid #293953; border-radius: 8px; background: #111d34; cursor: pointer; }
+.request-list button:hover { background: #192c48; border-color: #466080; }
+.request-list button > span:first-child { display: block; font-size: 12px; text-transform: capitalize; }
+.request-list small { display: block; margin-top: 4px; color: #92abc7; font-size: 10px; }
+.request-chevron { position: absolute; right: 12px; top: 14px; color: #9ebad8; font-size: 19px; }
+.service-request-count strong { font-size: 17px; }
+.service-request-count span { color: #9baec8; font-size: 11px; }
+.sensitive-badge { border-color: #a443685c; background: #69274736; color: #f59fbb; font-size: 9px; }
+.observed-field { padding: 10px 12px; border-radius: 8px; border-color: #2a3a55; background: #101c32; }
+.observed-field span { color: #98adc8; font-size: 10px; }
+.observed-field strong { color: #d5e5f7; font-size: 12px; }
+.request-grid, .payload-row { font-size: 11px; }
+.sidebar-hint { font-size: 10px !important; color: #7e97b6 !important; }
+.timeline { padding: 14px 22px; grid-template-columns: 134px minmax(0,1fr); gap: 16px; background: #0a1020; border-color: #29344c; }
+.timeline-heading { gap: 10px; }
+.timeline-live { color: #9caeca; font-size: 11px; }
+.timeline-live i { display: none; }
+.timeline-event { min-width: 204px; max-width: 220px; padding: 12px; border-radius: 9px; border-color: #273550; background: #0e172b; }
+.timeline-event:hover { background: #182640; border-color: #4a6080; }
+.timeline-event.sensitive { border-color: #734459; }
+.timeline-time { font-size: 10px; color: #7f9fbd; }
+.timeline-event strong { color: #dce7f6; font-size: 12px; }
+.timeline-event small { color: #9bafc9; font-size: 11px; }
+.sensitive-dot { display: none; }
+button:focus-visible { outline: 2px solid #67c6e3; outline-offset: 3px; }
+@media (max-width: 1050px) { .workspace { grid-template-columns: minmax(0,1fr) 285px; } .mode-toggle { position: static; transform: none; } .mode-toggle button { padding: 9px 13px; } .status { display: none; } .legend { font-size: 10px; padding: 12px; } }
+@media (max-width: 700px) { .workspace { grid-template-columns: minmax(0,1fr) 235px; } .details-panel { padding: 15px; margin: 10px 10px 10px 0; } .brand-logo { display: none; } .brand { display: block; } .subtitle { display: none; } .legend { display: none; } }
+.center-symbol { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); }
+.app-node-mark { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; color: #e5ffff; }
+.app-node-mark svg { display: block; width: 40px; height: 40px; filter: drop-shadow(0 1px 3px #007e95); }
+.app-node-mark span { position: absolute; top: calc(20px + clamp(52px, 7vh, 76px)); left: 50%; transform: translateX(-50%); color: #e5efff; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.node-annotation { position: relative; width: 21px; height: 21px; }
+.node-annotation > span { position: absolute; top: 36px; left: 50%; transform: translateX(-50%); white-space: nowrap; }

@@ -19,6 +19,7 @@ import {
 } from "@react-three/drei";
 
 import * as THREE from "three";
+import ServiceSymbol from "./ServiceSymbol";
 
 const requestOffsets = [
   [1.55, 0.35, 0.1],
@@ -158,8 +159,8 @@ function ServiceParticle({
 
     const speed =
       active && node.sensitive
-        ? 0.22
-        : 0.13;
+        ? 0.10
+        : 0.055;
 
     const t =
       (clock.getElapsedTime() *
@@ -251,8 +252,8 @@ function ServiceNode({
         <sphereGeometry
           args={[
             isDrilled
-              ? 0.2
-              : 0.14,
+              ? 0.32
+              : 0.25,
             48,
             48,
           ]}
@@ -263,11 +264,11 @@ function ServiceNode({
           emissive={color}
           emissiveIntensity={
             active
-              ? 1.4
+              ? 0.75
               : hovered ||
                 isDrilled
-              ? 0.95
-              : 0.55
+              ? 0.5
+              : 0.3
           }
           roughness={0.18}
           metalness={0.12}
@@ -290,8 +291,8 @@ function ServiceNode({
             color={color}
             radius={
               isDrilled
-                ? 0.27
-                : 0.19
+                ? 0.39
+                : 0.30
             }
             opacity={
               active
@@ -304,8 +305,8 @@ function ServiceNode({
             color={color}
             radius={
               isDrilled
-                ? 0.34
-                : 0.23
+                ? 0.46
+                : 0.35
             }
             opacity={0.06}
           />
@@ -315,29 +316,26 @@ function ServiceNode({
       <Html
         position={[
           0,
-          isDrilled
-            ? -0.38
-            : -0.29,
+          0,
           0,
         ]}
         center
-        transform
-        distanceFactor={7}
         style={{
           pointerEvents: "none",
           whiteSpace: "nowrap",
           color: anotherDrilled
             ? "#334155"
             : "#E2E8F0",
-          fontSize: isDrilled
-            ? "12px"
-            : "10px",
+          fontSize: "12px",
           fontWeight: 500,
           textShadow:
             "0 1px 4px rgba(0,0,0,.8)",
         }}
       >
-        {node.name}
+        <div className="node-annotation">
+          {!anotherDrilled && <ServiceSymbol category={node.category} className="service-symbol" />}
+          <span>{node.name}</span>
+        </div>
       </Html>
     </group>
   );
@@ -525,8 +523,6 @@ function RequestNode({
           0,
         ]}
         center
-        transform
-        distanceFactor={7}
         style={{
           pointerEvents: "none",
           whiteSpace: "nowrap",
@@ -696,7 +692,7 @@ function CenterNode({
       <mesh>
         <sphereGeometry
           args={[
-            0.36,
+            0.55,
             64,
             64,
           ]}
@@ -705,7 +701,7 @@ function CenterNode({
         <meshPhysicalMaterial
           color="#22D3EE"
           emissive="#22D3EE"
-          emissiveIntensity={0.9}
+          emissiveIntensity={0.35}
           roughness={0.16}
           metalness={0.12}
           clearcoat={1}
@@ -717,37 +713,17 @@ function CenterNode({
 
       <GlowSphere
         color="#22D3EE"
-        radius={0.46}
+        radius={0.64}
         opacity={0.18}
       />
 
       <GlowSphere
         color="#22D3EE"
-        radius={0.58}
+        radius={0.73}
         opacity={0.08}
       />
 
-      <Html
-        position={[
-          0,
-          -0.58,
-          0,
-        ]}
-        center
-        transform
-        distanceFactor={7}
-        style={{
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-          color: "#F8FAFC",
-          fontSize: "11px",
-          fontWeight: 600,
-          textShadow:
-            "0 1px 4px rgba(0,0,0,.8)",
-        }}
-      >
-        MyHealth App
-      </Html>
+
     </group>
   );
 }
@@ -817,7 +793,7 @@ function Scene({
 
       <directionalLight
         position={[5, 6, 8]}
-        intensity={2.8}
+        intensity={1.4}
       />
 
       <pointLight
@@ -835,8 +811,8 @@ function Scene({
       <Stars
         radius={45}
         depth={25}
-        count={180}
-        factor={0.6}
+        count={75}
+        factor={0.35}
         saturation={0}
         fade
         speed={0.025}
@@ -881,14 +857,14 @@ function Scene({
                     activeNodeId ===
                     node.id
                       ? 1.2
-                      : 0.45
+                      : 0.65
                   }
                   transparent
                   opacity={
                     activeNodeId ===
                     node.id
                       ? 0.85
-                      : 0.18
+                      : 0.32
                   }
                 />
 
@@ -901,14 +877,6 @@ function Scene({
                   }
                 />
 
-                <ServiceParticle
-                  node={node}
-                  offset={0.5}
-                  active={
-                    activeNodeId ===
-                    node.id
-                  }
-                />
               </>
             )}
 
@@ -952,7 +920,7 @@ function Scene({
             : 16
         }
         zoomSpeed={0.55}
-        autoRotate={!drillService}
+        autoRotate={false}
         autoRotateSpeed={0.04}
         enableDamping
         dampingFactor={0.06}
