@@ -1,39 +1,546 @@
-import { useEffect, useState } from 'react'
-import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Brain, Check, ChevronRight, Flower2, Heart, MapPin, Pill, Search, ShieldCheck, Sparkles, Sun, Wind } from 'lucide-react'
-import { BRAND } from './config'
-import { conditions, medications, money, pharmacies, type Medication, type Pharmacy } from './catalog'
-import { Intake, Confirmation, type CompletedOffer, type IntakeData } from './Intake'
-import { createOfferEvent, sendOfferEvent, type DeliveryStatus } from './analytics'
-const icons = { heart: Heart, brain: Brain, activity: Activity, flower: Flower2, sun: Sun, wind: Wind }
+import { useEffect, useRef, useState } from "react";
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Brain,
+  Check,
+  ChevronRight,
+  Flower2,
+  Heart,
+  MapPin,
+  Pill,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Wind,
+} from "lucide-react";
+import { BRAND } from "./config";
+import {
+  conditions,
+  medications,
+  money,
+  pharmacies,
+  type Medication,
+  type Pharmacy,
+} from "./catalog";
+import {
+  Intake,
+  Confirmation,
+  type CompletedOffer,
+  type IntakeData,
+} from "./Intake";
+import {
+  createOfferEvent,
+  sendOfferEvent,
+  type DeliveryStatus,
+} from "./analytics";
+import { Privacy } from "./PrivacySettings";
+import {
+  readSharingPreference,
+  saveSharingPreference,
+  withOptionalSharing,
+} from "./privacy";
+const icons = {
+  heart: Heart,
+  brain: Brain,
+  activity: Activity,
+  flower: Flower2,
+  sun: Sun,
+  wind: Wind,
+};
 export default function App() {
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('')
-  const [searched, setSearched] = useState(false)
-  const [medication, setMedication] = useState<Medication | null>(null)
-  const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null)
-  const [completed, setCompleted] = useState<CompletedOffer | null>(null)
-  const [delivery, setDelivery] = useState<DeliveryStatus>('idle')
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
+  const [searched, setSearched] = useState(false);
+  const [medication, setMedication] = useState<Medication | null>(null);
+  const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
+  const [completed, setCompleted] = useState<CompletedOffer | null>(null);
+  const [sharing, setSharing] = useState(readSharingPreference);
+  const submitted = useRef(false);
+  const generation = useRef(0);
+  const [delivery, setDelivery] = useState<DeliveryStatus>("idle");
   const finish = (data: IntakeData) => {
-    if (!medication || !pharmacy) return
-    setDelivery('sending')
-    void sendOfferEvent(createOfferEvent(data, medication, pharmacy, query || category)).then(setDelivery)
-    setCompleted({ medication, pharmacy, firstName: data.fullName.split(/\s+/)[0] }); setPharmacy(null); window.scrollTo(0,0)
-  }
-  useEffect(() => { document.title = `${BRAND.name} | Prescription savings` }, [])
-  const results = medications.filter(m => (!category || m.condition === category) && `${m.name} ${m.brand} ${m.terms}`.toLowerCase().includes(query.toLowerCase().trim()))
-  const home = () => { setPharmacy(null); setCompleted(null); setMedication(null); setSearched(false); setCategory(''); setQuery('') }
-  const browse = (id: string) => { setCategory(id); setQuery(''); setSearched(true); setMedication(null) }
-  return <>
-    <div className="topline"><Sparkles size={13} /> A healthier budget starts here.</div>
-    <header className="header wrap"><button className="brand" onClick={home} aria-label={`${BRAND.name} home`}><span className="brandmark"><Pill size={24} /></span>{BRAND.name}<span className="brand-dot">.</span></button><nav aria-label="Main navigation"><button className="nav-active" onClick={home}>Prescription savings</button><a href="#conditions" onClick={home}>Explore health</a><a href="#how-it-works" onClick={home}>How it works</a></nav><span className="header-note"><ShieldCheck size={17} /> Care for your wallet</span></header>
-    <main>
-    {completed ? <Confirmation offer={completed} onBrowse={home}/> : medication && pharmacy ? <Intake medication={medication} pharmacy={pharmacy} onBack={() => setPharmacy(null)} onComplete={finish}/> : !medication ? <>
-      <section className="hero"><div className="wrap hero-grid"><div className="hero-copy"><span className="eyebrow">FEEL BETTER ABOUT YOUR NEXT REFILL</span><h1>Your health matters.<br />So does your <span>budget.</span></h1><p>Find your medication. Compare pharmacy prices.<br className="desktop" /> Take the next step with a little more peace of mind.</p><form className="search" role="search" onSubmit={e => { e.preventDefault(); setSearched(true); setCategory(''); document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}><Search size={23} /><label className="sr-only" htmlFor="medication-search">Search medication or condition</label><input id="medication-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Enter a medication or health concern" /><button className="dark-btn" type="submit">Find savings <ArrowRight size={17}/></button></form><div className="popular">Popular searches: {['Atorvastatin','Sertraline','Metformin'].map(name => <button key={name} onClick={() => { setQuery(name); setCategory(''); setSearched(true) }}>{name}</button>)}</div><div className="hero-checks"><span><Check size={16}/> No membership needed</span><span><Check size={16}/> Easy price comparisons</span></div></div><div className="hero-art" aria-hidden="true"><div className="art-ring"/><div className="art-spark spark-one">✳</div><div className="art-spark spark-two">✳</div><div className="floating-note"><span className="note-icon"><Heart size={18}/></span> A little care goes a long way.</div><div className="bottle"><div className="bottle-cap"/><div className="bottle-label"><span className="mini-brand"><Pill size={16}/> {BRAND.name}</span><strong>More care.<br/>Less worry.</strong><div className="bottle-line"/><small>PRESCRIPTION SAVINGS</small><span className="bottle-rx">Rx</span></div></div><div className="art-pill pill-one"/><div className="art-pill pill-two"/><div className="savings-note"><span className="round-check"><Check size={20}/></span><div><strong>A better price,</strong><br/><span>a brighter day.</span></div></div></div></div></section>
-      <div className="trust-strip wrap"><span><BadgeCheck/> Simple, upfront comparisons</span><span><Heart/> Your health, your choices</span><span><Pill/> Everyday prescription savings</span></div>
-      <section className="wrap section" id="conditions"><div className="section-heading"><div><span className="eyebrow">A GOOD PLACE TO START</span><h2>What brings you here today?</h2></div><p>Explore medications by health concern.</p></div><div className="condition-grid">{conditions.map(c => { const Icon = icons[c.icon]; return <button className={`condition-card ${category === c.id ? 'selected' : ''}`} key={c.id} onClick={() => browse(c.id)}><span className={`condition-icon ${c.id}`}><Icon size={25}/></span><strong>{c.name}</strong><span>{c.description}</span><ArrowRight size={18}/></button> })}</div></section>
-      <section className="wrap section medication-section" id="results"><div className="section-heading"><div><span className="eyebrow">SMALL STEPS. MEANINGFUL SAVINGS.</span><h2>{searched ? category ? `${conditions.find(c => c.id === category)?.name} medications` : `Results${query ? ` for “${query}”` : ''}` : 'Popular prescriptions, thoughtfully priced.'}</h2></div>{searched && <button className="text-btn" onClick={() => { setQuery(''); setCategory(''); setSearched(false) }}>Clear filters <ArrowRight size={16}/></button>}</div><p className="muted catalog-note">Browse examples, not treatment recommendations. Medication and dosage choices belong with your clinician.</p><div className="medication-grid">{(searched ? results : medications.slice(0,4)).map(m => <button className="medication-card" key={m.id} onClick={() => { setMedication(m); window.scrollTo(0,0) }}><span className={`pill-icon ${m.color}`}><Pill size={24}/></span><span className="medication-name"><strong>{m.name}</strong><small>{m.brand}</small></span><span className="dose">{m.dose} · {m.quantity}</span><span className="medication-price"><span>Illustrative price from <b>{money(m.price)}</b></span><span className="arrow-circle"><ArrowRight size={18}/></span></span></button>)}</div>{searched && !results.length && <div className="empty"><Search size={30}/><h3>No matching medications</h3><p>Try a medication name, “anxiety,” or “blood pressure.”</p><button className="dark-btn" onClick={() => { setQuery(''); setCategory('') }}>Browse all medications</button></div>}</section>
-      <section className="wrap how-section" id="how-it-works"><div><span className="eyebrow">LESS GUESSWORK. MORE CLARITY.</span><h2>A simpler path<br/>to prescription savings.</h2><p>{BRAND.tagline}</p></div><div className="steps">{[['01','Find your medication','Search by name or explore a health concern.'],['02','Compare your options','See illustrative offers from fictional pharmacies.'],['03','Make it yours','Add your details and review your selected offer.']].map(([n,t,d]) => <div className="step" key={n}><span>{n}</span><div><h3>{t}</h3><p>{d}</p></div></div>)}</div></section>
-    </> : <section className="wrap comparison section"><button className="text-btn" onClick={() => setMedication(null)}><ArrowLeft size={17}/> Back to medications</button><div className="comparison-heading"><span className={`large-pill ${medication.color}`}><Pill size={40}/></span><div><span className="eyebrow">YOUR PRESCRIPTION, YOUR OPTIONS</span><h1>{medication.name}</h1><p>{medication.brand} · {medication.dose} · {medication.quantity}</p></div></div><div className="comparison-layout"><div><div className="section-heading"><h2>Compare pharmacy offers</h2><span className="muted"><MapPin size={15}/> Sample locations</span></div><p className="muted">Illustrative prices only. These are fictional pharmacies, not live offers.</p><div className="offers">{pharmacies.map((p,i) => <article className={`offer ${i === 0 ? 'best' : ''}`} key={p.id}>{i === 0 && <span className="best-label">LOWEST SAMPLE PRICE</span>}<span className={`pharmacy-logo ${p.color}`}>{p.initials}</span><div className="pharmacy-info"><h3>{p.name}</h3><p>{p.subtitle}</p></div><div className="offer-price"><strong>{money(medication.price+p.addition)}</strong><small>Illustrative price</small></div><button className="dark-btn offer-link" onClick={() => { setPharmacy(p); window.scrollTo(0,0) }} aria-label={`Choose ${p.name}`}>Choose offer <ChevronRight size={17}/></button></article>)}</div></div><aside className="info-panel"><ShieldCheck size={30}/><h3>A little clarity before you choose.</h3><p>Compare the same medication, strength, and quantity across each pharmacy.</p><hr/><p>These examples help you explore a savings journey. They do not provide a prescription, medical advice, or a redeemable coupon.</p></aside></div></section>}
-    </main><footer className="footer" data-analytics-status={delivery}><div className="wrap"><div className="footer-top"><span className="brand"><Pill size={24}/>{BRAND.name}<span className="brand-dot">.</span></span><p>{BRAND.tagline}</p><a href="#how-it-works" onClick={home}>How it works <ArrowRight size={15}/></a></div><p className="fine-print">Fictional pharmacy offers. Prices are illustrative and are not live quotes. No prescriptions, medical care, or redeemable coupons are provided.</p><div className="footer-bottom"><span>© {new Date().getFullYear()} {BRAND.name}</span><span>Made with a little extra care.</span></div></div></footer>
-  </>
+    if (!medication || !pharmacy || submitted.current) return;
+    submitted.current = true;
+    const run = ++generation.current;
+    setDelivery(sharing ? "sending" : "disabled");
+    void withOptionalSharing(sharing, () =>
+      sendOfferEvent(
+        createOfferEvent(data, medication, pharmacy, query || category),
+      ),
+    ).then((status) => {
+      if (run === generation.current) setDelivery(status);
+    });
+    setCompleted({
+      medication,
+      pharmacy,
+      firstName: data.fullName.split(/\s+/)[0],
+    });
+    setPharmacy(null);
+    window.scrollTo(0, 0);
+  };
+  useEffect(() => {
+    document.title = `${BRAND.name} | Prescription savings`;
+  }, []);
+  const results = medications.filter(
+    (m) =>
+      (!category || m.condition === category) &&
+      `${m.name} ${m.brand} ${m.terms}`
+        .toLowerCase()
+        .includes(query.toLowerCase().trim()),
+  );
+  const home = () => {
+    submitted.current = false;
+    generation.current++;
+    setDelivery("idle");
+    setPharmacy(null);
+    setCompleted(null);
+    setMedication(null);
+    setSearched(false);
+    setCategory("");
+    setQuery("");
+  };
+  const browse = (id: string) => {
+    setCategory(id);
+    setQuery("");
+    setSearched(true);
+    setMedication(null);
+  };
+  return (
+    <>
+      <div className="topline">
+        <Sparkles size={13} /> A healthier budget starts here.
+      </div>
+      <header className="header wrap">
+        <button
+          className="brand"
+          onClick={home}
+          aria-label={`${BRAND.name} home`}
+        >
+          <span className="brandmark">
+            <Pill size={24} />
+          </span>
+          {BRAND.name}
+          <span className="brand-dot">.</span>
+        </button>
+        <nav aria-label="Main navigation">
+          <button className="nav-active" onClick={home}>
+            Prescription savings
+          </button>
+          <a href="#conditions" onClick={home}>
+            Explore health
+          </a>
+          <a href="#how-it-works" onClick={home}>
+            How it works
+          </a>
+        </nav>
+        <span className="header-note">
+          <ShieldCheck size={17} /> Care for your wallet
+        </span>
+      </header>
+      <main>
+        {completed ? (
+          <Confirmation offer={completed} onBrowse={home} />
+        ) : medication && pharmacy ? (
+          <Intake
+            medication={medication}
+            pharmacy={pharmacy}
+            onBack={() => setPharmacy(null)}
+            onComplete={finish}
+          />
+        ) : !medication ? (
+          <>
+            <section className="hero">
+              <div className="wrap hero-grid">
+                <div className="hero-copy">
+                  <span className="eyebrow">
+                    FEEL BETTER ABOUT YOUR NEXT REFILL
+                  </span>
+                  <h1>
+                    Your health matters.
+                    <br />
+                    So does your <span>budget.</span>
+                  </h1>
+                  <p>
+                    Find your medication. Compare pharmacy prices.
+                    <br className="desktop" /> Take the next step with a little
+                    more peace of mind.
+                  </p>
+                  <form
+                    className="search"
+                    role="search"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setSearched(true);
+                      setCategory("");
+                      document.getElementById("results")?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }}
+                  >
+                    <Search size={23} />
+                    <label className="sr-only" htmlFor="medication-search">
+                      Search medication or condition
+                    </label>
+                    <input
+                      id="medication-search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Enter a medication or health concern"
+                    />
+                    <button className="dark-btn" type="submit">
+                      Find savings <ArrowRight size={17} />
+                    </button>
+                  </form>
+                  <div className="popular">
+                    Popular searches:{" "}
+                    {["Atorvastatin", "Sertraline", "Metformin"].map((name) => (
+                      <button
+                        key={name}
+                        onClick={() => {
+                          setQuery(name);
+                          setCategory("");
+                          setSearched(true);
+                        }}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="hero-checks">
+                    <span>
+                      <Check size={16} /> No membership needed
+                    </span>
+                    <span>
+                      <Check size={16} /> Easy price comparisons
+                    </span>
+                  </div>
+                </div>
+                <div className="hero-art" aria-hidden="true">
+                  <div className="art-ring" />
+                  <div className="art-spark spark-one">✳</div>
+                  <div className="art-spark spark-two">✳</div>
+                  <div className="floating-note">
+                    <span className="note-icon">
+                      <Heart size={18} />
+                    </span>{" "}
+                    A little care goes a long way.
+                  </div>
+                  <div className="bottle">
+                    <div className="bottle-cap" />
+                    <div className="bottle-label">
+                      <span className="mini-brand">
+                        <Pill size={16} /> {BRAND.name}
+                      </span>
+                      <strong>
+                        More care.
+                        <br />
+                        Less worry.
+                      </strong>
+                      <div className="bottle-line" />
+                      <small>PRESCRIPTION SAVINGS</small>
+                      <span className="bottle-rx">Rx</span>
+                    </div>
+                  </div>
+                  <div className="art-pill pill-one" />
+                  <div className="art-pill pill-two" />
+                  <div className="savings-note">
+                    <span className="round-check">
+                      <Check size={20} />
+                    </span>
+                    <div>
+                      <strong>A better price,</strong>
+                      <br />
+                      <span>a brighter day.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <div className="trust-strip wrap">
+              <span>
+                <BadgeCheck /> Simple, upfront comparisons
+              </span>
+              <span>
+                <Heart /> Your health, your choices
+              </span>
+              <span>
+                <Pill /> Everyday prescription savings
+              </span>
+            </div>
+            <section className="wrap section" id="conditions">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">A GOOD PLACE TO START</span>
+                  <h2>What brings you here today?</h2>
+                </div>
+                <p>Explore medications by health concern.</p>
+              </div>
+              <div className="condition-grid">
+                {conditions.map((c) => {
+                  const Icon = icons[c.icon];
+                  return (
+                    <button
+                      className={`condition-card ${category === c.id ? "selected" : ""}`}
+                      key={c.id}
+                      onClick={() => browse(c.id)}
+                    >
+                      <span className={`condition-icon ${c.id}`}>
+                        <Icon size={25} />
+                      </span>
+                      <strong>{c.name}</strong>
+                      <span>{c.description}</span>
+                      <ArrowRight size={18} />
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+            <section
+              className="wrap section medication-section"
+              id="results"
+              aria-live="polite"
+            >
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">
+                    SMALL STEPS. MEANINGFUL SAVINGS.
+                  </span>
+                  <h2>
+                    {searched
+                      ? category
+                        ? `${conditions.find((c) => c.id === category)?.name} medications`
+                        : `Results${query ? ` for “${query}”` : ""}`
+                      : "Popular prescriptions, thoughtfully priced."}
+                  </h2>
+                </div>
+                {searched && (
+                  <button
+                    className="text-btn"
+                    onClick={() => {
+                      setQuery("");
+                      setCategory("");
+                      setSearched(false);
+                    }}
+                  >
+                    Clear filters <ArrowRight size={16} />
+                  </button>
+                )}
+              </div>
+              <p className="muted catalog-note">
+                Browse examples, not treatment recommendations. Medication and
+                dosage choices belong with your clinician.
+              </p>
+              <div className="medication-grid">
+                {(searched ? results : medications.slice(0, 4)).map((m) => (
+                  <button
+                    className="medication-card"
+                    key={m.id}
+                    onClick={() => {
+                      setMedication(m);
+                      window.scrollTo(0, 0);
+                    }}
+                  >
+                    <span className={`pill-icon ${m.color}`}>
+                      <Pill size={24} />
+                    </span>
+                    <span className="medication-name">
+                      <strong>{m.name}</strong>
+                      <small>{m.brand}</small>
+                    </span>
+                    <span className="dose">
+                      {m.dose} · {m.quantity}
+                    </span>
+                    <span className="medication-price">
+                      <span>
+                        Illustrative price from <b>{money(m.price)}</b>
+                      </span>
+                      <span className="arrow-circle">
+                        <ArrowRight size={18} />
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {searched && !results.length && (
+                <div className="empty">
+                  <Search size={30} />
+                  <h3>No matching medications</h3>
+                  <p>Try a medication name, “anxiety,” or “blood pressure.”</p>
+                  <button
+                    className="dark-btn"
+                    onClick={() => {
+                      setQuery("");
+                      setCategory("");
+                    }}
+                  >
+                    Browse all medications
+                  </button>
+                </div>
+              )}
+            </section>
+            <section className="wrap how-section" id="how-it-works">
+              <div>
+                <span className="eyebrow">LESS GUESSWORK. MORE CLARITY.</span>
+                <h2>
+                  A simpler path
+                  <br />
+                  to prescription savings.
+                </h2>
+                <p>{BRAND.tagline}</p>
+              </div>
+              <div className="steps">
+                {[
+                  [
+                    "01",
+                    "Find your medication",
+                    "Search by name or explore a health concern.",
+                  ],
+                  [
+                    "02",
+                    "Compare your options",
+                    "See illustrative offers from fictional pharmacies.",
+                  ],
+                  [
+                    "03",
+                    "Make it yours",
+                    "Add your details and review your selected offer.",
+                  ],
+                ].map(([n, t, d]) => (
+                  <div className="step" key={n}>
+                    <span>{n}</span>
+                    <div>
+                      <h3>{t}</h3>
+                      <p>{d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="wrap comparison section">
+            <button className="text-btn" onClick={() => setMedication(null)}>
+              <ArrowLeft size={17} /> Back to medications
+            </button>
+            <div className="comparison-heading">
+              <span className={`large-pill ${medication.color}`}>
+                <Pill size={40} />
+              </span>
+              <div>
+                <span className="eyebrow">YOUR PRESCRIPTION, YOUR OPTIONS</span>
+                <h1>{medication.name}</h1>
+                <p>
+                  {medication.brand} · {medication.dose} · {medication.quantity}
+                </p>
+              </div>
+            </div>
+            <div className="comparison-layout">
+              <div>
+                <div className="section-heading">
+                  <h2>Compare pharmacy offers</h2>
+                  <span className="muted">
+                    <MapPin size={15} /> Sample locations
+                  </span>
+                </div>
+                <p className="muted">
+                  Illustrative prices only. These are fictional pharmacies, not
+                  live offers.
+                </p>
+                <div className="offers">
+                  {pharmacies.map((p, i) => (
+                    <article
+                      className={`offer ${i === 0 ? "best" : ""}`}
+                      key={p.id}
+                    >
+                      {i === 0 && (
+                        <span className="best-label">LOWEST SAMPLE PRICE</span>
+                      )}
+                      <span className={`pharmacy-logo ${p.color}`}>
+                        {p.initials}
+                      </span>
+                      <div className="pharmacy-info">
+                        <h3>{p.name}</h3>
+                        <p>{p.subtitle}</p>
+                      </div>
+                      <div className="offer-price">
+                        <strong>{money(medication.price + p.addition)}</strong>
+                        <small>Illustrative price</small>
+                      </div>
+                      <button
+                        className="dark-btn offer-link"
+                        onClick={() => {
+                          setPharmacy(p);
+                          window.scrollTo(0, 0);
+                        }}
+                        aria-label={`Choose ${p.name}`}
+                      >
+                        Choose offer <ChevronRight size={17} />
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </div>
+              <aside className="info-panel">
+                <ShieldCheck size={30} />
+                <h3>A little clarity before you choose.</h3>
+                <p>
+                  Compare the same medication, strength, and quantity across
+                  each pharmacy.
+                </p>
+                <hr />
+                <p>
+                  These examples help you explore a savings journey. They do not
+                  provide a prescription, medical advice, or a redeemable
+                  coupon.
+                </p>
+              </aside>
+            </div>
+          </section>
+        )}
+      </main>
+      <Privacy
+        enabled={sharing}
+        onChange={(enabled) => {
+          setSharing(enabled);
+          saveSharingPreference(enabled);
+        }}
+        onReset={() => {
+          home();
+          window.scrollTo(0, 0);
+        }}
+        delivery={delivery}
+      />
+      <footer className="footer">
+        <div className="wrap">
+          <div className="footer-top">
+            <span className="brand">
+              <Pill size={24} />
+              {BRAND.name}
+              <span className="brand-dot">.</span>
+            </span>
+            <p>{BRAND.tagline}</p>
+            <a href="#how-it-works" onClick={home}>
+              How it works <ArrowRight size={15} />
+            </a>
+          </div>
+          <p className="fine-print">
+            Fictional pharmacy offers. Prices are illustrative and are not live
+            quotes. No prescriptions, medical care, or redeemable coupons are
+            provided.
+          </p>
+          <div className="footer-bottom">
+            <span>
+              © {new Date().getFullYear()} {BRAND.name}
+            </span>
+            <span>Made with a little extra care.</span>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
 }
