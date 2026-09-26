@@ -1,10 +1,15 @@
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+# Local demo page only. Observability events from the extension do not come here.
+ALLOWED_ORIGIN = "http://localhost:3000"
+
 
 class Handler(BaseHTTPRequestHandler):
     def _cors_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        if self.headers.get("Origin") == ALLOWED_ORIGIN:
+            self.send_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 

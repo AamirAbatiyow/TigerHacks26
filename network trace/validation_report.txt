@@ -1,0 +1,158 @@
+CLEARTRACE / PRIVACY OBSERVABILITY VALIDATION REPORT
+
+Date:        Saturday, September 26, 2026, 5:55 PM CDT
+Environment: macOS 14.6.1 (23G93), Apple M3 Pro
+             Google Chrome 154.0.8037.57 (headless, driven over DevTools protocol)
+             TShark 4.4.8 on en0
+             mitmproxy 12.2.3 (mitmdump on 127.0.0.1:8081, macOS secure web proxy ON, web proxy OFF)
+             Python 3.11.14 (collectors, local API, demo server on localhost:3000)
+             Fly app fly-analytics (66.241.125.201 shared IPv4)
+
+HTTP TEST
+---------
+Browser request: FAIL (plaintext HTTP from Chrome to *.dev is impossible, see HTTP ROOT CAUSE).
+                 The relabelled button now returns 200 OK, but Chrome sends it over HTTPS.
+                 The plaintext HTTP request for this test was sent with `python client.py http`.
+Fly response: PASS (client.py http -> "OK"; curl HTTP POST -> HTTP/1.0 200 OK, no redirect)
+tshark capture: PASS (POST /collect, fly-analytics.fly.dev, 66.241.125.201:80)
+Body recovered: PASS (JSON, 105 bytes)
+Sensitive findings: PASS (LOW user_id, HIGH birth_control, HIGH pregnancy_goal, MEDIUM symptom)
+JSONL persisted: PASS (events.jsonl line 1)
+
+HTTPS TEST
+----------
+Browser request: PASS (HTTPS button: "Status: 200 / Response: OK"; preflight 204 and POST 200, both via 127.0.0.1:8081)
+Fly response: PASS
+mitmproxy capture: PASS (OPTIONS and POST /collect, 66.241.125.201:443, initiator http://localhost:3000)
+Body decrypted: PASS (JSON, 394 bytes)
+Sensitive findings: PASS (LOW user_id, HIGH reproductive_health.birth_control, HIGH reproductive_health.pregnancy_goal)
+JSONL persisted: PASS (lines 5 and 6; the upgraded HTTP button request is line 9)
+
+BROWSER EXTENSION TEST
+----------------------
+Observed request: PASS (extension loaded unpacked, id nkaknekombaphhcemlgdbcceonibbpjd; POST /collect observed)
+Local API received event: PASS (local_api.py printed BROWSER REQUEST cards; every POST to /events returned 200)
+Stayed on localhost: PASS (the service worker made only POST http://127.0.0.1:8765/events requests;
+                     every request mitmproxy saw going to Fly was a demo payload, none was extension data;
+                     background.js contains only one URL, http://127.0.0.1:8765/events)
+Body omitted: PASS (body null on all extension events)
+Initiator captured: PASS (initiator http://localhost:3000)
+Third-party classification: PASS (third_party true for fly-analytics.fly.dev, false for localhost favicon)
+JSONL persisted: PASS (lines 2, 3, 4, 7, 8)
+
+FILTERING TEST
+--------------
+Unrelated traffic suppressed: PASS
+  - through mitmproxy: ssl.gstatic.com, api3.cursor.sh (JSON body containing user_id), c.apple.news -> 0 lines stored, nothing printed
+  - past tshark: http://example.com, http://httpbin.org/post (body {"birth_control":"IUD"}) -> 0 lines stored.
+    A separate raw tshark capture showed "httpbin.org POST /post" at the same moment, so the filter dropped it, not the capture.
+  - local API: extension-shaped event for c.apple.news (initiator docs.google.com) -> {"ok": true}, 0 lines stored
+Binary/compressed body suppressed: PASS
+  - gzip POST to fly-analytics.fly.dev (Origin http://localhost:3000, Content-Encoding: gzip, 84 bytes)
+    -> stored with body null, body_size 84, body_type "compressed", content_encoding "gzip" (line 10)
+
+EVENT STORE VALIDATION
+----------------------
+All lines valid JSON: PASS (10 of 10 lines parsed; full file read, not tail)
+Only demo-relevant events present: PASS (hosts: fly-analytics.fly.dev, localhost:3000 only)
+No raw binary garbage: PASS (no U+FFFD, no control characters, no suppressed body kept)
+tshark event present: PASS (line 1)
+mitm event present: PASS (lines 5, 6, 9, 10)
+browser-extension event present: PASS (lines 2, 3, 4, 7, 8)
+
+Event summary (events.jsonl after validation):
+   1. tshark            HTTP  POST    fly-analytics.fly.dev/collect  json 105 B  4 findings  dest 66.241.125.201:80
+   2. browser_extension HTTP  GET     localhost:3000/                page load, body null
+   3. browser_extension HTTP  GET     localhost:3000/favicon.ico     initiator localhost:3000, third_party false
+   4. browser_extension HTTPS POST    fly-analytics.fly.dev/collect  initiator localhost:3000, third_party true (HTTPS button)
+   5. mitm              HTTPS OPTIONS fly-analytics.fly.dev/collect  CORS preflight, body empty
+   6. mitm              HTTPS POST    fly-analytics.fly.dev/collect  json 394 B  3 findings (HTTPS button)
+   7. browser_extension HTTP  POST    fly-analytics.fly.dev/collect  HTTP button, original http:// URL before the HSTS upgrade
+   8. browser_extension HTTPS POST    fly-analytics.fly.dev/collect  HTTP button, same request after Chrome's HSTS upgrade
+   9. mitm              HTTPS POST    fly-analytics.fly.dev/collect  json 394 B  3 findings (HTTP button, upgraded)
+  10. mitm              HTTPS POST    fly-analytics.fly.dev/collect  compressed gzip 84 B, body null
+
+HTTP ROOT CAUSE
+---------------
+Every .dev hostname is on Chrome's built-in HSTS preload list, including fly-analytics.fly.dev.
+Chrome rewrites http://fly-analytics.fly.dev/... to https:// inside the browser, before any packet is sent.
+DevTools shows this as "307 Internal Redirect" with "Non-Authoritative-Reason: HSTS".
+
+The demo page sent Content-Type: application/json, which triggers a CORS preflight (OPTIONS).
+Browsers do not allow a preflight to follow a redirect, so Chrome reported:
+  "Response to preflight request doesn't pass access control check: Redirect is not allowed for a
+   preflight request." (corsError PreflightDisallowedRedirect, net::ERR_INVALID_REDIRECT)
+The page then showed "TypeError: Failed to fetch".
+
+Ruled out:
+  - Mixed content: the page is http://localhost:3000, so Chrome blocked nothing for mixed content.
+  - Fly: `force_https = false` in fly.toml, and the deployed config has no force_https.
+    curl gets OPTIONS 204 and POST 200 over plain HTTP, with no redirect.
+  - CORS headers: HTTP and HTTPS both return Access-Control-Allow-Origin: *,
+    Access-Control-Allow-Methods: POST, OPTIONS, and Access-Control-Allow-Headers: Content-Type.
+  - Proxy: the web (HTTP) proxy was already OFF. The failure is identical with --no-proxy-server.
+  - Network: a tshark capture during the click showed 0 packets to 66.241.125.201 on port 80 or 443.
+
+Plaintext HTTP from Chrome to any *.dev host is therefore not possible.
+The options were a dedicated Fly IPv4 (paid), a Chrome HSTS bypass policy (weakens security), or a custom domain.
+The chosen fix: do not force browser plaintext.
+  - The HTTP button is labelled as upgraded and sends a CORS "simple" request (text/plain, no preflight),
+    so Chrome can follow its HSTS upgrade. It returns 200 OK and states the upgrade on the page.
+  - The plaintext HTTP -> tshark path is tested with `python client.py http`, which does not apply HSTS.
+Fly's free dedicated IPv6 (2a09:8280:1::19c:cd58:0) was not usable because this Mac has no working IPv6 route.
+
+FILES CHANGED
+-------------
+demo app/index.html
+  - HTTP button label: "Send via HTTP (Chrome upgrades to HTTPS)"
+  - HTTP button sends Content-Type text/plain (no preflight); HTTPS still sends application/json
+  - status shows "Note: Chrome upgraded this request to https://... (HSTS preload for .dev)" when redirected
+network trace/validation_report.txt (this file, new)
+network trace/events.before-validation.jsonl (backup of the previous 526-line events.jsonl, new)
+No collector, classifier, filter, local API, extension, or Fly server code was changed.
+
+COMMANDS USED
+-------------
+networksetup -getwebproxy "Wi-Fi"
+networksetup -getsecurewebproxy "Wi-Fi"
+scutil --proxy
+curl -i -X OPTIONS http://fly-analytics.fly.dev/collect -H "Origin: http://localhost:3000" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+curl -i -X POST http://fly-analytics.fly.dev/collect -H "Origin: http://localhost:3000" -H "Content-Type: application/json" -d '{"test":"http-browser-debug"}'
+curl -i -X OPTIONS https://fly-analytics.fly.dev/collect -H "Origin: http://localhost:3000" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+flyctl config show
+flyctl ips list
+tshark -i en0 -f "host 66.241.125.201" -a duration:8   (during the browser HTTP click: 0 packets)
+headless Chrome + DevTools protocol: click HTTP button (system proxy, then --no-proxy-server); simple-request HSTS probe
+kill <stale local_api / tshark_collector / mitmdump PIDs>
+cp events.jsonl events.before-validation.jsonl
+: > events.jsonl
+mitmdump -q --listen-host 127.0.0.1 -p 8081 -s collectors/mitm_collector.py
+python collectors/tshark_collector.py
+python local_api.py
+python client.py http
+headless Chrome with --remote-debugging-pipe --enable-unsafe-extension-debugging, Extensions.loadUnpacked(extension/), click HTTPS then HTTP
+curl -x http://127.0.0.1:8081 --cacert ~/.mitmproxy/mitmproxy-ca-cert.pem https://ssl.gstatic.com/
+curl -x http://127.0.0.1:8081 --cacert ~/.mitmproxy/mitmproxy-ca-cert.pem -X POST https://api3.cursor.sh/ --data '{"user_id":"12345"}'
+curl -x http://127.0.0.1:8081 --cacert ~/.mitmproxy/mitmproxy-ca-cert.pem https://c.apple.news/
+curl --noproxy '*' http://example.com/
+curl --noproxy '*' -X POST http://httpbin.org/post --data '{"birth_control":"IUD"}'
+curl -X POST http://127.0.0.1:8765/events --data '{"host":"c.apple.news","initiator":"https://docs.google.com",...}'
+curl -x http://127.0.0.1:8081 --cacert ~/.mitmproxy/mitmproxy-ca-cert.pem -X POST https://fly-analytics.fly.dev/collect -H "Origin: http://localhost:3000" -H "Content-Encoding: gzip" --data-binary @payload.gz
+python3 (parse every line of events.jsonl, check relevance / garbage / sources)
+
+NOTES
+-----
+- Browser HTTP is HTTPS in practice. Anything Chrome sends to fly-analytics.fly.dev is encrypted,
+  so tshark will never see it; only mitmproxy can. Plaintext HTTP capture needs a non-browser client such as client.py.
+- The browser tests used headless Chrome with a fresh profile and the extension loaded through DevTools.
+  Chrome 154 no longer honors --load-extension. They were not run in your normal Chrome window,
+  but they use the same system proxy and the keychain-trusted mitmproxy CA.
+- The extension records the HTTP button twice (lines 7 and 8): once for the original http:// URL
+  and once after the internal HSTS upgrade. It also records localhost:3000 page and favicon loads,
+  which the demo filter treats as relevant.
+- Fly returned 502 for the gzip test request. fly-analytics/server.py decodes every body as UTF-8
+  and fails on gzip bytes. This did not affect the collector; the event was stored correctly.
+- local_api.py handles requests concurrently. When two extension events arrive together, their CLI
+  cards can interleave in the terminal. The JSONL lines stayed intact (10/10 valid). This was not changed.
+- The symptoms.* keys in the browser payload produce no findings, because the classifier matches the
+  field name "symptom" only. This is unchanged.
