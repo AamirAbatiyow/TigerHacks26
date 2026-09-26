@@ -2,9 +2,14 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  width: 320px;
+  padding: 0;
+}
+
+body {
+  width: 360px;
 
   font-family:
     Inter,
@@ -14,148 +19,396 @@ body {
     "Segoe UI",
     sans-serif;
 
-  background: #080c18;
-  color: #eaf2ff;
+  background: #f8fafc;
+
+  color: #0f172a;
 }
+
+button {
+  font: inherit;
+}
+
+/* MAIN */
 
 .popup {
-  padding: 16px;
+  padding: 16px 18px 14px;
+
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      rgba(251, 77, 109, 0.07),
+      transparent 32%
+    ),
+    #ffffff;
 }
 
-.header {
+/* TOP BAR */
+
+.top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.header h1 {
-  margin: 0;
+.brand {
+  display: flex;
+  align-items: center;
 
-  font-size: 16px;
-  font-weight: 600;
+  gap: 8px;
 }
 
-.header p {
-  margin: 3px 0 0;
+.brand-mark {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: #0f172a;
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.brand strong {
+  display: block;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.brand span {
+  display: block;
+
+  margin-top: 1px;
+
+  color: #94a3b8;
+
+  font-size: 8px;
+}
+
+.monitoring {
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
 
   color: #64748b;
-  font-size: 10px;
+
+  font-size: 9px;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
+.monitoring span {
+  width: 6px;
+  height: 6px;
 
   border-radius: 50%;
 
   background: #2dd4bf;
 
   box-shadow:
-    0 0 8px
-    rgba(45, 212, 191, 0.6);
+    0 0 7px
+    rgba(45, 212, 191, 0.5);
 }
 
-.status-row {
-  padding: 10px 12px;
+/* HERO */
 
-  border: 1px solid #172033;
-  border-radius: 6px;
+.hero {
+  text-align: center;
 
-  background: #0b1120;
-
-  color: #94a3b8;
-  font-size: 11px;
+  padding: 10px 4px 12px;
 }
 
-.summary {
-  margin-top: 12px;
-  padding: 14px 12px;
+.shield {
+  position: relative;
 
-  border: 1px solid #172033;
-  border-radius: 6px;
+  width: 82px;
+  height: 82px;
 
-  background: #0b1120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 13px;
 }
 
-.summary-label {
-  display: block;
+.shield svg {
+  position: relative;
 
-  margin-bottom: 5px;
+  z-index: 3;
+
+  width: 52px;
+
+  color: #fb4d6d;
+
+  filter:
+    drop-shadow(
+      0 7px 10px
+      rgba(251, 77, 109, 0.2)
+    );
+}
+
+.shield-ring {
+  position: absolute;
+
+  border-radius: 50%;
+}
+
+.ring-one {
+  width: 70px;
+  height: 70px;
+
+  background:
+    rgba(251, 77, 109, 0.08);
+}
+
+.ring-two {
+  width: 82px;
+  height: 82px;
+
+  border:
+    1px solid
+    rgba(251, 77, 109, 0.09);
+}
+
+.hero h1 {
+  margin:
+    0
+    0
+    6px;
+
+  color: #0f172a;
+
+  font-size: 21px;
+  line-height: 1.15;
+
+  font-weight: 750;
+
+  letter-spacing: -0.5px;
+}
+
+.destination-copy {
+  margin: 0;
 
   color: #64748b;
-  font-size: 10px;
+
+  font-size: 12px;
 }
 
-.summary-number {
-  font-size: 20px;
-  font-weight: 600;
+.destination-copy strong {
+  color: #fb335c;
 
-  color: #f8fafc;
+  font-size: 16px;
+
+  font-weight: 750;
 }
 
-.warning {
+/* ALERT */
+
+.alert-card {
   display: flex;
   align-items: center;
 
-  gap: 9px;
+  gap: 10px;
 
-  margin-top: 12px;
-  padding: 10px 12px;
+  margin-top: 8px;
+  padding: 10px 11px;
 
-  border: 1px solid rgba(251, 77, 109, 0.25);
-  border-radius: 6px;
+  border:
+    1px solid
+    rgba(251, 77, 109, 0.14);
 
-  background: rgba(251, 77, 109, 0.06);
+  border-radius: 10px;
+
+  background:
+    #fff6f7;
 }
 
-.warning-dot {
-  width: 7px;
-  height: 7px;
+.alert-icon {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
 
   border-radius: 50%;
 
-  background: #fb4d6d;
+  background:
+    rgba(251, 77, 109, 0.13);
 
-  box-shadow:
-    0 0 7px
-    rgba(251, 77, 109, 0.5);
+  color: #fb335c;
+
+  font-size: 15px;
+  font-weight: 800;
 }
 
-.warning strong {
+.alert-copy strong {
   display: block;
 
-  font-size: 11px;
-  font-weight: 500;
+  color: #be123c;
 
-  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 650;
 }
 
-.warning span {
-  color: #64748b;
+.alert-copy span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #94a3b8;
+
   font-size: 9px;
 }
 
-#openMap {
+/* PRIMARY BUTTON */
+
+.primary-button {
   width: 100%;
 
-  margin-top: 14px;
-  padding: 10px 12px;
+  display: grid;
 
-  border: 1px solid #164e63;
-  border-radius: 6px;
+  grid-template-columns:
+    26px
+    1fr
+    26px;
 
-  background: #0e7490;
+  align-items: center;
+
+  margin-top: 13px;
+  padding: 11px 13px;
+
+  border: none;
+
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ff536e,
+      #ef3158
+    );
 
   color: white;
 
+  box-shadow:
+    0 8px 18px
+    rgba(239, 49, 88, 0.2);
+
   font-size: 11px;
+  font-weight: 750;
+
+  letter-spacing: 0.5px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.primary-button:hover {
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0 10px 22px
+    rgba(239, 49, 88, 0.27);
+}
+
+.primary-button:active {
+  transform:
+    translateY(0);
+}
+
+.button-icon {
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 255, 255, 0.17);
+
+  font-size: 12px;
+}
+
+.arrow {
+  justify-self: end;
+
+  font-size: 18px;
+  font-weight: 400;
+}
+
+/* SECONDARY */
+
+.secondary-button {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  margin-top: 8px;
+  padding: 9px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #f1f5f9;
+
+  color: #64748b;
+
+  font-size: 9px;
   font-weight: 600;
 
   cursor: pointer;
 }
 
-#openMap:hover {
-  background: #0891b2;
+.secondary-button:hover {
+  background: #e9eef5;
+
+  color: #334155;
+}
+
+/* FOOTER */
+
+.footer-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  margin-top: 10px;
+
+  color: #94a3b8;
+
+  font-size: 8px;
+}
+
+.green-dot {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #2dd4bf;
 }
