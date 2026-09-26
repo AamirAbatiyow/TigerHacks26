@@ -27,7 +27,7 @@ export function createReceiver({
     };
     if (req.method === "GET" && req.url === "/health")
       return reply(200, {
-        service: "Fictional analytics receiver",
+        service: "  analytics receiver",
         accepted_events: acceptedEvents,
       });
     if (req.url !== "/v1/events") return reply(404, { error: "Not found" });
@@ -91,7 +91,7 @@ if (
   });
   server.listen(port, host, () =>
     console.info(
-      `Fictional analytics: http://${host}:${port}/v1/events | Allowed origin: ${origin}`,
+      `  analytics: http://${host}:${port}/v1/events | Allowed origin: ${origin}`,
     ),
   );
 }

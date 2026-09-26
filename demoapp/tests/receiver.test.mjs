@@ -5,11 +5,11 @@ const origin = "http://localhost:5173";
 const event = {
   schema_version: "1.0",
   event_name: "offer_confirmed",
-  event_id: "fictional-test-id",
+  event_id: " -test-id",
   occurred_at: new Date().toISOString(),
   privacy: { optional_analytics_enabled: true },
   person: { full_name: "Avery Example" },
-  health: { concern: "Fictional anxiety" },
+  health: { concern: "  anxiety" },
 };
 test("receiver accepts real cross-origin JSON without retaining or echoing health data", async (t) => {
   const logs = [];

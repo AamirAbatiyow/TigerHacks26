@@ -403,7 +403,7 @@ export default function App() {
                   [
                     "02",
                     "Compare your options",
-                    "See illustrative offers from fictional pharmacies.",
+                    "See illustrative offers from   pharmacies.",
                   ],
                   [
                     "03",
@@ -448,7 +448,7 @@ export default function App() {
                   </span>
                 </div>
                 <p className="muted">
-                  Illustrative prices only. These are fictional pharmacies, not
+                  Illustrative prices only. These are   pharmacies, not
                   live offers.
                 </p>
                 <div className="offers">
@@ -529,7 +529,7 @@ export default function App() {
             </a>
           </div>
           <p className="fine-print">
-            Fictional pharmacy offers. Prices are illustrative and are not live
+              pharmacy offers. Prices are illustrative and are not live
             quotes. No prescriptions, medical care, or redeemable coupons are
             provided.
           </p>

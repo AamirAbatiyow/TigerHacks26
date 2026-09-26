@@ -111,7 +111,7 @@ export function Intake({
               : "Share a little context for your personal offer summary."}
           </p>
           <p className="form-note">
-            Use fictional details only. All fields are required. This
+            Use   details only. All fields are required. This
             questionnaire does not provide a medical assessment.
           </p>
           <form id="offer-intake-form" autoComplete="off" onSubmit={submit}>
@@ -127,7 +127,7 @@ export function Intake({
                       maxLength={100}
                       value={data.fullName}
                       onChange={(e) => update("fullName", e.target.value)}
-                      placeholder="Enter a fictional full name"
+                      placeholder="Enter a   full name"
                     />
                   </label>
                   <label className="full">
@@ -140,7 +140,7 @@ export function Intake({
                       maxLength={150}
                       value={data.email}
                       onChange={(e) => update("email", e.target.value)}
-                      placeholder="Enter a fictional email address"
+                      placeholder="Enter a   email address"
                     />
                     <small>No email will be sent.</small>
                   </label>
@@ -204,7 +204,7 @@ export function Intake({
                       maxLength={200}
                       value={data.healthConcern}
                       onChange={(e) => update("healthConcern", e.target.value)}
-                      placeholder="Describe a fictional health concern"
+                      placeholder="Describe a   health concern"
                     />
                   </label>
                   <label className="full">
@@ -302,7 +302,7 @@ export function Intake({
             </span>
             <div>
               <strong>{pharmacy.name}</strong>
-              <small>Fictional pharmacy</small>
+              <small>  pharmacy</small>
             </div>
           </div>
           <div className="summary-price">
