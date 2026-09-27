@@ -1,0 +1,68 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  color: #d9e4f5;
+  background: #060a17;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: radial-gradient(ellipse 65% 80% at 20% 15%, #18185085, transparent 75%),
+    radial-gradient(ellipse 45% 70% at 82% 85%, #07344765, transparent 80%), #060b1c;
+}
+.filing-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 40px 24px;
+}
+.document-panel {
+  width: min(100%, 880px);
+  height: calc(100vh - 80px);
+  height: calc(100dvh - 80px);
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-color: #466080 #0a1022;
+  padding: 40px 48px;
+  border: 1px solid #283652;
+  border-radius: 12px;
+  background: linear-gradient(150deg, #101a30, #0a1022);
+  box-shadow: 0 24px 80px #00000030;
+}
+h1 { margin: 0 0 28px; color: #eaf7ff; font-size: clamp(25px, 4vw, 34px); line-height: 1.2; letter-spacing: -.7px; }
+h2 { margin: 28px 0 14px; color: #eaf7ff; font-size: 21px; line-height: 1.35; }
+h3 { margin: 24px 0 12px; color: #8cc9df; font-size: 15px; }
+p { margin: 0 0 18px; color: #c1cde0; font-size: 15px; line-height: 1.8; }
+hr { margin: 30px 0; border: 0; border-top: 1px solid #283652; }
+.question { min-width: 0; margin: 26px 0 0; padding: 20px; border: 1px solid #293953; border-radius: 9px; background: #111d34; }
+legend { padding: 0 8px; color: #eaf7ff; font-weight: 600; font-size: 15px; line-height: 1.6; }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.choice { display: flex; align-items: center; gap: 9px; padding: 11px 16px; border: 1px solid #35546e; border-radius: 7px; background: #0c152b; cursor: pointer; font-size: 14px; }
+.choice:hover { border-color: #699eb8; background: #182b40; }
+.choice:has(input:checked) { border-color: #6fa7bb; background: #173649; color: #d3f2ff; }
+input[type="radio"] { width: 17px; height: 17px; margin: 0; accent-color: #2dd4bf; cursor: pointer; }
+.signature-fields { display: grid; gap: 10px; margin: 24px 0; }
+.signature-fields label { margin-top: 8px; font-size: 14px; font-weight: 600; }
+.signature-fields input { width: 100%; min-width: 0; padding: 13px 15px; border: 1px solid #35546e; border-radius: 7px; background: #0c152b; color: #eaf7ff; font: inherit; }
+.signature-fields input::placeholder { color: #8b9db8; }
+.question.autofill-active { border-color: #2dd4bf; box-shadow: 0 0 0 3px #2dd4bf20; }
+.signature-fields input.autofill-active { border-color: #2dd4bf; box-shadow: 0 0 0 3px #2dd4bf20; }
+.filing-progress { position: fixed; bottom: 9px; left: 16px; right: 16px; margin: 0; color: #a8cddd; font-size: 12px; line-height: 1.5; text-align: center; pointer-events: none; }
+.submit-button { display: block; width: 100%; margin-top: 24px; padding: 15px 24px; border: 1px solid #52839a; border-radius: 9px; background: #174667; color: #eaf7ff; font: inherit; font-weight: 600; cursor: pointer; }
+.submit-button:hover, .submit-button.autofill-active { background: #1c5c7e; border-color: #2dd4bf; box-shadow: 0 0 0 3px #2dd4bf20; }
+.filing-success { display: grid; justify-items: center; gap: 24px; text-align: center; }
+.filing-success h1 { margin: 0; }
+.success-check { width: 84px; height: 84px; fill: #2dd4bf12; stroke: #2dd4bf; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+:focus-visible { outline: 2px solid #2dd4bf; outline-offset: 4px; }
+.choice:has(input:focus-visible) { outline: 2px solid #2dd4bf; outline-offset: 4px; }
+@media (max-width: 600px) {
+  .filing-page { padding: 16px 16px 40px; }
+  .document-panel { height: calc(100vh - 56px); height: calc(100dvh - 56px); padding: 26px 20px; }
+  .question { padding: 16px 12px; }
+}

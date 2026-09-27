@@ -22,7 +22,7 @@ function popup(initial) {
   const documentListeners = {};
   let closed = false;
   let data = initial;
-  for (const id of ['closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel', 'privacyFinding',
+  for (const id of ['closePopup', 'viewDetails', 'fileForMe', 'privacyOptOut', 'privacyOptOutLabel', 'privacyFinding',
     'privacyReason', 'privacyStatus', 'refreshPrivacyFindings']) {
     nodes.set(id, {
       value: '', listeners: {}, disabled: false, textContent: '',
@@ -133,6 +133,12 @@ test('merged popup keeps report navigation, close button, and Escape handling', 
   await flush();
   keyboardUi.documentListeners.keydown({ key: 'Escape' });
   assert.equal(keyboardUi.isClosed(), true);
+});
+
+test('File for me opens the separate questionnaire page', () => {
+  const ui = popup([]);
+  ui.nodes.get('fileForMe').listeners.click();
+  assert.deepEqual(ui.opened, ['filing/index.html']);
 });
 
 test('merged markup supplies every popup script control and has only one opt-out action', () => {
