@@ -3,7 +3,7 @@
 export const PRIVACY_FINDINGS_URL = 'http://127.0.0.1:8765/api/privacy/findings';
 
 export async function loadPrivacyFindings(fetcher = fetch, extensionId = globalThis.chrome?.runtime?.id) {
-  const response = await fetcher(PRIVACY_FINDINGS_URL, { cache: 'no-store', headers: extensionId ? { 'X-HealthTrace-Extension': extensionId } : {} });
+  const response = await fetcher(PRIVACY_FINDINGS_URL, { cache: 'no-store', headers: extensionId ? { 'X-PatientPrivy-Extension': extensionId } : {} });
   if (!response.ok) throw new Error('Privacy finding service unavailable');
   const data = await response.json();
   if (!Array.isArray(data.findings)) throw new Error('Invalid privacy finding response');

@@ -1,4 +1,4 @@
-# Integrated HealthTrace demo
+# Integrated PatientPrivy demo
 
 ## Canonical layout
 
@@ -12,7 +12,7 @@ The canonical extension contains the migrated observer: metadata normalization, 
 ## Real flow
 
 1. ScriptWell (`demoapp`, local or deployed) builds a synthetic prescription offer, including a demo-only payment object, and POSTs it to `https://fly-analytics.fly.dev/collect` when the offer is confirmed.
-2. The MV3 HealthTrace observer records request metadata and POSTs only to `http://127.0.0.1:8765/events`. It does not read request bodies, perform classification, or send observations to Fly. Its host permissions cover the demo/Fly destinations and the local API; it skips its own API requests.
+2. The MV3 PatientPrivy observer records request metadata and POSTs only to `http://127.0.0.1:8765/events`. It does not read request bodies, perform classification, or send observations to Fly. Its host permissions cover the demo/Fly destinations and the local API; it skips its own API requests.
 3. With the browser configured to use mitmproxy, the HTTPS request is decrypted locally. The response hook normalizes it and POSTs it (raw body base64-encoded) to `http://127.0.0.1:8765/events` with `source: "mitm"`. For plaintext HTTP, tshark parses the on-wire body and POSTs it the same way with `source: "tshark"`. Collectors are standard-library only (`collectors/local_sink.py`): they never classify, load the model, or write the event log, and they never forward requests to the local API itself.
 4. The local API is the single ingestion path for all three sources (`process_event`). Requests with a browser `Origin` are always treated as metadata-only extension events. It runs the shared classifier, which filters demo traffic, sanitizes bodies, normalizes the event, generates an observation UUID, and appends it to local JSONL. Binary/compressed bodies remain absent; size/type metadata is retained.
 5. GET `/events` returns the latest 500 observations. Existing captures receive stable legacy IDs and are reclassified in memory without rewriting the historical log. Incomplete lines are ignored. The dashboard on port 5174, its extension bundle, and popup read this local API. Browser metadata and collector payload observations are separate records, not deduplicated requests.
@@ -71,7 +71,7 @@ Use it from the dashboard at `http://localhost:5174/?privacy=1`:
 - **Connect Gmail** opens Google's consent page through a localhost callback owned by the local API. When it finishes, the panel shows `Connected as user@gmail.com`.
 - **Review email** builds a local draft. Check To, Subject, and the full message. Edit the text if you want. **Cancel** sends nothing.
 - **Send with Gmail** is the only control that posts to `/api/gmail/send`, and only after that review.
-- **Disconnect Gmail** deletes the local token and best-effort revokes it at Google. Also remove HealthTrace at [Google Account permissions](https://myaccount.google.com/permissions) if you want to confirm the grant is gone.
+- **Disconnect Gmail** deletes the local token and best-effort revokes it at Google. Also remove PatientPrivy at [Google Account permissions](https://myaccount.google.com/permissions) if you want to confirm the grant is gone.
 
 ```sh
 export PATIENTPRIVY_GOOGLE_CLIENT_SECRET="$PWD/secrets/google_oauth_client.json"
@@ -208,7 +208,7 @@ The classifier fixture is generated from the actual `createOfferEvent` implement
 
 Live validation used a separate `/tmp/healthtrace-validation.jsonl`: actual HTTPS through mitmproxy and HTTP through tshark each produced 17 findings; the real demo UI confirmed Fly acknowledgement; the dashboard rendered those captured values; the privacy panel displayed the real unsupported findings. A Node harness ran the actual extension observer and verified a successful POST into the running local API. The Fly CORS change was deployed and verified: localhost:5173 allowed, an unrelated origin received no allow-origin header.
 
-Remaining manual verification: loading/reloading HealthTrace in Chrome and sending a browser request with the proxy enabled. Chrome was unavailable through the connected browser automation; the in-app browser validated the demo and dashboard but does not run this unpacked extension. Proxy/CA configuration was not changed on the user's machine. There is no verified Fly opt-out mechanism, no automatic opt-out submission, and no cross-collector request deduplication. The API shows a bounded recent window, not a complete historical query interface.
+Remaining manual verification: loading/reloading PatientPrivy in Chrome and sending a browser request with the proxy enabled. Chrome was unavailable through the connected browser automation; the in-app browser validated the demo and dashboard but does not run this unpacked extension. Proxy/CA configuration was not changed on the user's machine. There is no verified Fly opt-out mechanism, no automatic opt-out submission, and no cross-collector request deduplication. The API shows a bounded recent window, not a complete historical query interface.
 
 
 ## Deployment verification (2026-09-26)

@@ -5,7 +5,7 @@ export default function SimpleFlow({ source, nodes, selectedNodeId, activeEvent,
   return <section className="simple-view" aria-label="Simple data flow">
     <div className="simple-heading"><h2>Where your data goes</h2><p>Choose a destination to see the information it receives.</p></div>
     <div className="simple-flow">
-      <div className="simple-source"><div className="source-icon"><img src="./healthtrace-mark.svg" alt="HealthTrace" /></div><div className="source-transfer" aria-hidden="true">{progress !== null && <i className="transfer-dot" style={{ left: `${progress * 100}%` }} />}</div><h3>{source.name}</h3><p>Your data starts here</p></div>
+      <div className="simple-source"><div className="source-icon"><img src="./healthtrace-mark.svg" alt="PatientPrivy" /></div><div className="source-transfer" aria-hidden="true">{progress !== null && <i className="transfer-dot" style={{ left: `${progress * 100}%` }} />}</div><h3>{source.name}</h3><p>Your data starts here</p></div>
       <div className="flow-bridge" aria-hidden="true"><span className="bridge-arrow">→</span></div>
       <div className="simple-destinations" aria-label="Data destinations">
         {nodes.length === 0 && <p className="empty-destinations">No destinations have been received yet.</p>}

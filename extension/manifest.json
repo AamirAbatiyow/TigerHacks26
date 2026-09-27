@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "HealthTrace",
+  "name": "PatientPrivy",
   "version": "1.0.0",
   "description": "See where your health-related data is going.",
   "action": {

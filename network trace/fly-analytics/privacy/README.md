@@ -108,7 +108,7 @@ Future external adapters must use the event ID for remote idempotency when avail
 The integrated API binds to `127.0.0.1:8765`, validates the loopback Host, and permits
 only the port 5174 dashboard origins and Chrome extension origins through CORS.
 The popup and bundled/standalone dashboards call it directly; no Vite proxy is needed.
-The popup includes `X-HealthTrace-Extension` on its finding read. This is single-user
+The popup includes `X-PatientPrivy-Extension` on its finding read. This is single-user
 local infrastructure, not authenticated remote access.
 
 The extension's observation POST goes only to the local `/events` endpoint. Its Fly

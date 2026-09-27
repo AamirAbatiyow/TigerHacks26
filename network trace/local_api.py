@@ -84,7 +84,7 @@ class Handler(PrivacyHandler):
             self.send_header('Access-Control-Allow-Origin', self.headers['Origin'])
             self.send_header('Vary', 'Origin')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-HealthTrace-Extension')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-PatientPrivy-Extension')
         self.end_headers()
 
     def _json_object(self, limit):

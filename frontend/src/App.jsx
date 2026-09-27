@@ -31,7 +31,7 @@ function SessionExperience({ session, view, onViewChange, connection, duration }
 
   return <div className={`app dual-view ${view} ${privacyOpen ? "privacy-mode" : ""}`} data-playback-time={playback.cursor.toFixed(2)} data-playback-status={playback.status} data-transfer-progress={progress ?? ""}>
     <header className="topbar">
-      <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>HealthTrace</h1><span className="subtitle">See where your data travels</span></div>
+      <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>PatientPrivy</h1><span className="subtitle">See where your data travels</span></div>
       <div className="topbar-actions">
         <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy opt-outs"}</button>
         <div className="mode-toggle" role="group" aria-label="Visualization view">

@@ -1,4 +1,4 @@
-# HealthTrace frontend
+# PatientPrivy frontend
 
 This is the single dashboard source for both the standalone UI and the polished MV3 extension. It reads real observations and privacy findings from `http://127.0.0.1:8765`; there is no mock playback or fallback.
 

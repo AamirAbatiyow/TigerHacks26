@@ -98,7 +98,7 @@ export default function NetworkScene({ sourceName, nodes, activeNodeId, transfer
       <Scene nodes={nodes} activeNodeId={activeNodeId} transfer={transfer} onEnterService={onEnterService} />
       <LabelProjection nodes={nodes} labelRefs={labelRefs} sourceRef={sourceRef} />
     </Canvas>
-    <div className="app-node-mark" ref={sourceRef}><img src="./healthtrace-mark.svg" alt="HealthTrace" /><span>{sourceName}</span></div>
+    <div className="app-node-mark" ref={sourceRef}><img src="./healthtrace-mark.svg" alt="PatientPrivy" /><span>{sourceName}</span></div>
     <div className="projected-labels">{nodes.map((node) => <button key={node.id} ref={(element) => { if (element) labelRefs.current.set(node.id, element); else labelRefs.current.delete(node.id); }} className="technical-node-label" onClick={() => onEnterService(node)} aria-label={`Inspect ${node.name}, ${node.fields.length} fields`}>
       <ServiceSymbol category={node.category} className="service-symbol" /><span>{node.name}<small>{node.fields.length} {node.fields.length === 1 ? "field" : "fields"}</small></span>
     </button>)}</div>

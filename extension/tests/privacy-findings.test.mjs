@@ -53,7 +53,7 @@ test('loader uses application provider API, validates response, and identifies e
   }, 'a'.repeat(32));
   assert.equal(rows[0].event_id, ads.event_id);
   assert.match(request.url, /\/api\/privacy\/findings$/);
-  assert.equal(request.options.headers['X-HealthTrace-Extension'], 'a'.repeat(32));
+  assert.equal(request.options.headers['X-PatientPrivy-Extension'], 'a'.repeat(32));
   await assert.rejects(loadPrivacyFindings(async () => ({ ok: false })), /unavailable/);
   await assert.rejects(loadPrivacyFindings(async () => ({ ok: true, json: async () => ({ findings: [ads, ads] }) })), /Invalid/);
 });

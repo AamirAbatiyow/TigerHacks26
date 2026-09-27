@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the local HealthTrace demo services. Ctrl-C stops everything this script started.
+# Start the local PatientPrivy demo services. Ctrl-C stops everything this script started.
 # ScriptWell itself is not started: the demo uses https://scriptwell.fly.dev.
 set -u
 cd "$(dirname "$0")"
@@ -155,7 +155,7 @@ check_children
 
 cat <<EOF
 
-HealthTrace demo is running (Ctrl-C to stop everything):
+PatientPrivy demo is running (Ctrl-C to stop everything):
   ScriptWell:  https://scriptwell.fly.dev
   Dashboard:   http://localhost:5174
   Local API:   http://127.0.0.1:8765

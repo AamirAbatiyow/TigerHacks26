@@ -222,7 +222,7 @@ class GmailService:
                     open_browser=True,
                     timeout_seconds=180,
                     authorization_prompt_message="",
-                    success_message="Gmail connected. You can close this tab and return to HealthTrace.",
+                    success_message="Gmail connected. You can close this tab and return to PatientPrivy.",
                 )
             if generation != self._generation:
                 return

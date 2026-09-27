@@ -50,7 +50,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         origin = self.headers.get('Origin')
         extension_origin = self.extension_findings_origin()
-        if extension_origin and self.command == 'GET' and self.headers.get('X-HealthTrace-Extension') == extension_origin.removeprefix('chrome-extension://'):
+        if extension_origin and self.command == 'GET' and self.headers.get('X-PatientPrivy-Extension') == extension_origin.removeprefix('chrome-extension://'):
             return True
         allowed = {'http://localhost:5173', 'http://127.0.0.1:5173', f'http://localhost:{port}', f'http://127.0.0.1:{port}'}
         if (origin and origin not in allowed) or self.headers.get('Sec-Fetch-Site') == 'cross-site':
@@ -80,14 +80,14 @@ class Handler(BaseHTTPRequestHandler):
             port = self.server.server_port
             if (self.headers.get('Host') not in {f'127.0.0.1:{port}', f'localhost:{port}'}
                     or self.headers.get('Access-Control-Request-Method') != 'GET'
-                    or self.headers.get('Access-Control-Request-Headers', '').lower() != 'x-healthtrace-extension'):
+                    or self.headers.get('Access-Control-Request-Headers', '').lower() != 'x-patientprivy-extension'):
                 self.respond(403, {'error': 'Invalid extension preflight'})
                 return
             self.send_response(204)
             self.send_header('Access-Control-Allow-Origin', origin)
             self.send_header('Vary', 'Origin')
             self.send_header('Access-Control-Allow-Methods', 'GET')
-            self.send_header('Access-Control-Allow-Headers', 'X-HealthTrace-Extension')
+            self.send_header('Access-Control-Allow-Headers', 'X-PatientPrivy-Extension')
             self.end_headers()
             return
         self.send_response(204)
