@@ -1,6 +1,13 @@
 import { loadPrivacyFindings, createPrivacyDraft, discoverPageContacts } from './privacy-findings.mjs';
 
 document.getElementById('closePopup').addEventListener('click', () => window.close());
+document.getElementById('fileForMe').addEventListener('click', () => {
+  if (globalThis.chrome?.runtime?.getURL) {
+    chrome.tabs.create({ url: chrome.runtime.getURL('filing/index.html') });
+  } else {
+    window.open(new URL('filing/index.html', window.location.href).href, '_blank', 'noopener');
+  }
+});
 document.getElementById('viewDetails').addEventListener('click', () => {
   if (globalThis.chrome?.runtime?.getURL) {
     chrome.tabs.create({ url: chrome.runtime.getURL('visualization/index.html') });

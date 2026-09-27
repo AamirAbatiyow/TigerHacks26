@@ -7,7 +7,7 @@ const finding={event_id:'evt-1',company:'Example Health',reason_label:'Sensitive
 const flush=()=>new Promise(setImmediate);
 function popup(initial=[finding]) {
   const nodes=new Map(); const opened=[]; const drafted=[]; const listeners={}; let data=initial; let closed=false;
-  for (const id of ['packetCount','closePopup','viewDetails','privacyOptOut','privacyOptOutLabel','privacyFinding','privacyReason','privacyStatus','refreshPrivacyFindings']) nodes.set(id,{
+  for (const id of ['packetCount','closePopup','fileForMe','viewDetails','privacyOptOut','privacyOptOutLabel','privacyFinding','privacyReason','privacyStatus','refreshPrivacyFindings']) nodes.set(id,{
     value:'',disabled:false,textContent:'',listeners:{},addEventListener(e,f){this.listeners[e]=f;},setAttribute(k,v){this[k]=v;},replaceChildren(){this.value='';},add(){}
   });
   vm.runInNewContext(fs.readFileSync(new URL('../popup.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/,''),{
@@ -47,7 +47,14 @@ test('removed findings, unavailable service, or a changed selection do not open 
 test('report, close, Escape remain; popup has a single consolidated privacy action',async()=>{
   const ui=popup();await flush();ui.nodes.get('viewDetails').listeners.click();assert.deepEqual(ui.opened,['visualization/index.html']);
   ui.listeners.keydown({key:'Escape'});assert.equal(ui.closed,true);
-  const html=fs.readFileSync(new URL('../popup.html',import.meta.url),'utf8');assert.equal((html.match(/id="privacyOptOut"/g)||[]).length,1);assert.doesNotMatch(html,/fileForMe|Limit sensitive data/);
+  const html=fs.readFileSync(new URL('../popup.html',import.meta.url),'utf8');assert.equal((html.match(/id="privacyOptOut"/g)||[]).length,1);assert.doesNotMatch(html,/Limit sensitive data/);
+});
+test('File for me is visible and opens the questionnaire page',async()=>{
+  const ui=popup();await flush();ui.nodes.get('fileForMe').listeners.click();
+  assert.deepEqual(ui.opened,['filing/index.html']);
+  const html=fs.readFileSync(new URL('../popup.html',import.meta.url),'utf8');
+  assert.match(html, /id="fileForMe" type="button"/);
+  assert.match(fs.readFileSync(new URL('../filing/index.html',import.meta.url),'utf8'), /src="autofill.mjs"/);
 });
 test('page discovery uses published mailto contacts, strips URL query, and ignores form values',()=>{
   const links=[['mailto:contact%2Bprivacy@example.test','Privacy contact'],['mailto:person@example.test','Profile'],['mailto:a@example.test,b@example.test','Contact']];
