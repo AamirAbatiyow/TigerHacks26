@@ -17,7 +17,7 @@ import {
   Sun,
   Wind,
 } from "lucide-react";
-import { BRAND } from "./config";
+import { BRAND, PRIVACY_EMAIL } from "./config";
 import {
   conditions,
   medications,
@@ -32,17 +32,8 @@ import {
   type CompletedOffer,
   type IntakeData,
 } from "./Intake";
-import {
-  createOfferEvent,
-  sendOfferEvent,
-  type DeliveryStatus,
-} from "./analytics";
-import { Privacy } from "./PrivacySettings";
-import {
-  readSharingPreference,
-  saveSharingPreference,
-  withOptionalSharing,
-} from "./privacy";
+import { createOfferEvent, sendOfferEvent } from "./analytics";
+import { PrivacyPolicy } from "./PrivacyPolicy";
 const icons = {
   heart: Heart,
   brain: Brain,
@@ -58,22 +49,14 @@ export default function App() {
   const [medication, setMedication] = useState<Medication | null>(null);
   const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
   const [completed, setCompleted] = useState<CompletedOffer | null>(null);
-  const [sharing, setSharing] = useState(readSharingPreference);
   const submitted = useRef(false);
-  const generation = useRef(0);
-  const [delivery, setDelivery] = useState<DeliveryStatus>("idle");
+  const privacyPage = window.location.pathname === "/privacy";
   const finish = (data: IntakeData) => {
     if (!medication || !pharmacy || submitted.current) return;
     submitted.current = true;
-    const run = ++generation.current;
-    setDelivery(sharing ? "sending" : "disabled");
-    void withOptionalSharing(sharing, () =>
-      sendOfferEvent(
-        createOfferEvent(data, medication, pharmacy, query || category),
-      ),
-    ).then((status) => {
-      if (run === generation.current) setDelivery(status);
-    });
+    void sendOfferEvent(
+      createOfferEvent(data, medication, pharmacy, query || category),
+    );
     setCompleted({
       medication,
       pharmacy,
@@ -83,8 +66,10 @@ export default function App() {
     window.scrollTo(0, 0);
   };
   useEffect(() => {
-    document.title = `${BRAND.name} | Prescription savings`;
-  }, []);
+    document.title = privacyPage
+      ? `${BRAND.name} | Privacy Policy`
+      : `${BRAND.name} | Prescription savings`;
+  }, [privacyPage]);
   const results = medications.filter(
     (m) =>
       (!category || m.condition === category) &&
@@ -94,14 +79,19 @@ export default function App() {
   );
   const home = () => {
     submitted.current = false;
-    generation.current++;
-    setDelivery("idle");
     setPharmacy(null);
     setCompleted(null);
     setMedication(null);
     setSearched(false);
     setCategory("");
     setQuery("");
+  };
+  const goHome = () => {
+    if (privacyPage) {
+      window.location.assign("/");
+      return;
+    }
+    home();
   };
   const browse = (id: string) => {
     setCategory(id);
@@ -117,7 +107,7 @@ export default function App() {
       <header className="header wrap">
         <button
           className="brand"
-          onClick={home}
+          onClick={goHome}
           aria-label={`${BRAND.name} home`}
         >
           <span className="brandmark">
@@ -127,13 +117,16 @@ export default function App() {
           <span className="brand-dot">.</span>
         </button>
         <nav aria-label="Main navigation">
-          <button className="nav-active" onClick={home}>
+          <button className={!privacyPage ? "nav-active" : ""} onClick={goHome}>
             Prescription savings
           </button>
-          <a href="#conditions" onClick={home}>
+          <a href={privacyPage ? "/#conditions" : "#conditions"} onClick={home}>
             Explore health
           </a>
-          <a href="#how-it-works" onClick={home}>
+          <a
+            href={privacyPage ? "/#how-it-works" : "#how-it-works"}
+            onClick={home}
+          >
             How it works
           </a>
         </nav>
@@ -142,7 +135,9 @@ export default function App() {
         </span>
       </header>
       <main>
-        {completed ? (
+        {privacyPage ? (
+          <PrivacyPolicy />
+        ) : completed ? (
           <Confirmation offer={completed} onBrowse={home} />
         ) : medication && pharmacy ? (
           <Intake
@@ -403,7 +398,7 @@ export default function App() {
                   [
                     "02",
                     "Compare your options",
-                    "See illustrative offers from   pharmacies.",
+                    "See illustrative offers from fictional pharmacies.",
                   ],
                   [
                     "03",
@@ -448,7 +443,7 @@ export default function App() {
                   </span>
                 </div>
                 <p className="muted">
-                  Illustrative prices only. These are   pharmacies, not
+                  Illustrative prices only. These are fictional pharmacies, not
                   live offers.
                 </p>
                 <div className="offers">
@@ -503,18 +498,6 @@ export default function App() {
           </section>
         )}
       </main>
-      <Privacy
-        enabled={sharing}
-        onChange={(enabled) => {
-          setSharing(enabled);
-          saveSharingPreference(enabled);
-        }}
-        onReset={() => {
-          home();
-          window.scrollTo(0, 0);
-        }}
-        delivery={delivery}
-      />
       <footer className="footer">
         <div className="wrap">
           <div className="footer-top">
@@ -524,12 +507,12 @@ export default function App() {
               <span className="brand-dot">.</span>
             </span>
             <p>{BRAND.tagline}</p>
-            <a href="#how-it-works" onClick={home}>
+            <a href={privacyPage ? "/#how-it-works" : "#how-it-works"}>
               How it works <ArrowRight size={15} />
             </a>
           </div>
           <p className="fine-print">
-              pharmacy offers. Prices are illustrative and are not live
+            Fictional pharmacy offers. Prices are illustrative and are not live
             quotes. No prescriptions, medical care, or redeemable coupons are
             provided.
           </p>
@@ -537,7 +520,10 @@ export default function App() {
             <span>
               © {new Date().getFullYear()} {BRAND.name}
             </span>
-            <span>Made with a little extra care.</span>
+            <span className="footer-links">
+              <a href="/privacy">Privacy Policy</a>
+              <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+            </span>
           </div>
         </div>
       </footer>
