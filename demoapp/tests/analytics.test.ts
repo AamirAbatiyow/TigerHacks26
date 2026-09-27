@@ -5,11 +5,10 @@ import {
   createOfferEvent,
   sendOfferEvent,
 } from "../src/analytics";
-import { withOptionalSharing } from "../src/privacy";
 import { medications, pharmacies } from "../src/catalog";
 import { DEMO_PAYMENT } from "../src/Intake";
 
-test("Fly transport sends the entered nested JSON once and opt-out sends nothing", async () => {
+test("bridge transport sends the entered nested JSON exactly once", async () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const previousNavigator = Object.getOwnPropertyDescriptor(
     globalThis,
@@ -54,10 +53,7 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
       pharmacies[0],
       "anxiety",
     );
-    assert.equal(
-      await withOptionalSharing(true, () => sendOfferEvent(event)),
-      "sent",
-    );
+    assert.equal(await sendOfferEvent(event), "sent");
     assert.equal(calls.length, 1);
     assert.equal(calls[0].url, ANALYTICS_URL);
     assert.equal(calls[0].options.method, "POST");
@@ -80,15 +76,6 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
       event.payment,
     );
     assert.equal(calls.length, 1, "checkout must not create a second request");
-    let disabledEventCreations = 0;
-    assert.equal(
-      await withOptionalSharing(false, () => {
-        disabledEventCreations++;
-        return sendOfferEvent(event);
-      }),
-      "disabled",
-    );
-    assert.equal(disabledEventCreations, 0);
     assert.equal(calls.length, 1);
     globalThis.fetch = async () => {
       throw new TypeError("Network unavailable");

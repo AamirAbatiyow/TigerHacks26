@@ -1456,129 +1456,147 @@ small {
     font-size: 15px;
   }
 }
-.privacy-settings {
-  border: 1px solid #e2e7da;
-  border-radius: 12px;
-  padding: 24px 28px;
-  margin-bottom: 38px;
-}
-.privacy-heading {
+.footer-links {
   display: flex;
-  gap: 12px;
   align-items: center;
-  margin-bottom: 21px;
+  gap: 20px;
 }
-.privacy-heading h2 {
-  font-size: 17px;
-  letter-spacing: -0.02em;
-  margin: 0 0 4px;
+.footer-links a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.privacy-heading p {
-  font-size: 11px;
-  margin: 0;
+.privacy-policy {
+  padding-top: 58px;
+  padding-bottom: 80px;
 }
-.privacy-heading > .text-btn {
-  margin-left: auto;
-  font-size: 11px;
+.privacy-policy-hero {
+  max-width: 720px;
+  text-align: center;
+  margin: 0 auto 52px;
 }
-.sharing-row {
-  display: flex;
-  gap: 35px;
-  align-items: center;
+.policy-icon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1a3;
+  color: #314d3d;
+  margin: 0 auto 22px;
 }
-.sharing-row label {
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
+.privacy-policy-hero h1 {
+  font-size: 48px;
+  margin-bottom: 16px;
 }
-.sharing-row p {
-  font-size: 11px;
-  max-width: 740px;
-  margin: 5px 0 0;
+.privacy-policy-hero p {
+  font-size: 16px;
   line-height: 1.7;
 }
-.toggle-control {
-  margin-left: auto;
-  display: flex;
+.privacy-policy-hero small {
+  color: #7a8379;
+}
+.policy-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+  max-width: 1000px;
+  margin: auto;
+}
+.policy-summary {
+  position: sticky;
+  top: 24px;
+  background: #f4f6ee;
+  border-radius: 14px;
+  padding: 28px;
+}
+.policy-summary > svg {
+  color: #5d7356;
+  margin-bottom: 20px;
+}
+.policy-summary h2 {
+  font-size: 22px;
+}
+.policy-summary p {
+  font-size: 12px;
+  line-height: 1.75;
+}
+.policy-summary a,
+.policy-content a {
+  color: #305e4b;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.policy-summary a {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  min-width: 85px;
-}
-.toggle-control input {
-  appearance: none;
-  position: relative;
-  width: 42px;
-  height: 24px;
-  border: 1px solid #8b9886;
-  border-radius: 20px;
-  background: #d7dfd1;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin: 0;
-}
-.toggle-control input:after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px #0002;
-  transition: transform 0.15s;
-}
-.toggle-control input:checked {
-  background: #365941;
-  border-color: #365941;
-}
-.toggle-control input:checked:after {
-  transform: translateX(18px);
-}
-.privacy-effect {
-  font-size: 10px;
-  margin: 12px 0 0;
-  color: #526447;
-}
-.technical-details {
-  font-size: 10px;
-  margin-top: 16px;
-  border-top: 1px solid #e8ecdf;
-  padding-top: 13px;
-  color: #788171;
-}
-.technical-details summary {
-  cursor: pointer;
-}
-.technical-details p {
-  margin: 10px 0 0;
-}
-.technical-details code {
+  gap: 6px;
+  font-size: 12px;
   overflow-wrap: anywhere;
+}
+.policy-content > section {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 20px;
+  border-top: 1px solid #e1e5dc;
+  padding: 29px 0;
+}
+.policy-content > section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.policy-number {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d6ddcf;
+  border-radius: 50%;
+  color: #6f7c6d;
   font-size: 10px;
+  font-weight: 700;
+}
+.policy-content h2 {
+  font-size: 23px;
+  letter-spacing: -0.025em;
+  margin-bottom: 13px;
+}
+.policy-content p {
+  font-size: 13px;
+  line-height: 1.85;
+  margin-bottom: 12px;
+}
+.policy-content p:last-child {
+  margin-bottom: 0;
 }
 @media (max-width: 700px) {
-  .privacy-settings {
-    padding: 20px;
-  }
-  .privacy-heading {
-    flex-wrap: wrap;
-  }
-  .privacy-heading > .text-btn {
-    width: 100%;
-    margin: 6px 0 0;
-  }
-  .sharing-row {
-    gap: 15px;
+  .footer-bottom,
+  .footer-links {
     align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
   }
-  .toggle-control {
-    padding-top: 4px;
-    gap: 6px;
-    min-width: 67px;
+  .privacy-policy {
+    padding-top: 38px;
+    padding-bottom: 50px;
   }
-  .sharing-row p {
-    font-size: 10px;
+  .privacy-policy-hero h1 {
+    font-size: 37px;
+  }
+  .policy-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .policy-summary {
+    position: static;
+  }
+  .policy-content > section {
+    grid-template-columns: 34px 1fr;
+    gap: 13px;
+  }
+  .policy-number {
+    width: 31px;
+    height: 31px;
   }
 }

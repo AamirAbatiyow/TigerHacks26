@@ -25,7 +25,7 @@ Open **http://localhost:5173**. If `.env` or `.env.local` exists, remove an old 
 
 The final **Confirm my offer** action sends one `offer_confirmed` JSON event containing synthetic contact information, health answers, selected prescription, demo-card values, pharmacy, price, interaction metadata, UUID, and timestamp. The browser serializes the nested object with `JSON.stringify`; the bridge forwards those exact bytes. Demo Checkout itself creates no request, and no payment provider is contacted.
 
-The stable checkbox is `#analytics-sharing-toggle`. Off skips event construction and fetch entirely, including the payment object; the fake checkout and confirmation still work. `#reset-flow-button` clears the flow while retaining that preference. Nothing in the website persists the questionnaire or demo-card values. Capture tools and receiver logs may retain bodies, so use only synthetic data.
+The website does not expose an in-page analytics toggle. Its footer links to `/privacy`, where analytics sharing and the opt-out request contact are disclosed. Nothing in the website persists the questionnaire or demo-card values. Capture tools and receiver logs may retain bodies, so use only synthetic data.
 
 ## CORS and verification
 
@@ -39,11 +39,10 @@ Access-Control-Allow-Headers: Content-Type
 
 It returns 204 for OPTIONS and 200 after Fly accepts the forwarded POST. Fly deployment files live under `network trace/fly-analytics/`; this checkout change does not modify or redeploy them.
 
-1. Enable sharing, select an offer, manually enter synthetic details, reach Demo Checkout, and click **Use Demo Card**. Open Chrome Network with Preserve log and filter `collect`.
+1. Select an offer, manually enter synthetic details, reach Demo Checkout, and click **Use Demo Card**. Open Chrome Network with Preserve log and filter `collect`.
 2. Click **Confirm my offer**. Inspect the POST to localhost:4319, its payment object, and successful response. OPTIONS is the preflight, not the sensitive-looking disclosure.
 3. The teammate can run `flyctl logs -a fly-analytics` to verify `Path: /collect` and the body.
-4. Turn sharing off, reset, and manually repeat. Confirmation must still appear without another POST.
-5. Analytics failure or the five-second timeout does not block confirmation; there are no automatic retries.
+4. Analytics failure or the five-second timeout does not block confirmation; there are no automatic retries.
 
 The exact event structure is documented in [the contract](./demo-contract.md) and [JSON schema](./demo-event.schema.json).
 

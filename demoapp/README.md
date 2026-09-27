@@ -14,9 +14,9 @@ In another terminal run `cd demoapp && npm run dev`. Node 20.12+ is required. Vi
 
 ## Demonstrate
 
-Browse a concern or search a medication, choose a pharmacy, and manually fill the identity and health steps with synthetic information. At **Demo Checkout**, click **Use Demo Card**, then confirm with **Optional analytics sharing** on. The single JSON POST includes the synthetic payment object. No payment request is made.
+Browse a concern or search a medication, choose a pharmacy, and manually fill the identity and health steps with synthetic information. At **Demo Checkout**, click **Use Demo Card**, then confirm the offer. The single JSON POST includes the synthetic payment object. No payment request is made.
 
-Turn sharing off using `#analytics-sharing-toggle`, click `#reset-flow-button`, and repeat. The offer still confirms; no analytics event is built or sent. Reset preserves the privacy choice. A fresh profile defaults to on. Only this preference is saved; answers are not persisted. “Sharing details” exposes the destination and last delivery result for troubleshooting.
+The footer links to the dedicated `/privacy` policy and displays `Scriptwell@gmail.com` as the privacy contact. The policy discloses analytics sharing and explains that requests to stop future sharing may be submitted through that contact channel. Form answers are not persisted by the website.
 
 ## Configure
 
@@ -36,4 +36,4 @@ npm run format:check
 
 `npm run preview` serves the production build on 5173. Tests use a temporary loopback port and   fixtures. The optional local receiver does not log form values; its `/health` exposes only an in-memory count. The teammate’s Fly receiver may log the complete payload: use fictional inputs only.
 
-See [the integration contract](../docs/demo-contract.md) for origins, complete payload, schema, extension selectors, deployment notes, DevTools steps, and the judge script. This is a demonstration of data disclosure, not a legal determination about HIPAA.
+See [the integration contract](../docs/demo-contract.md) for origins, complete payload, schema, deployment notes, DevTools steps, and the judge script. This is a demonstration of data disclosure, not a legal determination about HIPAA.
