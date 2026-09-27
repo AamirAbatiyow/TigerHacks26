@@ -3,3 +3,6 @@
 **/__pycache__/
 **/*.pyc
 network trace/fly-analytics/data/
+
+network trace/privacy.sqlite3*
+network trace/models/

@@ -8,7 +8,7 @@ import {
 import { medications, pharmacies } from "../src/catalog";
 import { createPrefilledIntake, DEMO_PAYMENT } from "../src/Intake";
 
-test("bridge transport sends the entered nested JSON exactly once", async () => {
+test("Fly transport sends the entered nested JSON exactly once", async () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const previousNavigator = Object.getOwnPropertyDescriptor(
     globalThis,
@@ -34,10 +34,7 @@ test("bridge transport sends the entered nested JSON exactly once", async () => 
     return new Response("OK", { status: 200 });
   };
   try {
-    assert.equal(ANALYTICS_URL, "http://localhost:4319/collect");
-    const medication = medications.find(
-      (candidate) => candidate.id === "sertraline",
-    )!;
+    assert.equal(ANALYTICS_URL, "https://fly-analytics.fly.dev/collect");
     const event = createOfferEvent(
       createPrefilledIntake(medication),
       medication,

@@ -1,8 +1,7 @@
 import json
 from urllib.parse import urlsplit
 
-DEMO_HOSTS = {"fly-analytics.fly.dev"}
-DEMO_ORIGINS = {("localhost", 3000), ("127.0.0.1", 3000)}
+from demo_config import RECEIVER_HOSTS, is_scriptwell_host, is_scriptwell_origin
 
 COMPRESSED_ENCODINGS = {"gzip", "x-gzip", "br", "deflate", "zstd", "compress", "x-compress"}
 BINARY_TYPES = {
@@ -19,7 +18,7 @@ COMPRESSED_MAGIC = (b"\x1f\x8b", b"\x28\xb5\x2f\xfd")
 
 
 def host_port(value):
-    """Split a Host-style value like 'localhost:3000'. Port is None when absent."""
+    """Split a Host-style value like 'localhost:5173'. Port is None when absent."""
     if not isinstance(value, str) or not value.strip():
         return None, None
     try:
@@ -32,7 +31,7 @@ def host_port(value):
 
 
 def origin_host_port(value):
-    """Split an origin/initiator like 'http://localhost:3000/page'. Fills the default port."""
+    """Split an origin/initiator like 'http://localhost:5173/page'. Fills the default port."""
     if not isinstance(value, str) or not value.strip() or value.strip() == "null":
         return None, None
     text = value.strip()
@@ -58,21 +57,24 @@ def _port(value):
 
 # Demo filter:
 # The collectors see every request on the interface or proxy, including Cursor,
-# Apple, and Google background traffic. Only surface requests involving the
-# local synthetic health app or the Fly test endpoint so the stream stays readable.
+# Apple, and Google background traffic. Only surface requests involving
+# ScriptWell (local or deployed, see demo_config.py) or the synthetic-data
+# receiver so the stream stays readable.
 def is_demo_relevant(event):
     if not isinstance(event, dict):
         return False
 
     host, explicit_port = host_port(event.get("host"))
-    if host in DEMO_HOSTS:
+    if host in {"localhost", "127.0.0.1", "::1"} and (explicit_port or _port(event.get("destination_port"))) in {8765, 8080, 5174}:
+        return False
+    if host and host.lower() in RECEIVER_HOSTS:
         return True
 
     port = explicit_port if explicit_port is not None else _port(event.get("destination_port"))
-    if (host, port) in DEMO_ORIGINS:
+    if is_scriptwell_host(host, port):
         return True
 
-    return origin_host_port(event.get("initiator")) in DEMO_ORIGINS
+    return is_scriptwell_origin(event.get("initiator"))
 
 
 def _encoded_size(value):

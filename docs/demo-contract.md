@@ -1,32 +1,12 @@
-# Prescription savings demonstration contract
+# Synthetic demo payload contract
 
-> **Current browser destination:** `POST http://localhost:4319/collect`. The local HTTP bridge forwards the same JSON body over plaintext HTTP to `http://fly-analytics.fly.dev/collect` for the tshark demonstration. Do not use real personal, health, or payment information.
+The only demo health app is ScriptWell in `demoapp/`, running at `http://localhost:5173` and deployed at `https://scriptwell.fly.dev`. The complete pipeline and startup commands are in [integrated-demo.md](integrated-demo.md).
 
-## Run locally
+## Payload and delivery
 
-Requires Node 20.12+ and npm. From the repository root:
+`demoapp/src/analytics.ts` is the authoritative payload builder. [demo-event.schema.json](demo-event.schema.json) describes the synthetic application payload; it is not a second observability event schema. The shared observation envelope is normalized by `network trace/classifier.py` and consumed unchanged by the local API and dashboard.
 
-```sh
-cd demoapp
-npm ci
-python3 server/bridge.py
-```
-
-In another terminal, run `cd demoapp && npm run dev`. Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`). `npm run build` type-checks and creates `dist/`. `npm test` runs the analytics, failure-handling, and local-receiver regression tests.
-
-## Origins and request
-
-- First-party website: `http://localhost:5173`.
-- Browser analytics destination: `http://localhost:4319/collect`.
-- Plaintext forwarding destination: `http://fly-analytics.fly.dev/collect`.
-- Method: `POST`; header `Content-Type: application/json`.
-- Real browser `fetch`, `mode: cors`, `credentials: omit`, `cache: no-store`, `referrerPolicy: no-referrer`.
-- Trigger: final valid submission of `#offer-intake-form` via `#confirm-offer-button` (button text “Confirm my offer”). Enter-key submission also works. Search, choosing a pharmacy, typing, and continuing from step 1 do not emit analytics.
-- The browser sends an `OPTIONS` CORS preflight before the POST. Preflight does not contain the sensitive-looking payload. The bridge returns **204** for OPTIONS and **200** after successful forwarding.
-- Different ports are different origins, though these localhost origins are same-site. The bridge and Fly app are team-controlled demo services, not commercial analytics or payment providers.
-- The bridge forwards the original JSON body unchanged. No second request is made by the browser, and the checkout UI itself makes no request.
-
-## JSON contract
+The demo payload contains `schema_version`, `event_name`, a submission UUID, `occurred_at`, application source, person, health, prescription, payment, offer, interaction, and privacy objects. `payment` holds synthetic test-card values used only to demonstrate disclosure. The card number is serialized without spaces. It is never sent to a payment processor, and no authorization, charge, reservation, or purchase occurs. The classifier fixture at `network trace/tests/demo-payload.json` is exported from the actual builder:
 
 The full machine-readable schema is [demo-event.schema.json](./demo-event.schema.json). All properties in it are required; no additional properties are expected. The receiver checks the event envelope, not the complete schema. An event is one JSON object, not an array or encoded string.
 
@@ -110,17 +90,17 @@ Analytics failure, non-2xx, CORS rejection, or a five-second timeout never preve
 - Browser-extension detection/explanation must be checked with the team's actual extension. The website's diagnostics are not evidence that an extension detected the request.
 - The homepage has no analytics-sharing control. Browser verification confirmed the footer contact and dedicated `/privacy` policy, including analytics disclosure and opt-out request language.
 
-## Commands and Git workflow
+## Privacy
 
-Work started on `testapp` at `109fb7c` with a clean working tree. Each feature branch was created from the latest merged `testapp`, verified, committed, and merged with `--no-ff` before the next branch began:
+There is no in-page analytics toggle. The footer links to `/privacy` and displays `Scriptwell@gmail.com`. The policy describes the contact, health, prescription, interaction, pharmacy, and synthetic payment information included in the analytics event, and says a request to stop future analytics sharing may be submitted through that contact. Processing that request is outside this demo and cannot recall information already transmitted.
 
 1. `feat/demoapp-frontend`: branded UI, catalog, search, pharmacy comparisons.
 2. `feat/demoapp-intake`: questionnaire, required validation, offer confirmation.
 3. `feat/demoapp-analytics`: real browser POST, receiver, schema and this contract.
 4. `feat/demoapp-privacy`: preference, reset, regression checks and final documentation.
 
-The later `feat/demoapp-privacy-policy` update removes the in-page sharing preference, adds the dedicated policy route and footer contact, and updates the integration documentation to match the revised demo story.
+## Configuration and verification
 
-Key commands executed: `npm install`, `npm run build` for each stage, `npm run dev`, `npm run dev:analytics`, `npm test`, `npm run format`, `npm run format:check`, and `curl -fsS http://localhost:4318/health`. Final startup uses `npm run dev:all`. Git inspection used `git status --short`, `git log --oneline`, and `git diff --check`; each stage used `git switch -c`, `git add`, `git commit`, `git switch testapp`, and `git merge --no-ff`. Sandbox restrictions required permission for dependency downloads, loopback listeners, and Git metadata writes.
+`VITE_ANALYTICS_URL` overrides the destination. Restart Vite or rebuild after changing it. `APP_PORT` controls the demo port; the integrated allowlists assume 5173. `ANALYTICS_PORT`, `ANALYTICS_HOST`, and `ALLOWED_ORIGIN` apply only to the optional Node receiver, not Fly or the observability API.
 
-Repository note: the original directory was `demo app/` with an empty `demo.txt`; the implementation is in the explicitly requested `demoapp/`. During development the tracked `demo app/demo.txt` was deleted outside these changes. That deletion was preserved as an unrelated, uncommitted change and excluded from feature commits. No merge conflicts occurred.
+Use the fictional prefilled answers, select a pharmacy preference and duration, click **Use Demo Card**, and confirm. The browser Network panel should show one HTTPS POST whose payload includes `payment`. With the extension and proxy configured, the local dashboard should show separate metadata and payload observations. Tests use synthetic fixtures and never submit privacy requests to companies.

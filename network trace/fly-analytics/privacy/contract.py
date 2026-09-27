@@ -39,7 +39,7 @@ class Reason:
 
 @dataclass(frozen=True)
 class User:
-    state: str
+    state: str | None
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
@@ -64,8 +64,8 @@ class PrivacyFinding:
         domain = text(company.get('domain'), 'company.domain', 253).lower()
         if not re.fullmatch(r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}', domain):
             raise ValidationError('company.domain must be a bare DNS domain, not a URL')
-        state = text(user.get('state'), 'user.state', 2).upper()
-        if state not in US_STATES:
+        state = text(user['state'], 'user.state', 2).upper() if user.get('state') is not None else None
+        if state is not None and state not in US_STATES:
             raise ValidationError('user.state must be a U.S. state abbreviation or DC')
         optional = {key: text(user[key], f'user.{key}') if key in user else None
                     for key in ['first_name', 'last_name', 'email']}

@@ -1,6 +1,6 @@
 // This is the application's local backend, not a company opt-out destination.
 // A future fetching service plugs into PrivacyFindingProvider on that backend.
-export const PRIVACY_FINDINGS_URL = 'http://127.0.0.1:8080/api/privacy/findings';
+export const PRIVACY_FINDINGS_URL = 'http://127.0.0.1:8765/api/privacy/findings';
 
 export async function loadPrivacyFindings(fetcher = fetch, extensionId = globalThis.chrome?.runtime?.id) {
   const response = await fetcher(PRIVACY_FINDINGS_URL, { cache: 'no-store', headers: extensionId ? { 'X-HealthTrace-Extension': extensionId } : {} });

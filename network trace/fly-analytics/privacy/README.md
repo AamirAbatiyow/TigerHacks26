@@ -1,70 +1,41 @@
-# Privacy opt-out MVP
+# Privacy opt-out feature
 
-This feature extends the existing Python collector and React HealthTrace dashboard.
-There was no database, authentication, user model, live finding API, email client,
-background worker, or functional popup reason source in the repository. The network
-map and popup monitoring counters use simulated data; the popup privacy issue section
-uses the backend finding provider. This slice adds local SQLite and a
-provider boundary; it does not infer privacy rights from health traffic.
-
-## Run in the existing app
-
-From the repository root, in two terminals:
+The dashboard and polished extension consume real local observations through the
+shared API on `127.0.0.1:8765`. Start from the repository root:
 
 ```sh
-PRIVACY_LOCAL_MODE=1 python3 'network trace/fly-analytics/server.py'
+python3 'network trace/local_api.py'
+npm run dev --prefix frontend
 ```
 
-```sh
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://127.0.0.1:5173/?privacy=1 or choose **Privacy opt-outs** in the dashboard.
-The extension popup's blue action button loads current issues from the same backend
-provider/resolver as the dashboard. Choose a company/reason when several findings are
-available. A single finding is selected automatically. Its label follows the right
-(e.g. **Opt out** or **Request deletion**) and its destination matches that finding's
-**Open official mechanism** link exactly. Unsupported or unavailable findings disable
-the button. Every click re-fetches and re-resolves the selected event before opening
-an official page; removed or stale findings never fall back to another destination.
-There is no fixed company URL or event ID in the popup.
-
-Reload the unpacked extension after these changes to apply the module script and local
-backend host permission. Start the Python backend in local mode on port 8080. The
-popup calls the backend directly; the Vite website does not need to be running for
-this button. **Refresh privacy issues** reloads changed fixtures/provider data.
-Its bundled visualization remains a separate static build; it has no privacy backend.
-Click **Process finding** to resolve, safely stop or submit, persist, and display a result.
-Reloading retains the result. Opening a portal never marks it submitted or completed.
-
-Place one normalized finding per JSON file in `fixtures/`. Use a new `event_id` when
-changing an already processed finding. Optional names/email are validated when present;
-state is required. A mechanism's required fields are checked separately. Sample users
-are fictional; no fixture PII is sent to any external destination by the shipped flows.
-Malformed input returns a validation error and no submission. Unknown reasons are
-valid input but become `UNSUPPORTED`. No future GET endpoint is implemented.
-
-`PRIVACY_FIXTURE_DIR` overrides the fixture directory. `PRIVACY_DB_PATH` overrides the
-SQLite file (default `fly-analytics/data/privacy.sqlite3`, ignored by Git). `PORT`
-defaults to 8080; if changed, update the Vite proxy. Local dev uses port 5173 explicitly.
+Run those in separate terminals. Open `http://127.0.0.1:5174/?privacy=1`.
+The bundled extension dashboard uses the same API. **Refresh privacy issues** reloads
+current findings in the popup; its action re-resolves the selected finding before
+opening a verified official mechanism. Unsupported or unavailable findings disable it.
+**Process finding** records an engine result locally; opening a portal never marks a
+request submitted or completed.
 
 ## Provider boundary
 
-`contract.py` contains immutable typed `PrivacyFinding`, `Company`, `Reason`, and `User`
-records and strict validation via `PrivacyFinding.parse(raw)`. Providers expose
-`getPrivacyFinding(event_id)` and `listPrivacyFindings()`; listing serves the local UI.
-The local implementation reads JSON files. A future provider transforms its own
-source schema and returns validated normalized records through this interface.
-Inject it through `create_server(..., provider=...)`. Resolution, adapters, persistence,
-and UI are independent of the source; never accept submission destinations from input.
+`network trace/live_privacy.py` adapts real classified observations to `PrivacyFinding`.
+Only destination and category metadata are copied, never raw payload values. Residency
+and company identity are not guessed. Unknown residency is represented by null;
+unsupported destinations such as the Fly demo receiver cannot trigger a submission.
+`ResultStore` persists results in `network trace/privacy.sqlite3` (ignored by Git).
 
-Internal application routes (not the future data source):
+The existing contract, resolver, strategy registry, and result store are shared:
 
-- `GET /api/privacy/findings`: redacted resolution previews; no persistence or submission.
-- `POST /api/privacy/run`, JSON `{ "event_id": "mock-microsoft-ads-001" }`: provider → engine → store → result.
-- `GET /api/privacy/results`: stored metadata and evidence, without raw user fields.
+- GET `/api/privacy/findings`: redacted resolution previews.
+- POST `/api/privacy/run` with a real `event_id`: provider → engine → store.
+- GET `/api/privacy/results`: stored metadata and evidence, without raw user fields.
+
+The JSON fixture provider remains for regression tests and explicit isolated testing
+via `PRIVACY_LOCAL_MODE=1 python3 'network trace/fly-analytics/server.py'` on port 8080.
+Neither the dashboard nor extension uses that fixture server in the integrated demo.
+`PRIVACY_FIXTURE_DIR`, `PRIVACY_DB_PATH`, and `PORT` configure only that test mode.
+Remotely deployed privacy endpoints remain disabled.
+
+See [the integrated guide](../../../docs/integrated-demo.md) for the complete setup.
 
 ## Supported coverage and reviewed mechanisms
 
@@ -134,19 +105,17 @@ Future external adapters must use the event ID for remote idempotency when avail
 
 ## Local-only boundary
 
-Because the existing app has no auth, privacy routes are disabled on the existing
-public collector by default. `PRIVACY_LOCAL_MODE=1` binds the server to loopback, checks
-Host/Origin, omits wildcard CORS on privacy routes, and only accepts JSON event IDs.
-The extension declares a host permission only for `http://127.0.0.1:8080/*`. Its
-read-only `GET /api/privacy/findings` request identifies its extension ID using
-`X-HealthTrace-Extension`; the server permits Chrome extension origins on that single
-redacted route and echoes their exact origin for CORS. Other privacy routes remain
-unavailable to extension origins. This identifies the requesting local extension,
-not an authenticated user; authenticated ownership remains required for hosted use.
-The React dev server proxies those requests. `/collect` retains its existing collector
-behavior. This is single-user development infrastructure, not a shared hosted service.
-Authenticated ownership/access control and durable hosted storage are prerequisites
-for exposing real user findings remotely. No deployment was performed.
+The integrated API binds to `127.0.0.1:8765`, validates the loopback Host, and permits
+only the port 5174 dashboard origins and Chrome extension origins through CORS.
+The popup and bundled/standalone dashboards call it directly; no Vite proxy is needed.
+The popup includes `X-HealthTrace-Extension` on its finding read. This is single-user
+local infrastructure, not authenticated remote access.
+
+The extension's observation POST goes only to the local `/events` endpoint. Its Fly
+host permissions enable request observation, not remote telemetry submission. Neither
+raw observations nor findings are forwarded to Fly. The remote receiver accepts only
+the synthetic demo application payload and leaves privacy routes disabled. The
+standalone fixture server retains its separate, narrower origin checks for tests.
 
 ## Verification
 
@@ -166,10 +135,10 @@ input errors, company mismatches, rights, unsupported states, stale sources, log
 other blockers, minimum-field submission via a test adapter, failure/uncertain outcomes,
 completion evidence, deduplication, changed event conflicts, and local route protection.
 
-## Connecting the future fetching service to the popup
+## Adding another finding provider
 
 1. Implement `PrivacyFindingProvider.getPrivacyFinding(event_id)` and
-   `listPrivacyFindings()` using the fetching service's data. Transform and validate it
+   `listPrivacyFindings()` using the new source's data. Transform and validate it
    with `PrivacyFinding.parse(raw)`; return findings belonging to the current user.
 2. Inject that provider into `create_server(..., provider=...)`. The existing
    `/api/privacy/findings` route resolves each company's reason/state to a verified
@@ -182,7 +151,7 @@ No future external GET URL, active-tab attribution, or account model is invented
 The current popup explicitly selects a finding. A future page-specific provider can
 return only the applicable finding, which the popup then selects automatically.
 Moving the application backend requires updating `PRIVACY_FINDINGS_URL` in
-`extension/privacy-findings.mjs` and the matching manifest host permission; the opt-out
+`extension/privacy-findings.mjs` and the matching manifest host permission plus the dashboard API base; the opt-out
 resolver and UI logic stay unchanged. A remotely hosted backend also needs auth.
 
 Popup integration checks (from the repository root):

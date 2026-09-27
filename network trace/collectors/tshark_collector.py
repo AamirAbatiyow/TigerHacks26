@@ -1,20 +1,24 @@
 import subprocess
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
 
-from classifier import analyze
+# Capture and normalize only; the local API classifies and stores.
+from local_sink import LOCAL_API_PORT, send_event
 
 # Plaintext HTTP on the Wi-Fi interface. TLS on 443 stays opaque here;
 # decrypted HTTPS is observed by collectors/mitm_collector.py instead.
+# The capture filter also skips this collector's own loopback POSTs to the local API.
 TSHARK_CMD = [
     "tshark",
     "-l",
-    "-i", "en0",
+    "-i", os.environ.get("TSHARK_INTERFACE", "en0"),
+    "-f", f"tcp and not port {LOCAL_API_PORT}",
     "-Y", "http.request",
     "-T", "fields",
     "-e", "http.request.method",
@@ -29,7 +33,7 @@ TSHARK_CMD = [
 
 
 def decode_file_data(field):
-    # Keep bytes. classifier.py decides whether the body is text, JSON, or binary.
+    # Keep bytes. The local API's classifier decides whether the body is text, JSON, or binary.
     if not field:
         return None
     cleaned = "".join(field.split()).replace(":", "")
@@ -92,7 +96,7 @@ def main():
         for line in process.stdout:
             event = parse_tshark_line(line)
             if event is not None:
-                analyze(event)
+                send_event(event, "tshark")
     except KeyboardInterrupt:
         pass
     finally:
