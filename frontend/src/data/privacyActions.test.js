@@ -42,15 +42,17 @@ test('Gmail failure leaves the mailto draft usable; only approved email is poste
   assert.equal(gmailLabel({connected:true,email:'me@gmail.com'}),'Connected as me@gmail.com');
 });
 
-test('extension and dashboard share a draft API and one review screen; no legacy filing action', () => {
+test('extension uses EmailJS while the existing dashboard draft code stays separate', () => {
   const popup = fs.readFileSync(new URL('../../../extension/popup.js',import.meta.url),'utf8');
   const panel = fs.readFileSync(new URL('../components/PrivacyPanel.jsx',import.meta.url),'utf8');
-  assert.match(popup,/createPrivacyDraft\(/);
+  assert.match(popup,/sendWithEmailJS\(/);
+  assert.doesNotMatch(popup,/createPrivacyDraft\(|sendWithGmail\(/);
   assert.match(popup,/visualization\/index.html/);
   assert.match(panel,/createPrivacyDraft\(/);
   assert.match(panel,/loadDraft\(id\)/);
   assert.match(panel,/onClick=\{send\}/);
   assert.match(panel,/status: 'mailto_opened'/);
-  assert.doesNotMatch(popup,/fileForMe|filing\/index/);
+  assert.match(popup,/fileForMe/);
+  assert.match(popup,/privacyIssueCount\(/);
   assert.doesNotMatch(panel,/api\/privacy\/run|api\/gmail\/draft/);
 });

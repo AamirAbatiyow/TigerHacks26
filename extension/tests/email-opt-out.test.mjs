@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {DEFAULT_EMAILJS_CONFIG, buildOptOutEmail, discoverCurrentSite, findPageEmail, sendWithEmailJS} from '../email-opt-out.mjs';
+import { privacyIssueCount } from '../sensitive-count.mjs';
 
 test('review copy uses the current site and only names supplied fly categories for fly-analytics', () => {
   assert.equal(DEFAULT_EMAILJS_CONFIG.templateId, 'template_8566ppw');
@@ -53,7 +54,8 @@ test('popup opens an editable review and never sends until Send is clicked', asy
     showModal(){this.open=true;},close(){this.open=false;this.listeners.close?.();}});
   const sent = [];
   const bodyClasses = new Set();
-  vm.runInNewContext(fs.readFileSync(new URL('../popup.js', import.meta.url), 'utf8').replace(/^import[^\n]+\n/, ''), {
+  vm.runInNewContext(fs.readFileSync(new URL('../popup.js', import.meta.url), 'utf8').replace(/^import[^\n]+\n/gm, ''), {
+    privacyIssueCount,
     document:{getElementById:id=>nodes.get(id),addEventListener(){},body:{classList:{add:name=>bodyClasses.add(name),remove:name=>bodyClasses.delete(name)}}},window:{close(){},open(){}},URL,
     chrome:{tabs:{query:async()=>[{id:1,url:'https://fly-analytics.fly.dev/'}],create(){}},
       storage:{local:{get:async()=>({emailjsConfig:{serviceId:'service_1',templateId:'template_1',publicKey:'public_1'}}),set:async()=>{}}},
