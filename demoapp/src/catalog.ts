@@ -309,7 +309,6 @@ export const pharmacies = [
   {
     id: "meadow",
     name: "Meadow Pharmacy",
-    subtitle: "Your neighborhood pharmacy",
     initials: "m",
     color: "mint",
     addition: 0,
@@ -317,7 +316,6 @@ export const pharmacies = [
   {
     id: "juniper",
     name: "Juniper Drugstore",
-    subtitle: "Care around the corner",
     initials: "J",
     color: "lavender",
     addition: 3.75,
@@ -325,7 +323,6 @@ export const pharmacies = [
   {
     id: "oak",
     name: "Oak & Hearth",
-    subtitle: "Pharmacy & everyday essentials",
     initials: "o+h",
     color: "peach",
     addition: 7.4,

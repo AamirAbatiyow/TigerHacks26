@@ -3,17 +3,12 @@ import {
   Activity,
   ArrowLeft,
   ArrowRight,
-  BadgeCheck,
   Brain,
-  Check,
   ChevronRight,
   Flower2,
   Heart,
-  MapPin,
   Pill,
   Search,
-  ShieldCheck,
-  Sparkles,
   Sun,
   Wind,
 } from "lucide-react";
@@ -110,9 +105,6 @@ export default function App() {
   };
   return (
     <>
-      <div className="topline">
-        <Sparkles size={13} /> A healthier budget starts here.
-      </div>
       <header className="header wrap">
         <button
           className="brand"
@@ -139,9 +131,6 @@ export default function App() {
             How it works
           </a>
         </nav>
-        <span className="header-note">
-          <ShieldCheck size={17} /> Care for your wallet
-        </span>
       </header>
       <main>
         {privacyPage ? (
@@ -160,9 +149,6 @@ export default function App() {
             <section className="hero">
               <div className="wrap hero-grid">
                 <div className="hero-copy">
-                  <span className="eyebrow">
-                    FEEL BETTER ABOUT YOUR NEXT REFILL
-                  </span>
                   <h1>
                     Your health matters.
                     <br />
@@ -205,12 +191,6 @@ export default function App() {
                   <div className="art-ring" />
                   <div className="art-spark spark-one">✳</div>
                   <div className="art-spark spark-two">✳</div>
-                  <div className="floating-note">
-                    <span className="note-icon">
-                      <Heart size={18} />
-                    </span>{" "}
-                    A little care goes a long way.
-                  </div>
                   <div className="bottle">
                     <div className="bottle-cap" />
                     <div className="bottle-label">
@@ -229,37 +209,12 @@ export default function App() {
                   </div>
                   <div className="art-pill pill-one" />
                   <div className="art-pill pill-two" />
-                  <div className="savings-note">
-                    <span className="round-check">
-                      <Check size={20} />
-                    </span>
-                    <div>
-                      <strong>A better price,</strong>
-                      <br />
-                      <span>a brighter day.</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </section>
-            <div className="trust-strip wrap">
-              <span>
-                <BadgeCheck /> Simple, upfront comparisons
-              </span>
-              <span>
-                <Heart /> Your health, your choices
-              </span>
-              <span>
-                <Pill /> Everyday prescription savings
-              </span>
-            </div>
             <section className="wrap section" id="conditions">
               <div className="section-heading">
-                <div>
-                  <span className="eyebrow">A GOOD PLACE TO START</span>
-                  <h2>What brings you here today?</h2>
-                </div>
-                <p>Explore medications by health concern.</p>
+                <h2>What brings you here today?</h2>
               </div>
               <div className="condition-grid">
                 {conditions.map((c) => {
@@ -286,18 +241,13 @@ export default function App() {
               aria-live="polite"
             >
               <div className="section-heading">
-                <div>
-                  <span className="eyebrow">
-                    SMALL STEPS. MEANINGFUL SAVINGS.
-                  </span>
-                  <h2>
-                    {searched
-                      ? category
-                        ? `${conditions.find((c) => c.id === category)?.name} medications`
-                        : `Results${query ? ` for “${query}”` : ""}`
-                      : "Popular prescriptions, thoughtfully priced."}
-                  </h2>
-                </div>
+                <h2>
+                  {searched
+                    ? category
+                      ? `${conditions.find((c) => c.id === category)?.name} medications`
+                      : `Results${query ? ` for “${query}”` : ""}`
+                    : "Popular prescriptions"}
+                </h2>
                 {searched && (
                   <button
                     className="text-btn"
@@ -311,10 +261,6 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <p className="muted catalog-note">
-                Browse examples, not treatment recommendations. Medication and
-                dosage choices belong with your clinician.
-              </p>
               <div className="medication-grid">
                 {(searched ? results : featuredMedications).map((m) => (
                   <button
@@ -365,37 +311,22 @@ export default function App() {
             </section>
             <section className="wrap how-section" id="how-it-works">
               <div>
-                <span className="eyebrow">LESS GUESSWORK. MORE CLARITY.</span>
                 <h2>
                   A simpler path
                   <br />
                   to prescription savings.
                 </h2>
-                <p>{BRAND.tagline}</p>
               </div>
               <div className="steps">
                 {[
-                  [
-                    "01",
-                    "Find your medication",
-                    "Search by name or explore a health concern.",
-                  ],
-                  [
-                    "02",
-                    "Compare your options",
-                    "Compare prices across pharmacy offers.",
-                  ],
-                  [
-                    "03",
-                    "Make it yours",
-                    "Add your details and review your selected offer.",
-                  ],
-                ].map(([n, t, d]) => (
+                  ["01", "Find your medication"],
+                  ["02", "Compare your options"],
+                  ["03", "Make it yours"],
+                ].map(([n, t]) => (
                   <div className="step" key={n}>
                     <span>{n}</span>
                     <div>
                       <h3>{t}</h3>
-                      <p>{d}</p>
                     </div>
                   </div>
                 ))}
@@ -412,7 +343,6 @@ export default function App() {
                 <Pill size={40} />
               </span>
               <div>
-                <span className="eyebrow">YOUR PRESCRIPTION, YOUR OPTIONS</span>
                 <h1>{medication.name}</h1>
                 <p>
                   {medication.brand} · {medication.dose} · {medication.quantity}
@@ -423,14 +353,7 @@ export default function App() {
               <div>
                 <div className="section-heading">
                   <h2>Compare pharmacy offers</h2>
-                  <span className="muted">
-                    <MapPin size={15} /> Sample locations
-                  </span>
                 </div>
-                <p className="muted">
-                  Prices shown for demonstration only. These are not live
-                  offers.
-                </p>
                 <div className="offers">
                   {pharmacies.map((p, i) => (
                     <article
@@ -438,18 +361,16 @@ export default function App() {
                       key={p.id}
                     >
                       {i === 0 && (
-                        <span className="best-label">LOWEST SAMPLE PRICE</span>
+                        <span className="best-label">LOWEST PRICE</span>
                       )}
                       <span className={`pharmacy-logo ${p.color}`}>
                         {p.initials}
                       </span>
                       <div className="pharmacy-info">
                         <h3>{p.name}</h3>
-                        <p>{p.subtitle}</p>
                       </div>
                       <div className="offer-price">
                         <strong>{money(medication.price + p.addition)}</strong>
-                        <small>Illustrative price</small>
                       </div>
                       <button
                         className="dark-btn offer-link"
@@ -465,20 +386,6 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <aside className="info-panel">
-                <ShieldCheck size={30} />
-                <h3>A little clarity before you choose.</h3>
-                <p>
-                  Compare the same medication, strength, and quantity across
-                  each pharmacy.
-                </p>
-                <hr />
-                <p>
-                  These examples help you explore a savings journey. They do not
-                  provide a prescription, medical advice, or a redeemable
-                  coupon.
-                </p>
-              </aside>
             </div>
           </section>
         )}
@@ -491,15 +398,10 @@ export default function App() {
               {BRAND.name}
               <span className="brand-dot">.</span>
             </span>
-            <p>{BRAND.tagline}</p>
             <a href={privacyPage ? "/#how-it-works" : "#how-it-works"}>
               How it works <ArrowRight size={15} />
             </a>
           </div>
-          <p className="fine-print">
-            Prices are examples and are not live quotes. No prescriptions,
-            medical care, or redeemable coupons are provided.
-          </p>
           <div className="footer-bottom">
             <span>
               © {new Date().getFullYear()} {BRAND.name}
