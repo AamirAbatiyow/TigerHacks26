@@ -31,7 +31,8 @@
     "http://fly-analytics.fly.dev/*",
     "http://localhost:5173/*",
     "http://127.0.0.1:5173/*",
-    "https://scriptwell.fly.dev/*"
+    "https://scriptwell.fly.dev/*",
+    "https://api.emailjs.com/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -25,4 +25,6 @@ See [the integrated guide](../docs/integrated-demo.md) for the full demo and pro
 
 ## Privacy actions
 
-The popup has one **Take Privacy Action** button. It opens the shared editable review inside the bundled extension dashboard, with Gmail and email-app delivery choices. Reload the extension for the user-invoked `activeTab`/`scripting` contact-discovery permissions. See [the privacy-action guide](../docs/privacy-actions.md); the old simulated filing page is removed.
+The popup's **Opt Out** button opens a small editable email review. It checks the current page and up to four obvious same-origin privacy/contact/legal/support pages for an email address. If lookup fails, the recipient field stays editable. Nothing sends until the user presses **Send email**.
+
+The review has an **EmailJS setup** section with the supplied service ID, template ID, and public key. You can correct them there; changes are stored in extension local storage. Set the EmailJS template's **To** field to `{{to_email}}`, **Subject** to `{{subject}}`, and body to `{{message}}`. Connect a sending email service in EmailJS first. No private key belongs in the extension. Reload the unpacked extension after changing the manifest or popup files. The dashboard's existing privacy actions remain separate; see [the privacy-action guide](../docs/privacy-actions.md).

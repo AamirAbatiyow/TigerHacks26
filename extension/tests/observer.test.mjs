@@ -15,7 +15,7 @@ test('MV3 observer posts metadata locally and excludes its own event API', async
   });
   assert.equal(listenerCount, 1);
   const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url)));
-  assert.deepEqual(Array.from(observedUrls), manifest.host_permissions.filter((url) => !url.includes(':8765/')));
+  assert.deepEqual(Array.from(observedUrls), manifest.host_permissions.filter((url) => !url.includes(':8765/') && !url.includes('api.emailjs.com')));
   observer({ url: 'http://[::1]:8765/events', method: 'POST' });
   observer({ url: 'http://127.0.0.1:8765/events', method: 'POST' });
   observer({ url: 'http://localhost:8765/events', method: 'POST' });

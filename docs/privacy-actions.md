@@ -1,6 +1,6 @@
 # One privacy action, reviewed locally
 
-The extension popup and frontend both use **Take Privacy Action**. The popup creates a local draft, then opens the same React review screen inside `extension/visualization/`; the dashboard opens that review directly. Gmail is optional. No action automatically sends mail.
+The bundled dashboard still uses the local draft/Gmail review described below. The extension popup now has a separate, minimal **Opt Out** modal using EmailJS; see [the extension setup](../extension/README.md#privacy-actions). Neither flow sends without a user click on its final send action.
 
 ## Previous flow and consolidation
 

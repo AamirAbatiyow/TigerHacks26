@@ -13,21 +13,18 @@
 <h1 id="popupTitle">Your local data trace</h1>
 <p class="packet-copy"><strong id="packetCount">—</strong> local observations</p>
 <section class="privacy-finding-section" aria-label="Privacy finding">
-<label for="privacyFinding">Privacy issue</label>
-<select id="privacyFinding" disabled><option value="">Loading privacy findings…</option></select>
-<p id="privacyReason"></p>
-<button class="primary-button" id="privacyOptOut" type="button" disabled>
+<p id="currentWebsite">Current website</p>
+<button class="primary-button" id="privacyOptOut" type="button">
 <svg class="opt-out-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="14" /><path d="M8 28 28 8" /></svg>
-<span id="privacyOptOutLabel">Take Privacy Action</span>
+<span id="privacyOptOutLabel">Opt Out</span>
 <span class="primary-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-8-8 8 8-8 8" /></svg></span>
 </button>
-<p id="privacyStatus" role="status">Loading privacy findings…</p>
+<p id="privacyStatus" role="status">Review the email before sending.</p>
 <button class="primary-button file-button" id="fileForMe" type="button">
 <svg class="opt-out-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="14" /><path d="M8 28 28 8" /></svg>
 <span>File for me</span>
 <span class="primary-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-8-8 8 8-8 8" /></svg></span>
 </button>
-<button class="refresh-button" id="refreshPrivacyFindings" type="button">Refresh privacy issues</button>
 </section>
 <button class="secondary-button" id="viewDetails" type="button">
 <svg class="report-icon" viewBox="0 0 24 28" aria-hidden="true"><path d="M5 2h9l7 7v15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" /><path d="M14 2v7h7M8 11h3M8 15h9M8 19h9" /></svg>
@@ -36,6 +33,24 @@
 </button>
 
 </main>
+<dialog id="optOutDialog" aria-labelledby="optOutTitle">
+<h2 id="optOutTitle">Review opt-out email</h2>
+<p id="contactStatus" role="status">Looking for a privacy contact…</p>
+<label for="recipientEmail">Recipient email</label>
+<input id="recipientEmail" type="email" autocomplete="off" placeholder="privacy@example.com" required />
+<label for="emailSubject">Subject</label>
+<input id="emailSubject" type="text" required />
+<label for="emailBody">Body</label>
+<textarea id="emailBody" rows="8" required></textarea>
+<details id="emailjsSetup"><summary>EmailJS setup</summary>
+<label for="emailjsService">Service ID</label><input id="emailjsService" type="text" autocomplete="off" />
+<label for="emailjsTemplate">Template ID</label><input id="emailjsTemplate" type="text" autocomplete="off" />
+<label for="emailjsPublicKey">Public key</label><input id="emailjsPublicKey" type="text" autocomplete="off" />
+<p>Template fields: To <code>{{to_email}}</code>, Subject <code>{{subject}}</code>, Body <code>{{message}}</code>.</p>
+</details>
+<p id="sendStatus" role="status"></p>
+<div class="dialog-actions"><button id="cancelEmail" type="button">Cancel</button><button id="sendEmail" class="dialog-button" type="button">Send email</button></div>
+</dialog>
 <script type="module" src="popup.js"></script>
 </body>
 </html>

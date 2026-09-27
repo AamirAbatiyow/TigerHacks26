@@ -10,9 +10,9 @@ import { LOCAL_API, toSession } from "./data/liveEvents";
 import "./index.css";
 import "./views.css";
 
-function SessionExperience({ session, view, onViewChange, connection, duration }) {
+function SessionExperience({ session, view, onViewChange, duration }) {
   const [inspection, setInspection] = useState(null);
-  const [privacyOpen, setPrivacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
+  const [privacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
   const playback = usePlayback(duration);
   const events = session.events;
   const currentEvent = eventAtTime(events, playback.cursor);
@@ -33,12 +33,10 @@ function SessionExperience({ session, view, onViewChange, connection, duration }
     <header className="topbar">
       <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>PatientPrivy</h1><span className="subtitle">See where your data travels</span></div>
       <div className="topbar-actions">
-        <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy actions"}</button>
         <div className="mode-toggle" role="group" aria-label="Visualization view">
           <button className={view === "simple" ? "active" : ""} aria-pressed={view === "simple"} onClick={() => onViewChange("simple")}>Simple view</button>
           <button className={view === "technical" ? "active" : ""} aria-pressed={view === "technical"} onClick={() => onViewChange("technical")}>Technical view</button>
         </div>
-        <span className="session-origin">{connection}</span>
       </div>
     </header>
     <main className={`workspace ${privacyOpen ? "privacy-open" : ""}`}>
@@ -58,7 +56,6 @@ export default function App() {
   const [view, setView] = useState("simple");
   const [snapshot, setSnapshot] = useState(null);
   const [observations, setObservations] = useState([]);
-  const [connection, setConnection] = useState("Connecting");
 
   useEffect(() => {
     function receive(event) {
@@ -80,10 +77,9 @@ export default function App() {
         const data = await response.json();
         if (active) {
           setObservations(Array.isArray(data.events) ? data.events : []);
-          setConnection(data.events?.length ? "Monitoring" : "Waiting for local events");
         }
-      } catch (error) {
-        if (error.name !== "AbortError" && active) setConnection("Local API disconnected");
+      } catch {
+        // Keep the last observations available while the local API reconnects.
       }
       if (active) timer = window.setTimeout(refresh, 2000);
     }
@@ -94,5 +90,5 @@ export default function App() {
   const input = snapshot?.data || toSession(observations, { simple: view === "simple" });
   const session = useMemo(() => normalizeSession(input), [input]);
   const duration = (session.events.at(-1)?.at || 0) + FLIGHT_SECONDS;
-  return <SessionExperience key={snapshot?.revision || "live"} session={session} view={view} onViewChange={setView} connection={snapshot ? "Loaded session" : connection} duration={duration} />;
+  return <SessionExperience key={snapshot?.revision || "live"} session={session} view={view} onViewChange={setView} duration={duration} />;
 }
