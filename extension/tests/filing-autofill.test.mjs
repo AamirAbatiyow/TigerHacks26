@@ -8,11 +8,12 @@ test('autofill scrolls before each answer, pauses visibly, and starts fresh ever
     '[name="question-1"][value="Yes"]',
     '[name="question-2"][value="Yes"]',
     '[name="question-3"][value="No"]',
+    '[name="question-4"][value="Yes"]',
     '#signature', '#name', '#date',
   ];
   const inputs = selectors.map((selector, index) => ({
-    type: index < 3 ? 'radio' : index === 5 ? 'date' : 'text',
-    value: index < 3 ? index === 2 ? 'No' : 'Yes' : 'Old value',
+    type: index < 4 ? 'radio' : index === 6 ? 'date' : 'text',
+    value: index < 4 ? index === 2 ? 'No' : 'Yes' : 'Old value',
     checked: true,
     classList: { add() {}, remove() {} },
     closest() { return null; },
@@ -21,8 +22,7 @@ test('autofill scrolls before each answer, pauses visibly, and starts fresh ever
     dispatchEvent(event) { actions.push(`${event.type}:${selector}`); },
     blur() {},
   }));
-  const fourthQuestion = { type: 'radio', checked: true };
-  const panel = { scrollTop: 100, querySelectorAll: () => [...inputs, fourthQuestion] };
+  const panel = { scrollTop: 100, querySelectorAll: () => inputs };
   const status = {};
   const success = { focus() { actions.push('success:focus'); } };
   const submit = {
@@ -41,22 +41,26 @@ test('autofill scrolls before each answer, pauses visibly, and starts fresh ever
   for (let run = 0; run < 2; run += 1) {
     actions.length = 0;
     await autofill(document, wait, scroll);
-    assert.deepEqual(inputs.slice(0, 3).map((input) => input.checked), [true, true, true]);
-    assert.deepEqual(inputs.slice(3).map((input) => input.value), ['Adem Erdogan', 'Adem Erdogan', '2026-09-27']);
-    assert.equal(fourthQuestion.checked, false);
-    assert.equal(panel.hidden, true);
-    assert.equal(status.hidden, true);
-    assert.equal(success.hidden, false);
-    assert.deepEqual(actions.slice(-5), ['scroll:submit', 'submit:focus', 'wait:1800', 'submit:click', 'success:focus']);
-    assert.equal(actions.filter((action) => action === 'wait:1400').length, 6);
+    assert.deepEqual(inputs.slice(0, 4).map((input) => input.checked), [true, true, true, true]);
+    assert.deepEqual(inputs.slice(4).map((input) => input.value), ['Adem Erdogan', 'Adem Erdogan', '2026-09-27']);
+    assert.equal(panel.hidden, false);
+    assert.equal(status.hidden, false);
+    assert.equal(success.hidden, true);
+    assert.deepEqual(actions.slice(-2), ['scroll:submit', 'submit:focus']);
+    assert.equal(actions.includes('submit:click'), false);
+    assert.equal(actions.filter((action) => action === 'wait:700').length, 7);
     selectors.forEach((selector) => {
       const position = actions.indexOf(`scroll:${selector}`);
       assert.ok(position >= 0);
-      assert.equal(actions[position + 1], 'wait:700');
+      assert.equal(actions[position + 1], 'wait:350');
       assert.equal(actions[position + 2], `focus:${selector}`);
     });
     assert.ok(actions.indexOf(`click:${selectors[0]}`) < actions.indexOf(`scroll:${selectors[1]}`));
     assert.ok(actions.indexOf(`click:${selectors[1]}`) < actions.indexOf(`scroll:${selectors[2]}`));
+    submit.click();
+    assert.equal(panel.hidden, true);
+    assert.equal(status.hidden, true);
+    assert.equal(success.hidden, false);
   }
 
   // A manual submission also shows the confirmation and stops pending autofill.

@@ -14,7 +14,7 @@ export function scrollToField(panel, target) {
     let started;
     function frame(now) {
       started ??= now;
-      const progress = Math.min((now - started) / 1600, 1);
+      const progress = Math.min((now - started) / 550, 1);
       const eased = progress * progress * (3 - 2 * progress);
       panel.scrollTop = start + (destination - start) * eased;
       if (progress < 1) requestAnimationFrame(frame);
@@ -45,6 +45,7 @@ export async function autofill(document, wait = pause, scroll = scrollToField) {
     { selector: '[name="question-1"][value="Yes"]', label: 'Question 1', answer: 'Yes' },
     { selector: '[name="question-2"][value="Yes"]', label: 'Question 2', answer: 'Yes' },
     { selector: '[name="question-3"][value="No"]', label: 'Question 3', answer: 'No' },
+    { selector: '[name="question-4"][value="Yes"]', label: 'Question 4', answer: 'Yes' },
     { selector: '#signature', label: 'Signature', answer: 'Adem Erdogan' },
     { selector: '#name', label: 'Name', answer: 'Adem Erdogan' },
     { selector: '#date', label: 'Date', answer: '2026-09-27' },
@@ -56,7 +57,7 @@ export async function autofill(document, wait = pause, scroll = scrollToField) {
     else input.value = '';
   }
   panel.scrollTop = 0;
-  await wait(1200);
+  await wait(600);
   if (submitted) return;
 
   for (const step of steps) {
@@ -67,7 +68,7 @@ export async function autofill(document, wait = pause, scroll = scrollToField) {
     if (submitted) return;
     target.classList.add('autofill-active');
     status.textContent = `Filling ${step.label.toLowerCase()}…`;
-    await wait(700);
+    await wait(350);
     if (submitted) return;
     input.focus({ preventScroll: true });
     if (input.type === 'radio') {
@@ -80,13 +81,13 @@ export async function autofill(document, wait = pause, scroll = scrollToField) {
       for (const character of step.answer) {
         input.value += character;
         input.dispatchEvent(new Event('input', { bubbles: true }));
-        await wait(110);
+        await wait(55);
         if (submitted) return;
       }
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
     status.textContent = `${step.label}: ${input.type === 'date' ? '09/27/2026' : step.answer}`;
-    await wait(1400);
+    await wait(700);
     if (submitted) return;
     target.classList.remove('autofill-active');
     input.blur();
@@ -96,10 +97,7 @@ export async function autofill(document, wait = pause, scroll = scrollToField) {
   if (submitted) return;
   submitButton.classList.add('autofill-active');
   submitButton.focus({ preventScroll: true });
-  status.textContent = 'Submitting…';
-  await wait(1800);
-  if (submitted) return;
-  submitButton.click();
+  status.textContent = 'Answers filled in. Review your answers and click Submit when ready.';
 }
 
 if (typeof document !== 'undefined') autofill(document);
