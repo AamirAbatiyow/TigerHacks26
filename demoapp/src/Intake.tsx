@@ -1,13 +1,7 @@
 import { useState, type FormEvent } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  CreditCard,
-  Pill,
-  ShieldCheck,
-} from "lucide-react";
-import { money, type Medication, type Pharmacy } from "./catalog";
+import { ArrowLeft, ArrowRight, Check, Pill } from "lucide-react";
+import { conditions, money, type Medication, type Pharmacy } from "./catalog";
+import { PRIVACY_EMAIL } from "./config";
 
 export type DemoPaymentData = {
   cardholderName: string;
@@ -40,26 +34,34 @@ export type IntakeData = {
   pharmacyPreference: string;
   payment: DemoPaymentData;
 };
-const empty: IntakeData = {
-  fullName: "",
-  email: "",
-  zipCode: "",
-  weightLb: "",
-  healthConcern: "",
-  symptoms: "",
-  currentMedications: "",
-  allergies: "",
-  duration: "",
-  pharmacyPreference: "",
-  payment: {
-    cardholderName: "",
-    cardNumber: "",
-    expiration: "",
-    cvc: "",
-    billingZip: "",
-    demoOnly: true,
-  },
+const symptomsByCondition: Record<string, string> = {
+  anxiety: "Restlessness and difficulty sleeping",
+  depression: "Low mood and reduced interest in usual activities",
+  "high-cholesterol": "Elevated cholesterol on a recent screening",
+  "high-blood-pressure": "Headaches and elevated home blood pressure readings",
+  "type-2-diabetes": "Increased thirst and fatigue",
+  "seasonal-allergies": "Sneezing, runny nose, and itchy eyes",
+  acne: "Recurring facial breakouts",
+  asthma: "Wheezing and shortness of breath",
 };
+
+export const createPrefilledIntake = (medication: Medication): IntakeData => ({
+  fullName: "Avery Example",
+  email: "avery@example.test",
+  zipCode: "65201",
+  weightLb: "165",
+  healthConcern:
+    conditions.find((condition) => condition.id === medication.condition)
+      ?.name ?? medication.condition,
+  symptoms:
+    symptomsByCondition[medication.condition] ??
+    "Ongoing symptoms related to this concern",
+  currentMedications: "Daily multivitamin",
+  allergies: "Penicillin",
+  duration: "1_to_6_months",
+  pharmacyPreference: "lowest_price",
+  payment: { ...DEMO_PAYMENT },
+});
 
 const digitsOnly = (value: string, maxLength: number) =>
   value.replace(/\D/g, "").slice(0, maxLength);
@@ -91,7 +93,9 @@ export function Intake({
   onBack: () => void;
   onComplete: (data: IntakeData) => void;
 }) {
-  const [data, setData] = useState<IntakeData>({ ...empty });
+  const [data, setData] = useState<IntakeData>(() =>
+    createPrefilledIntake(medication),
+  );
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const update = (
@@ -109,10 +113,6 @@ export function Intake({
       ...current,
       payment: { ...current.payment, [name]: value },
     }));
-    setError("");
-  };
-  const useDemoCard = () => {
-    setData((current) => ({ ...current, payment: { ...DEMO_PAYMENT } }));
     setError("");
   };
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -180,6 +180,12 @@ export function Intake({
   };
   return (
     <section className="wrap section intake-section">
+      <p role="note">
+        Synthetic demo only. Use fictional details; never enter real personal or
+        health information. Pharmacy preference, duration, and demo payment are
+        already filled in, so you can continue through each step. Privacy
+        contact: <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+      </p>
       <button
         className="text-btn"
         onClick={step === 1 ? onBack : () => setStep((current) => current - 1)}
@@ -204,13 +210,6 @@ export function Intake({
             Health profile <i />
             <span className={step === 3 ? "current" : ""}>3</span> Demo checkout
           </div>
-          <span className="eyebrow">
-            {step === 1
-              ? "LET’S MAKE IT PERSONAL"
-              : step === 2
-                ? "A LITTLE MORE ABOUT YOU"
-                : "TEST DATA ONLY"}
-          </span>
           <h1>
             {step === 1
               ? "Your next step starts here."
@@ -218,28 +217,6 @@ export function Intake({
                 ? "Tell us about your health."
                 : "Demo Checkout"}
           </h1>
-          <p>
-            {step === 1
-              ? "Add your details to prepare your selected offer."
-              : step === 2
-                ? "Share a little context for your personal offer summary."
-                : "This is a fictional checkout used only for the network privacy demonstration. No payment will be processed."}
-          </p>
-          <p className={`form-note ${step === 3 ? "demo-payment-notice" : ""}`}>
-            {step === 3 ? (
-              <>
-                <strong>
-                  Demo payment — use fictional test information only.
-                </strong>{" "}
-                Do not enter a real credit card.
-              </>
-            ) : (
-              <>
-                Use fictional details only. All fields are required. This
-                questionnaire does not provide a medical assessment.
-              </>
-            )}
-          </p>
           <form id="offer-intake-form" autoComplete="off" onSubmit={submit}>
             <div className="form-grid">
               {step === 1 ? (
@@ -268,7 +245,6 @@ export function Intake({
                       onChange={(e) => update("email", e.target.value)}
                       placeholder="Enter a email address"
                     />
-                    <small>No email will be sent.</small>
                   </label>
                   <label>
                     ZIP code
@@ -391,17 +367,6 @@ export function Intake({
                 </>
               ) : (
                 <>
-                  <div className="full demo-card-heading">
-                    <span className="test-data-badge">TEST DATA ONLY</span>
-                    <button
-                      id="use-demo-card-button"
-                      className="demo-card-button"
-                      type="button"
-                      onClick={useDemoCard}
-                    >
-                      <CreditCard size={16} /> Use Demo Card
-                    </button>
-                  </div>
                   <label className="full">
                     Cardholder name
                     <input
@@ -434,11 +399,7 @@ export function Intake({
                         )
                       }
                       placeholder="4242 4242 4242 4242"
-                      aria-describedby="demo-card-safety"
                     />
-                    <small id="demo-card-safety">
-                      Only the displayed synthetic demo number is accepted.
-                    </small>
                   </label>
                   <label>
                     Expiration date
@@ -497,10 +458,6 @@ export function Intake({
                       placeholder="64093"
                     />
                   </label>
-                  <p className="full no-charge-note">
-                    <ShieldCheck size={17} /> No charge, authorization, or
-                    payment-provider request will occur.
-                  </p>
                 </>
               )}
             </div>
@@ -523,14 +480,9 @@ export function Intake({
                   : "Confirm my offer"}
               <ArrowRight size={17} />
             </button>
-            <p className="form-footnote">
-              <ShieldCheck size={14} /> This is a fictional demonstration. No
-              purchase or payment will be processed.
-            </p>
           </form>
         </div>
         <aside className="offer-summary">
-          <span className="eyebrow">YOUR SELECTED OFFER</span>
           <span className={`large-pill ${medication.color}`}>
             <Pill size={35} />
           </span>
@@ -545,16 +497,16 @@ export function Intake({
             </span>
             <div>
               <strong>{pharmacy.name}</strong>
-              <small>Fictional pharmacy</small>
+              <small>Selected pharmacy</small>
             </div>
           </div>
+          <p>
+            Questions: <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+          </p>
           <div className="summary-price">
-            <span>Illustrative price</span>
+            <span>Price</span>
             <strong>{money(medication.price + pharmacy.addition)}</strong>
           </div>
-          <p className="muted">
-            Not a live quote. This offer cannot be redeemed at a pharmacy.
-          </p>
         </aside>
       </div>
     </section>
@@ -575,11 +527,8 @@ export function Confirmation({
       <div className="confirmation-check">
         <Check size={30} />
       </div>
-      <span className="eyebrow">ONE LESS THING TO THINK ABOUT</span>
       <h1 id="confirmation-title">Your offer is ready, {offer.firstName}.</h1>
-      <p>Here’s a summary of the option you chose.</p>
       <article className="confirmation-card">
-        <span className="eyebrow">OFFER CONFIRMATION</span>
         <h2>{offer.medication.name}</h2>
         <p>
           {offer.medication.dose} · {offer.medication.quantity}
@@ -591,20 +540,16 @@ export function Confirmation({
             <strong>{offer.pharmacy.name}</strong>
           </div>
           <div>
-            <small>Illustrative price</small>
+            <small>Price</small>
             <strong>
               {money(offer.medication.price + offer.pharmacy.addition)}
             </strong>
           </div>
         </div>
-        <div className="nonredeemable">
-          <ShieldCheck size={19} />
-          <p>
-            For your reference only. This is not a redeemable coupon or
-            prescription. No reservation was made and no email was sent.
-          </p>
-        </div>
       </article>
+      <p>
+        Contact <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+      </p>
       <button className="dark-btn" onClick={onBrowse}>
         Explore another medication <ArrowRight size={16} />
       </button>

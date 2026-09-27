@@ -1,19 +1,35 @@
-# HealthTrace frontend
+# PatientPrivy frontend
 
-Run `npm install`, then `npm run dev -- --host 127.0.0.1` from this directory. Open http://127.0.0.1:5173/.
+This is the single dashboard source for both the standalone UI and the polished MV3 extension. It reads real observations and privacy findings from `http://127.0.0.1:8765`; there is no mock playback or fallback.
 
-Simple view connects the source icon to a linear list of destinations. Technical view shows those destinations in an interactive 3D network. Select a destination to inspect its fields. Switching views preserves playback time.
+From the repository root:
 
-Pause freezes transfer positions. Drag the timeline to rewind or seek; select an event to replay its transfer. Go live returns to current session time. Transfers travel for 3.5 seconds. The sample session generates a transfer every eight seconds and is labeled Demo session.
+```sh
+npm ci --prefix frontend
+npm run dev --prefix frontend
+```
 
-## Incoming session data
+Open `http://127.0.0.1:5174`. Start `python3 'network trace/local_api.py'` in another terminal, or run `./start_demo.sh`. The demo health app uses port 5173.
 
-Pass `sessionData` to `<App />`, or dispatch a replacement snapshot in the page:
+Simple view connects the ScriptWell source to a linear list of destinations. Technical view shows those destinations in an interactive 3D network. Select a destination to inspect its fields. Switching views preserves playback time.
+
+Pause freezes transfer positions. Drag the timeline to rewind or seek; select an event to replay its transfer. Go live returns to current session time. Transfers travel for 3.5 seconds. Events come from the local API, polled every two seconds, and the header shows the connection state.
+
+```sh
+npm test --prefix frontend
+npm run lint --prefix frontend
+npm run build --prefix frontend
+npm run build:extension --prefix frontend
+```
+
+`npm test` covers session normalization and deterministic pause/seek/replay. The last command generates `extension/visualization/` from this source. Reload the canonical unpacked `extension/` in Chrome after building. The popup's **View detailed report** opens that bundle; both views use the same local API.
+
+The page also accepts a replacement snapshot, which resets playback to that snapshot's latest event and keeps the selected view. This is a display interface, not a capture path:
 
 ```js
 window.dispatchEvent(new CustomEvent("healthtrace:session", {
   detail: {
-    source: { name: "Patient portal" },
+    source: { name: "ScriptWell" },
     destinations: [{
       id: "lab",
       name: "City Lab",
@@ -26,14 +42,6 @@ window.dispatchEvent(new CustomEvent("healthtrace:session", {
 }));
 ```
 
-Destinations generate rows and bubbles automatically; no coordinates are required. Fields accept a name/value object, an array of `{ name, value }` objects, or field names. For multiple requests, supply a destination's `requests` array with `id`, `name`, `method`, `endpoint`, `timestamp`, and `fields`; an event can reference its `requestId`. Event `at` values are seconds from session start. Events with unknown destination IDs are omitted.
+Destinations generate rows and bubbles automatically; no coordinates are required. Fields accept a name/value object, an array of `{ name, value }` objects, or field names. Without a dispatched snapshot, the dashboard shows the live local observations.
 
-Each dispatched snapshot replaces the session and resets playback to its latest event, preserving the selected view. This frontend input interface does not itself capture traffic or connect to a backend. Without supplied data, the app uses the sample session.
-
-## Checks
-
-- `npm test`: normalization and deterministic pause/seek/replay tests.
-- `npm run lint`: React and JavaScript checks.
-- `npm run build`: production frontend bundle in `dist`.
-
-The separate `npm run build:extension` command updates the extension bundle; it is not needed to run the local frontend.
+See [the full demo guide](../docs/integrated-demo.md) for collectors, the launcher, and verification.

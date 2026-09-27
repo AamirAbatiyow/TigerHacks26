@@ -1,102 +1,131 @@
-import { useEffect, useState } from 'react';
-
-const statusLabels = {
-  READY: 'Ready to process',
-  SUBMITTED: 'Request submitted — completion unconfirmed',
-  ACTION_REQUIRED: 'Action required — no automatic submission',
-  COMPLETED: 'Company confirmed completion',
-  UNSUPPORTED: 'Unsupported — skipped',
-  FAILED: 'Failed or uncertain — check before retrying',
-};
-
-async function request(path, options) {
-  const response = await fetch(`/api/privacy/${path}`, options);
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Privacy service unavailable');
-  return data;
-}
+import { useEffect, useRef, useState } from 'react';
+import { createPrivacyDraft, loadPrivacyFindings, loadDraft, gmailStatus, connectGmail, disconnectGmail,
+  reviewedEmail, mailtoUrl, sendWithGmail, MAILTO_STATUS, gmailLabel } from '../data/privacyActions';
 
 export default function PrivacyPanel() {
   const [findings, setFindings] = useState([]);
-  const [results, setResults] = useState([]);
+  const [review, setReview] = useState(null);
+  const [gmail, setGmail] = useState({connected: false});
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(null);
+  const [accountError, setAccountError] = useState('');
+  const [delivery, setDelivery] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState('');
   const [loading, setLoading] = useState(true);
+  const sending = useRef(false);
+  const opened = useRef(false);
 
   useEffect(() => {
     let active = true;
-    Promise.all([request('findings'), request('results')])
-      .then(([input, saved]) => {
-        if (active) { setFindings(input.findings); setResults(saved.results); }
-      })
-      .catch((err) => { if (active) setError(`${err.message}. Start the Python server with PRIVACY_LOCAL_MODE=1.`); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    const refresh = async () => {
+      // Gmail failure never blocks findings, draft review, or the email-app fallback.
+      const [input, account] = await Promise.allSettled([loadPrivacyFindings(), gmailStatus()]);
+      if (!active) return;
+      if (input.status === 'fulfilled') setFindings(input.value);
+      else setError(input.reason.message);
+      if (account.status === 'fulfilled') {
+        setGmail(account.value); setAccountError(account.value.error || '');
+      } else { setGmail({connected: false}); setAccountError('Gmail unavailable. Open in Email App still works.'); }
+      setLoading(false);
+    };
+    refresh();
+    const timer = setInterval(refresh, 3000);
+    return () => { active = false; clearInterval(timer); };
   }, []);
 
-  async function run(eventId) {
-    setBusy(eventId);
-    setError('');
-    try {
-      const result = await request('run', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: eventId }),
-      });
-      setResults((current) => [result, ...current.filter((r) => r.event_id !== eventId)]);
-    } catch (err) { setError(err.message); }
-    finally { setBusy(null); }
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('action');
+    if (!id || opened.current) return;
+    // A popup-created draft is already local; mounting this screen never sends mail.
+    loadDraft(id).then((draft) => { opened.current = true; setReview(draft); }).catch((err) => setError(err.message));
+  }, []);
+
+  async function takeAction(eventId) {
+    setBusy(true); setError(''); setDelivery(null);
+    try { setReview(await createPrivacyDraft({event_id: eventId, ...(state ? {state: state.toUpperCase()} : {})})); }
+    catch (err) { setError(err.message); }
+    finally { setBusy(false); }
   }
 
-  const rows = [...findings.map((finding) => results.find((r) => r.event_id === finding.event_id) || finding),
-    ...results.filter((r) => !findings.some((f) => f.event_id === r.event_id))];
+  async function accountAction(connect) {
+    setBusy(true); setAccountError('');
+    try { setGmail(await (connect ? connectGmail() : disconnectGmail())); }
+    catch (err) { setAccountError(err.message); }
+    finally { setBusy(false); }
+  }
 
-  return (
-    <aside className="details-panel privacy-panel">
-      <span className="panel-label">Local fixture provider</span>
-      <h2>Privacy opt-out agent</h2>
-      <p>These are placeholder findings, separate from the simulated network events. Processing records a result; official portals may require your action.</p>
-      {loading && <p role="status">Loading privacy findings…</p>}
-      {error && <p role="alert">{error}</p>}
-      <div aria-live="polite">
-        {rows.map((row) => {
-          const saved = results.some((r) => r.event_id === row.event_id);
-          return <section className="detail-section privacy-result" key={row.event_id}>
-            <h3>{row.company}</h3>
-            <p>{row.reason_label}</p>
-            <p><strong>{statusLabels[row.status]}</strong></p>
-            <p>{row.message}</p>
-            <dl>
-              <dt>Event</dt><dd>{row.event_id}</dd>
-              <dt>Right</dt><dd>{row.privacy_right || 'Unmapped'}</dd>
-              <dt>Rule</dt><dd>{row.jurisdiction || 'Not established'}</dd>
-              <dt>Method</dt><dd>{row.submission_method || 'None'}</dd>
-              <dt>Processed</dt><dd>{saved ? (row.processed_at || row.evidence[0]?.at || "Not recorded") : "Not processed"}</dd>
-              <dt>Submitted</dt><dd>{row.submitted_at || 'Not submitted'}</dd>
-              {row.confirmation && <><dt>Reference</dt><dd>{row.confirmation}</dd></>}
-            </dl>
-            {!saved && <button className="privacy-button" disabled={busy !== null} onClick={() => run(row.event_id)}>
-              {busy === row.event_id ? 'Processing…' : 'Process finding'}
-            </button>}
-            {row.destination && <p><a href={row.destination} target="_blank" rel="noopener noreferrer">Open official mechanism ↗</a></p>}
-            {row.instructions && <p>{row.instructions}</p>}
-            {row.evidence.length > 0 && <details>
-              <summary>Resolution evidence</summary>
-              {row.evidence.map((e, index) => <div key={index}>
-                <p>{e.status || "Company evidence"} · {e.at}</p>
-                {e.completion_evidence && <p>{e.completion_evidence}</p>}
-                {e.source && <p><a href={e.source} target="_blank" rel="noopener noreferrer">Official company source</a> · verified {e.last_verified}</p>}
-                {e.rule_source && <p><a href={e.rule_source} target="_blank" rel="noopener noreferrer">Rule source</a></p>}
-                {e.applicability && <p>{e.applicability}</p>}
-                {e.message && <p>{e.message}</p>}
-              </div>)}
-            </details>}
-          </section>;
-        })}
+  function edit(patch) {
+    setReview((current) => ({...current, ...patch, approved: false}));
+    setDelivery(null);
+  }
+
+  async function send() {
+    if (sending.current) return;
+    sending.current = true; setBusy(true); setError('');
+    try {
+      const result = await sendWithGmail(review);
+      setDelivery({status: 'gmail_sent', message: `Sent with Gmail from ${result.email || gmail.email}. Request completion is not confirmed.`});
+      setReview((current) => ({...current, approved: false, attempted: true}));
+    } catch (err) {
+      setError(`${err.message} Open in Email App remains available. If the outcome is uncertain, check Gmail Sent before sending another copy.`);
+      setReview((current) => ({...current, attempted: true}));
+    } finally { sending.current = false; setBusy(false); }
+  }
+
+  let href = '';
+  try { if (review) { reviewedEmail(review); href = mailtoUrl(review); } } catch { /* Show editable fields until ready. */ }
+  const sourceLabels = {verified: 'Verified strategy contact', discovered: 'Discovered on the observed page — not verified', user: 'Manually entered by you'};
+
+  return <aside className="details-panel privacy-panel">
+    <span className="panel-label">Local network findings</span>
+    <h2>Privacy actions</h2>
+    <p>Choose a finding, review a request, then decide how to send it. Drafts stay local until you approve delivery.</p>
+    <section className="detail-section gmail-account">
+      <h3>Gmail</h3><p role="status">{gmailLabel(gmail)}</p>
+      <button type="button" className="privacy-button" disabled={busy || gmail.status === 'pending'} onClick={() => accountAction(!gmail.connected)}>{gmail.connected ? 'Disconnect' : 'Connect Gmail'}</button>
+      {accountError && <p role="alert">{accountError}</p>}
+      <p>You can always use your normal email app without connecting Gmail.</p>
+    </section>
+    {error && <p role="alert">{error}</p>}
+    {delivery && <p role="status" data-delivery-status={delivery.status}>{delivery.message}</p>}
+    {review ? <section className="gmail-review" aria-labelledby="privacy-review-title">
+      <h3 id="privacy-review-title">Review privacy request</h3>
+      <p><strong>Company / app:</strong> {review.organization}</p>
+      <p><strong>Observed destination:</strong> {review.observed_destination}</p>
+      <p><strong>Request type:</strong> {review.request_type}</p>
+      <p>{review.legal_basis === 'verified' ? 'Verified legal strategy available' : 'General request — no verified statutory action'}</p>
+      <p>{review.instructions}</p>
+      {review.legal_source && <a href={review.legal_source} target="_blank" rel="noopener noreferrer">Verified strategy source</a>}
+      {review.official_destination && <p><a href={review.official_destination} target="_blank" rel="noopener noreferrer">Open official mechanism</a> — email does not complete this process.</p>}
+      <p><strong>Detected categories:</strong> {review.categories.join(', ') || 'None listed'}. Raw captured values are not included.</p>
+      {review.recipient_candidates.length > 1 && <label>Discovered contacts<select defaultValue="" onChange={(e) => {
+        const candidate = review.recipient_candidates[Number(e.target.value)];
+        edit({to: candidate.email, recipient_source: 'discovered', recipient_evidence: candidate.source_url, recipient_confirmed: false});
+      }}><option value="" disabled>Select a contact to review</option>{review.recipient_candidates.map((c, i) => <option key={i} value={i}>{c.email} — {c.source_url}</option>)}</select></label>}
+      <label>Recipient email<input type="email" maxLength={254} value={review.to || ''} onChange={(e) => edit({to: e.target.value, recipient_source: 'user', recipient_confirmed: false, recipient_evidence: null})} placeholder="Enter the organization's contact email" /></label>
+      <p>{sourceLabels[review.recipient_source] || 'No contact was found. Enter a recipient; no address was guessed.'}</p>
+      {review.recipient_evidence && <p>Source: <a href={review.recipient_evidence} target="_blank" rel="noopener noreferrer">{review.recipient_evidence}</a></p>}
+      {review.recipient_source === 'discovered' && <label><input type="checkbox" checked={Boolean(review.recipient_confirmed)} onChange={(e) => edit({recipient_confirmed: e.target.checked})} /> I confirm this discovered contact is the intended recipient.</label>}
+      <label>Subject<input maxLength={200} value={review.subject} onChange={(e) => edit({subject: e.target.value})} /></label>
+      <label>Message<textarea rows={12} maxLength={8000} value={review.body} onChange={(e) => edit({body: e.target.value})} /></label>
+      <label><input type="checkbox" checked={Boolean(review.approved)} onChange={(e) => setReview({...review, approved: e.target.checked})} /> I reviewed and approve this recipient and message.</label>
+      <div className="gmail-actions">
+        <button type="button" className="privacy-button" disabled={busy || !gmail.connected || !href || review.attempted} onClick={send}>Send with Gmail</button>
+        <a className="privacy-button" href={href || undefined} aria-disabled={!href || busy} onClick={(event) => {
+          if (!href || busy) { event.preventDefault(); return; }
+          setDelivery({status: 'mailto_opened', message: MAILTO_STATUS});
+        }}>Open in Email App</a>
+        <button type="button" className="privacy-button" disabled={busy} onClick={() => { setReview(null); setDelivery(null); setError(''); }}>Cancel</button>
       </div>
-      <section className="detail-section">
-        <h3>California data-broker deletion</h3>
-        <p><a href="https://privacy.ca.gov/drop/" target="_blank" rel="noopener noreferrer">Official DROP guidance ↗</a> covers registered data brokers and requires California residency verification. It is not a substitute for an advertising opt-out and is not submitted by this app.</p>
-      </section>
-    </aside>
-  );
+      <p>Opening an email app does not mean the request was sent. Your mail client handles the final send.</p>
+    </section> : <>
+      <label>State (optional, for verified rules)<input maxLength={2} value={state} onChange={(e) => setState(e.target.value)} placeholder="e.g. CA; leave blank if unknown" /></label>
+      {loading && <p role="status">Loading findings…</p>}
+      {!loading && !findings.length && <p>No sensitive local findings yet.</p>}
+      {findings.map((finding) => <section className="detail-section" key={finding.event_id}>
+        <h3>{finding.company}</h3><p>{finding.reason_label}</p>
+        <button type="button" className="privacy-button" disabled={busy} onClick={() => takeAction(finding.event_id)}>Take Privacy Action</button>
+      </section>)}
+    </>}
+  </aside>;
 }

@@ -1,18 +1,11 @@
-import { loadPrivacyFindings, officialDestination, actionLabel } from './privacy-findings.mjs';
+import { loadPrivacyFindings, createPrivacyDraft, discoverPageContacts } from './privacy-findings.mjs';
 
 document.getElementById('closePopup').addEventListener('click', () => window.close());
-document.getElementById('fileForMe').addEventListener('click', () => {
-  if (globalThis.chrome?.runtime?.getURL) {
-    chrome.tabs.create({ url: chrome.runtime.getURL('filing/index.html') });
-  } else {
-    window.open(new URL('filing/index.html', window.location.href).href, '_blank', 'noopener');
-  }
-});
 document.getElementById('viewDetails').addEventListener('click', () => {
   if (globalThis.chrome?.runtime?.getURL) {
     chrome.tabs.create({ url: chrome.runtime.getURL('visualization/index.html') });
   } else {
-    window.open('http://127.0.0.1:5173/', '_blank', 'noopener');
+    window.open('http://127.0.0.1:5174/', '_blank', 'noopener');
   }
 });
 document.addEventListener('keydown', (event) => {
@@ -28,14 +21,11 @@ let findings = [];
 let requestVersion = 0;
 
 function renderFinding(finding) {
-  optOutButton.disabled = !officialDestination(finding);
-  optOutLabel.textContent = actionLabel(finding);
-  optOutButton.setAttribute('aria-label', finding ? `${actionLabel(finding)}: ${finding.company}` : 'Select a privacy finding');
-  optOutButton.title = finding ? `Open the verified mechanism for ${finding.company}` : 'Select a privacy finding';
-  findingReason.textContent = finding ? `${finding.company}: ${finding.reason_label}` : 'Choose the issue reported by the finding provider.';
-  findingStatus.textContent = !finding ? 'Select a finding to continue.'
-    : officialDestination(finding) ? 'Opens the official mechanism. No request is submitted by this button.'
-    : finding.message || 'No supported verified mechanism is available for this issue.';
+  optOutButton.disabled = !finding;
+  optOutLabel.textContent = 'Take Privacy Action';
+  optOutButton.setAttribute('aria-label', finding ? `Take Privacy Action: ${finding.company}` : 'Select a privacy finding');
+  findingReason.textContent = finding ? `${finding.company}: ${finding.reason_label}` : 'Choose a privacy finding.';
+  findingStatus.textContent = finding ? 'Review a request locally. Nothing is sent until you approve it.' : 'Select a finding to continue.';
 }
 
 async function refreshFindings() {
@@ -78,18 +68,38 @@ optOutButton.addEventListener('click', async () => {
   const eventId = findingSelect.value;
   optOutButton.disabled = true;
   try {
-    // Re-resolve on click: fixture/provider changes and expired strategies must take effect.
+    // Re-resolve on click: provider changes and expired strategies must take effect.
     const current = (await loadPrivacyFindings()).find((f) => f.event_id === eventId);
     if (version !== requestVersion || findingSelect.value !== eventId) return;
     renderFinding(current);
-    const destination = officialDestination(current);
-    if (destination) await chrome.tabs.create({ url: destination });
-    else if (!current) findingStatus.textContent = 'This finding is no longer available. Refresh the issues.';
+    if (!current) { findingStatus.textContent = 'This finding is no longer available. Refresh the issues.'; return; }
+    const contacts = await discoverPageContacts();
+    if (version !== requestVersion) return;
+    const draft = await createPrivacyDraft({event_id: eventId, contacts});
+    if (version !== requestVersion) return;
+    const query = `?privacy&action=${encodeURIComponent(draft.draft_id)}`;
+    if (globalThis.chrome?.runtime?.getURL) {
+      await chrome.tabs.create({url: chrome.runtime.getURL(`visualization/index.html${query}`)});
+    } else {
+      window.open(`http://127.0.0.1:5174/${query}`, '_blank', 'noopener');
+    }
   } catch {
     if (version !== requestVersion) return;
     renderFinding(null);
-    findingStatus.textContent = 'Cannot verify the current mechanism. Refresh and try again.';
+    findingStatus.textContent = 'Could not prepare the local review. Start the local API and refresh.';
   }
 });
 
 refreshFindings();
+
+async function refreshCount() {
+  try {
+    const response = await fetch('http://127.0.0.1:8765/events', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Unavailable');
+    const { events } = await response.json();
+    document.getElementById('packetCount').textContent = String(events.length);
+  } catch {
+    document.getElementById('packetCount').textContent = 'Unavailable';
+  }
+}
+refreshCount();

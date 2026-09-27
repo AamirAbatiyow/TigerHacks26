@@ -1,0 +1,30 @@
+# ScriptWell static site. Deploy from this directory:
+#   cd demoapp && flyctl deploy --remote-only
+# Only ScriptWell runs here; the privacy observability pipeline stays on the local machine.
+
+app = 'scriptwell'
+primary_region = 'dfw'
+
+[build]
+  [build.args]
+    VITE_ANALYTICS_URL = 'https://fly-analytics.fly.dev/collect'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/healthz'
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1

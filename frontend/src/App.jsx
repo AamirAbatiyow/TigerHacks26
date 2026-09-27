@@ -6,23 +6,15 @@ import DetailsPanel from "./components/DetailsPanel";
 import PrivacyPanel from "./components/PrivacyPanel";
 import usePlayback from "./hooks/usePlayback";
 import { normalizeSession, eventAtTime, flightProgress, FLIGHT_SECONDS } from "./data/session";
-import { mockNodes } from "./data/mockNodes";
-import { mockEventSequence } from "./data/mockEvents";
+import { LOCAL_API, toSession } from "./data/liveEvents";
 import "./index.css";
 import "./views.css";
 
-const demoInput = { source: { name: "MyHealth App" }, destinations: mockNodes };
-
-function SessionExperience({ session, isDemo, view, onViewChange }) {
+function SessionExperience({ session, view, onViewChange, connection, duration }) {
   const [inspection, setInspection] = useState(null);
   const [privacyOpen, setPrivacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
-  const lastRecordedTime = session.events.at(-1)?.at || 0;
-  const playback = usePlayback(isDemo ? 24 : lastRecordedTime + FLIGHT_SECONDS);
-  const demoCount = Math.floor(playback.liveTime / 8) + 1;
-  const events = useMemo(() => isDemo ? Array.from({ length: demoCount }, (_, index) => {
-    const template = mockEventSequence[index % mockEventSequence.length];
-    return { ...template, id: `${template.id}-${index}`, at: index * 8 };
-  }) : session.events, [isDemo, demoCount, session.events]);
+  const playback = usePlayback(duration);
+  const events = session.events;
   const currentEvent = eventAtTime(events, playback.cursor);
   const progress = flightProgress(currentEvent, playback.cursor);
   const transfer = progress === null ? null : { nodeId: currentEvent.nodeId, progress };
@@ -39,14 +31,14 @@ function SessionExperience({ session, isDemo, view, onViewChange }) {
 
   return <div className={`app dual-view ${view} ${privacyOpen ? "privacy-mode" : ""}`} data-playback-time={playback.cursor.toFixed(2)} data-playback-status={playback.status} data-transfer-progress={progress ?? ""}>
     <header className="topbar">
-      <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>HealthTrace</h1><span className="subtitle">See where your data travels</span></div>
+      <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>PatientPrivy</h1><span className="subtitle">See where your data travels</span></div>
       <div className="topbar-actions">
-        <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy opt-outs"}</button>
+        <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy actions"}</button>
         <div className="mode-toggle" role="group" aria-label="Visualization view">
           <button className={view === "simple" ? "active" : ""} aria-pressed={view === "simple"} onClick={() => onViewChange("simple")}>Simple view</button>
           <button className={view === "technical" ? "active" : ""} aria-pressed={view === "technical"} onClick={() => onViewChange("technical")}>Technical view</button>
         </div>
-        <span className="session-origin">{isDemo ? "Demo session" : "Captured session"}</span>
+        <span className="session-origin">{connection}</span>
       </div>
     </header>
     <main className={`workspace ${privacyOpen ? "privacy-open" : ""}`}>
@@ -54,7 +46,7 @@ function SessionExperience({ session, isDemo, view, onViewChange }) {
         <section className="visualization" aria-label="Technical 3D network">
           <div className="technical-hint">Drag to rotate / Scroll to zoom</div>
           <div className="session-summary"><span className="session-label">At this point in time</span><div className="summary-stat"><strong>{new Set(observedEvents.map((event) => event.nodeId)).size}</strong><span>destinations contacted</span></div><div className="summary-stat"><strong>{observedEvents.length}</strong><span>transfers recorded</span></div></div>
-          <NetworkScene sourceName={session.source.name} nodes={session.nodes} selectedRequest={selectedRequest} drillService={null} activeNodeId={transfer?.nodeId} transfer={transfer} onEnterService={selectDestination} onSelectRequest={(request) => setInspection({ nodeId: selectedNode?.id, requestId: request.id })} onClear={() => setInspection(null)} />
+          <NetworkScene sourceName={session.source.name} nodes={session.nodes} activeNodeId={transfer?.nodeId} transfer={transfer} onEnterService={selectDestination} onClear={() => setInspection(null)} />
         </section>}
       {privacyOpen ? <PrivacyPanel /> : <DetailsPanel selectedNode={selectedNode} selectedRequest={selectedRequest} mode={view} onSelectRequest={(request) => setInspection({ nodeId: selectedNode.id, requestId: request?.id || null })} />}
     </main>
@@ -62,18 +54,45 @@ function SessionExperience({ session, isDemo, view, onViewChange }) {
   </div>;
 }
 
-export default function App({ sessionData }) {
+export default function App() {
   const [view, setView] = useState("simple");
-  const [snapshot, setSnapshot] = useState({ data: null, revision: 0 });
+  const [snapshot, setSnapshot] = useState(null);
+  const [observations, setObservations] = useState([]);
+  const [connection, setConnection] = useState("Connecting");
+
   useEffect(() => {
     function receive(event) {
       if (!event.detail || !Array.isArray(event.detail.destinations)) return;
-      setSnapshot((previous) => ({ data: event.detail, revision: previous.revision + 1 }));
+      setSnapshot((previous) => ({ data: event.detail, revision: (previous?.revision || 0) + 1 }));
     }
     window.addEventListener("healthtrace:session", receive);
     return () => window.removeEventListener("healthtrace:session", receive);
   }, []);
-  const input = snapshot.data || sessionData;
-  const session = useMemo(() => normalizeSession(input || demoInput), [input]);
-  return <SessionExperience key={snapshot.revision} session={session} isDemo={!input} view={view} onViewChange={setView} />;
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    let timer;
+    async function refresh() {
+      try {
+        const response = await fetch(`${LOCAL_API}/events`, { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error("Local API unavailable");
+        const data = await response.json();
+        if (active) {
+          setObservations(Array.isArray(data.events) ? data.events : []);
+          setConnection(data.events?.length ? "Monitoring" : "Waiting for local events");
+        }
+      } catch (error) {
+        if (error.name !== "AbortError" && active) setConnection("Local API disconnected");
+      }
+      if (active) timer = window.setTimeout(refresh, 2000);
+    }
+    refresh();
+    return () => { active = false; controller.abort(); window.clearTimeout(timer); };
+  }, []);
+
+  const input = snapshot?.data || toSession(observations, { simple: view === "simple" });
+  const session = useMemo(() => normalizeSession(input), [input]);
+  const duration = (session.events.at(-1)?.at || 0) + FLIGHT_SECONDS;
+  return <SessionExperience key={snapshot?.revision || "live"} session={session} view={view} onViewChange={setView} connection={snapshot ? "Loaded session" : connection} duration={duration} />;
 }

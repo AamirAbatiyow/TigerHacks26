@@ -1,5 +1,6 @@
 from datetime import date, datetime, timezone
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 from .contract import PrivacyFinding, text
@@ -56,8 +57,10 @@ class OptOutEngine:
                 age = (self.today - date.fromisoformat(s['last_verified'])).days
                 endpoint, source = urlsplit(s['verified_endpoint']), urlsplit(s['source'])
                 verified = (s['status'] == 'verified' and 0 <= age <= self.rules['verification_max_age_days']
-                            and endpoint.scheme == 'https' and endpoint.hostname
-                            and not endpoint.username and not endpoint.password
+                            and ((endpoint.scheme == 'https' and endpoint.hostname and not endpoint.username and not endpoint.password)
+                                 or (s['submission_method'] == 'email' and endpoint.scheme == 'mailto'
+                                     and not endpoint.query and not endpoint.fragment
+                                     and re.fullmatch(r'[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+', endpoint.path)))
                             and source.scheme == 'https' and source.hostname)
             except (ValueError, KeyError):
                 verified = False

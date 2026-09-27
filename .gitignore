@@ -3,3 +3,11 @@
 **/__pycache__/
 **/*.pyc
 network trace/fly-analytics/data/
+secrets/
+network trace/.state/
+**/gmail_token.json
+network trace/privacy.sqlite3*
+network trace/models/
+
+# Runtime event logs and their per-session archives (generated locally; never committed).
+network trace/events*.jsonl

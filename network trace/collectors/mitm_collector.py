@@ -5,16 +5,17 @@ from urllib.parse import urlsplit
 
 from mitmproxy import http
 
-ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
 
-from classifier import analyze
+# Capture and normalize only; the local API classifies and stores.
+from local_sink import send_event
 
 
 def _raw_body(request):
     # Bytes as sent on the wire (still compressed if Content-Encoding is set).
-    # classifier.py decides what is safe to keep.
+    # The local API's classifier decides what is safe to keep.
     return getattr(request, "raw_content", None)
 
 
@@ -93,4 +94,4 @@ def _event(flow: http.HTTPFlow):
 
 def response(flow: http.HTTPFlow):
     # mitmdump has already decrypted this request with the local CA.
-    analyze(_event(flow))
+    send_event(_event(flow), "mitm")

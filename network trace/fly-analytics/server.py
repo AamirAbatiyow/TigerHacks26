@@ -9,14 +9,24 @@ from privacy.contract import LocalPrivacyFindingProvider, ValidationError
 from privacy.engine import OptOutEngine, ROOT
 from privacy.store import EventConflict, ResultStore
 
-# Local demo page only. Observability events from the extension do not come here.
-ALLOWED_ORIGIN = "http://localhost:3000"
+# ScriptWell (local and deployed) only. Observability events from the extension do not come here.
+# ALLOWED_ORIGINS is a comma-separated list of exact origins; "*" is never honored.
+DEFAULT_ALLOWED_ORIGINS = ("http://localhost:5173,http://127.0.0.1:5173,https://scriptwell.fly.dev,"
+                           "http://localhost:3000")
+
+
+def parse_allowed_origins(text):
+    origins = {item.strip().rstrip("/") for item in str(text).split(",")}
+    return frozenset(o for o in origins if re.fullmatch(r"https?://[A-Za-z0-9.-]+(:\d{1,5})?", o))
+
+
+ALLOWED_ORIGINS = parse_allowed_origins(os.environ.get("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS))
 
 
 class Handler(BaseHTTPRequestHandler):
     def _cors_headers(self):
-        if self.headers.get("Origin") == ALLOWED_ORIGIN:
-            self.send_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
+        if self.headers.get("Origin") in getattr(self.server, "allowed_origins", ALLOWED_ORIGINS):
+            self.send_header("Access-Control-Allow-Origin", self.headers["Origin"])
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
@@ -40,7 +50,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         origin = self.headers.get('Origin')
         extension_origin = self.extension_findings_origin()
-        if extension_origin and self.command == 'GET' and self.headers.get('X-HealthTrace-Extension') == extension_origin.removeprefix('chrome-extension://'):
+        if extension_origin and self.command == 'GET' and self.headers.get('X-PatientPrivy-Extension') == extension_origin.removeprefix('chrome-extension://'):
             return True
         allowed = {'http://localhost:5173', 'http://127.0.0.1:5173', f'http://localhost:{port}', f'http://127.0.0.1:{port}'}
         if (origin and origin not in allowed) or self.headers.get('Sec-Fetch-Site') == 'cross-site':
@@ -70,14 +80,14 @@ class Handler(BaseHTTPRequestHandler):
             port = self.server.server_port
             if (self.headers.get('Host') not in {f'127.0.0.1:{port}', f'localhost:{port}'}
                     or self.headers.get('Access-Control-Request-Method') != 'GET'
-                    or self.headers.get('Access-Control-Request-Headers', '').lower() != 'x-healthtrace-extension'):
+                    or self.headers.get('Access-Control-Request-Headers', '').lower() != 'x-patientprivy-extension'):
                 self.respond(403, {'error': 'Invalid extension preflight'})
                 return
             self.send_response(204)
             self.send_header('Access-Control-Allow-Origin', origin)
             self.send_header('Vary', 'Origin')
             self.send_header('Access-Control-Allow-Methods', 'GET')
-            self.send_header('Access-Control-Allow-Headers', 'X-HealthTrace-Extension')
+            self.send_header('Access-Control-Allow-Headers', 'X-PatientPrivy-Extension')
             self.end_headers()
             return
         self.send_response(204)
@@ -131,20 +141,32 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError, UnicodeDecodeError) as exc:
                 self.respond(400, {'error': str(exc) if isinstance(exc, ValidationError) else 'Invalid JSON or content length'})
             return
-        length = int(self.headers.get('Content-Length', 0))
-        body = self.rfile.read(length)
-        print('\n=== RECEIVED ===', flush=True)
-        print('Path:', self.path, flush=True)
-        print('From:', self.client_address, flush=True)
-        print('Body:', body.decode(), flush=True)
+        if path != '/collect':
+            self.respond(404, {'error': 'Not found'})
+            return
+        try:
+            length = int(self.headers.get('Content-Length', '0'))
+            if not 0 < length <= 1048576:
+                raise ValueError()
+            if self.headers.get('Content-Encoding', 'identity') != 'identity':
+                raise ValueError()
+            payload = json.loads(self.rfile.read(length))
+            if not isinstance(payload, dict):
+                raise ValueError()
+        except (ValueError, UnicodeDecodeError):
+            self.respond(400, {'error': 'Expected an uncompressed JSON object under 1 MiB'})
+            return
+        # Receipt only: never print or retain payload bodies on the remote receiver.
         self.send_response(200)
         self._cors_headers()
+        self.send_header('Content-Type', 'application/json')
         self.end_headers()
-        self.wfile.write(b'OK')
+        self.wfile.write(b'{"ok":true}')
 
 
-def create_server(port=8080, local=False, provider=None, db_path=None):
+def create_server(port=8080, local=False, provider=None, db_path=None, allowed_origins=None):
     server = HTTPServer(('127.0.0.1' if local else '0.0.0.0', port), Handler)
+    server.allowed_origins = ALLOWED_ORIGINS if allowed_origins is None else frozenset(allowed_origins)
     server.privacy_enabled = local
     if local:
         server.provider = provider or LocalPrivacyFindingProvider(ROOT / 'fixtures')
@@ -158,5 +180,6 @@ if __name__ == '__main__':
     server = create_server(int(os.environ.get('PORT', '8080')), local,
                            provider=LocalPrivacyFindingProvider(Path(os.environ.get('PRIVACY_FIXTURE_DIR', ROOT / 'fixtures'))),
                            db_path=os.environ.get('PRIVACY_DB_PATH'))
-    print(f'Listening on {server.server_address}; privacy MVP {"enabled (local only)" if local else "disabled"}', flush=True)
+    print(f'Listening on {server.server_address}; privacy MVP {"enabled (local only)" if local else "disabled"}; '
+          f'CORS origins: {", ".join(sorted(server.allowed_origins))}', flush=True)
     server.serve_forever()

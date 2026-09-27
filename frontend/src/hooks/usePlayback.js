@@ -9,10 +9,16 @@ export default function usePlayback(initialTime) {
       const now = performance.now();
       const delta = (now - previous) / 1000;
       previous = now;
-      setPlayback((state) => advancePlayback(state, delta));
+      setPlayback((state) => {
+        const next = advancePlayback(state, delta);
+        if (initialTime <= next.liveTime) return next;
+        return next.status === "live"
+          ? { liveTime: initialTime, cursor: initialTime, status: "live" }
+          : { ...next, liveTime: initialTime };
+      });
     }, 50);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [initialTime]);
   function seek(time, play = false) {
     setPlayback((state) => ({ ...state, cursor: Math.max(0, Math.min(time, state.liveTime)), status: play ? "playing" : "paused" }));
   }

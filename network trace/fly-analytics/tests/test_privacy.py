@@ -197,20 +197,20 @@ class PrivacyTests(unittest.TestCase):
         self.assertEqual(call('run', {'event_id': self.finding.event_id}), result)
         extension_id = 'a' * 32
         origin = f'chrome-extension://{extension_id}'
-        extension_headers = {'Origin': origin, 'X-HealthTrace-Extension': extension_id, 'Sec-Fetch-Site': 'cross-site'}
+        extension_headers = {'Origin': origin, 'X-PatientPrivy-Extension': extension_id, 'Sec-Fetch-Site': 'cross-site'}
         previews = call('findings', headers=extension_headers)
         self.assertEqual(len(previews['findings']), 3)
         self.assertNotIn('jane@example.com', json.dumps(previews))
         request = urllib.request.Request(base + 'findings', method='OPTIONS', headers={
             'Origin': origin, 'Access-Control-Request-Method': 'GET',
-            'Access-Control-Request-Headers': 'x-healthtrace-extension',
+            'Access-Control-Request-Headers': 'x-patientprivy-extension',
         })
         with urllib.request.urlopen(request) as response:
             self.assertEqual(response.status, 204)
             self.assertEqual(response.headers['Access-Control-Allow-Origin'], origin)
             self.assertEqual(response.headers['Access-Control-Allow-Methods'], 'GET')
         for path, headers in [('results', extension_headers),
-                              ('findings', {'Origin': origin, 'X-HealthTrace-Extension': 'b' * 32})]:
+                              ('findings', {'Origin': origin, 'X-PatientPrivy-Extension': 'b' * 32})]:
             with self.assertRaises(urllib.error.HTTPError) as error: call(path, headers=headers)
             self.assertEqual(error.exception.code, 403)
             error.exception.close()

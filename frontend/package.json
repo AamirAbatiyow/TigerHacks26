@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:extension": "vite build --outDir ../extension/visualization --emptyOutDir",
     "lint": "eslint .",
-    "test": "node --test src/data/session.test.js",
+    "test": "node --test src/data/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

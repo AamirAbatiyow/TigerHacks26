@@ -15,7 +15,7 @@ export function PrivacyPolicy() {
         <h1 id="privacy-policy-title">Privacy Policy</h1>
         <p>
           This policy explains how {BRAND.name} collects and shares information
-          when you explore a prescription offer.
+          submitted while you explore a prescription offer.
         </p>
         <small>Effective September 26, 2026</small>
       </div>
@@ -40,10 +40,11 @@ export function PrivacyPolicy() {
             <div>
               <h2>Information we collect</h2>
               <p>
-                The offer flow collects information you enter, including name,
-                email address, ZIP code, weight, health concern, symptoms,
-                duration, current medications, medication allergies, medication
-                selection, pharmacy, and illustrative price.
+                The offer flow collects information displayed or edited in the
+                form, including name, email address, ZIP code, weight, health
+                concern, symptoms, duration, current medications, medication
+                allergies, medication selection, pharmacy, and illustrative
+                price.
               </p>
               <p>
                 The demo checkout also collects cardholder name, demo card
@@ -94,7 +95,7 @@ export function PrivacyPolicy() {
               <h2>Analytics opt-out requests</h2>
               <p>
                 A request to stop future analytics sharing may be submitted to
-                our privacy contact at {" "}
+                our privacy contact at{" "}
                 <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>. An
                 opt-out request cannot recall information that was already
                 transmitted before the request was processed.
@@ -107,9 +108,9 @@ export function PrivacyPolicy() {
             <div>
               <h2>Health privacy and demo limits</h2>
               <p>
-                {BRAND.name} is a fictional hackathon demonstration, not a
-                healthcare provider, pharmacy, insurer, or payment service. It
-                does not provide medical advice and does not claim that this
+                {BRAND.name} is a hackathon demonstration, not a healthcare
+                provider, pharmacy, insurer, or payment service. It does not
+                provide medical advice and does not claim that this
                 demonstration establishes a HIPAA violation or HIPAA compliance.
               </p>
               <p>

@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "event_name": "offer_confirmed",
+  "event_id": "942fed1f-1f11-4a3e-813b-6a9498d5fb44",
+  "occurred_at": "2026-09-27T06:24:29.278Z",
+  "source": {
+    "origin": "http://localhost:5173",
+    "path": "/",
+    "application": "prescription_savings",
+    "support_email": "scriptwellcontact@gmail.com"
+  },
+  "person": {
+    "full_name": "Avery Example",
+    "email": "avery@example.test",
+    "zip_code": "65201"
+  },
+  "health": {
+    "weight_lb": 160,
+    "concern": "Fictional anxiety",
+    "symptoms": "Fictional restlessness",
+    "duration": "1_to_6_months",
+    "current_medications": "None",
+    "medication_allergies": "None"
+  },
+  "prescription": {
+    "medication": "Sertraline",
+    "strength": "50 mg",
+    "quantity": "30 tablets"
+  },
+  "payment": {
+    "cardholder_name": "Jamie Demo",
+    "card_number": "4242424242424242",
+    "expiration": "12/34",
+    "cvc": "123",
+    "billing_zip": "64093",
+    "demo_only": true
+  },
+  "offer": {
+    "pharmacy_id": "meadow",
+    "pharmacy_name": "Meadow Pharmacy",
+    "support_email": "scriptwellcontact@gmail.com",
+    "illustrative_price_usd": 9.6
+  },
+  "interaction": {
+    "search_term": "anxiety",
+    "pharmacy_preference": "lowest_price",
+    "language": "en-US",
+    "viewport_width": 1440,
+    "trigger": "confirm_offer"
+  },
+  "privacy": {
+    "optional_analytics_enabled": true,
+    "contact_email": "scriptwellcontact@gmail.com",
+    "privacy_email": "scriptwellcontact@gmail.com"
+  }
+}
