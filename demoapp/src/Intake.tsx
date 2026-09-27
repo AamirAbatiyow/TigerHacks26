@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, CreditCard, Pill } from "lucide-react";
-import { money, type Medication, type Pharmacy } from "./catalog";
+import { ArrowLeft, ArrowRight, Check, Pill } from "lucide-react";
+import { conditions, money, type Medication, type Pharmacy } from "./catalog";
 
 export type DemoPaymentData = {
   cardholderName: string;
@@ -54,6 +54,24 @@ const empty: IntakeData = {
   },
 };
 
+export const createPrefilledIntake = (medication: Medication): IntakeData => ({
+  fullName: "Avery Example",
+  email: "avery@example.test",
+  zipCode: "65201",
+  weightLb: "165",
+  healthConcern:
+    conditions.find((condition) => condition.id === medication.condition)
+      ?.name ?? medication.condition,
+  symptoms:
+    symptomsByCondition[medication.condition] ??
+    "Ongoing symptoms related to this concern",
+  currentMedications: "Daily multivitamin",
+  allergies: "Penicillin",
+  duration: "1_to_6_months",
+  pharmacyPreference: "lowest_price",
+  payment: { ...DEMO_PAYMENT },
+});
+
 const digitsOnly = (value: string, maxLength: number) =>
   value.replace(/\D/g, "").slice(0, maxLength);
 
@@ -84,7 +102,9 @@ export function Intake({
   onBack: () => void;
   onComplete: (data: IntakeData) => void;
 }) {
-  const [data, setData] = useState<IntakeData>({ ...empty });
+  const [data, setData] = useState<IntakeData>(() =>
+    createPrefilledIntake(medication),
+  );
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const update = (
@@ -102,10 +122,6 @@ export function Intake({
       ...current,
       payment: { ...current.payment, [name]: value },
     }));
-    setError("");
-  };
-  const useDemoCard = () => {
-    setData((current) => ({ ...current, payment: { ...DEMO_PAYMENT } }));
     setError("");
   };
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -355,17 +371,6 @@ export function Intake({
                 </>
               ) : (
                 <>
-                  <div className="full demo-card-heading">
-                    <span className="test-data-badge">TEST DATA ONLY</span>
-                    <button
-                      id="use-demo-card-button"
-                      className="demo-card-button"
-                      type="button"
-                      onClick={useDemoCard}
-                    >
-                      <CreditCard size={16} /> Use Demo Card
-                    </button>
-                  </div>
                   <label className="full">
                     Cardholder name
                     <input

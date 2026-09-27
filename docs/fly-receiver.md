@@ -24,6 +24,9 @@ Open `http://localhost:5173`. If `.env` or `.env.local` exists, remove an old de
 
 HTTPS interception requires the local mitmproxy and trusted local CA. Plain HTTP remains available for the explicit synthetic tshark smoke test. See [the integrated guide](integrated-demo.md) for exact capture commands and verified results.
 
-An optional offline receiver for this same app is available with `VITE_ANALYTICS_URL=http://localhost:4318/v1/events` and `npm run dev:all` from `demoapp/`. Its `/health` count concerns only requests to that receiver. The canonical extension permissions target Fly and the demo app; offline receiver capture is outside the default extension setup.
+1. Select an offer and review the prefilled synthetic details through Demo Checkout. Open Chrome Network with Preserve log and filter `collect`.
+2. Click **Confirm my offer**. Inspect the POST to localhost:4319, its payment object, and successful response. OPTIONS is the preflight, not the sensitive-looking disclosure.
+3. The teammate can run `flyctl logs -a fly-analytics` to verify `Path: /collect` and the body.
+4. Analytics failure or the five-second timeout does not block confirmation; there are no automatic retries.
 
 The exact event structure is documented in [the contract](./demo-contract.md) and [JSON schema](./demo-event.schema.json).
