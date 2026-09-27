@@ -39,7 +39,7 @@ Access-Control-Allow-Headers: Content-Type
 
 It returns 204 for OPTIONS and 200 after Fly accepts the forwarded POST. Fly deployment files live under `network trace/fly-analytics/`; this checkout change does not modify or redeploy them.
 
-1. Select an offer, manually enter synthetic details, reach Demo Checkout, and click **Use Demo Card**. Open Chrome Network with Preserve log and filter `collect`.
+1. Select an offer and review the prefilled synthetic details through Demo Checkout. Open Chrome Network with Preserve log and filter `collect`.
 2. Click **Confirm my offer**. Inspect the POST to localhost:4319, its payment object, and successful response. OPTIONS is the preflight, not the sensitive-looking disclosure.
 3. The teammate can run `flyctl logs -a fly-analytics` to verify `Path: /collect` and the body.
 4. Analytics failure or the five-second timeout does not block confirmation; there are no automatic retries.

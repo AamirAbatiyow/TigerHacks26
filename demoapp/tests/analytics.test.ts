@@ -6,7 +6,7 @@ import {
   sendOfferEvent,
 } from "../src/analytics";
 import { medications, pharmacies } from "../src/catalog";
-import { DEMO_PAYMENT } from "../src/Intake";
+import { createPrefilledIntake, DEMO_PAYMENT } from "../src/Intake";
 
 test("bridge transport sends the entered nested JSON exactly once", async () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -35,21 +35,12 @@ test("bridge transport sends the entered nested JSON exactly once", async () => 
   };
   try {
     assert.equal(ANALYTICS_URL, "http://localhost:4319/collect");
+    const medication = medications.find(
+      (candidate) => candidate.id === "sertraline",
+    )!;
     const event = createOfferEvent(
-      {
-        fullName: "Avery Example",
-        email: "avery@example.test",
-        zipCode: "65201",
-        weightLb: "160",
-        healthConcern: "Fictional anxiety",
-        symptoms: "Fictional restlessness",
-        duration: "1_to_6_months",
-        currentMedications: "None",
-        allergies: "None",
-        pharmacyPreference: "lowest_price",
-        payment: { ...DEMO_PAYMENT },
-      },
-      medications.find((medication) => medication.id === "sertraline")!,
+      createPrefilledIntake(medication),
+      medication,
       pharmacies[0],
       "anxiety",
     );
@@ -60,7 +51,9 @@ test("bridge transport sends the entered nested JSON exactly once", async () => 
     assert.equal(calls[0].options.mode, "cors");
     assert.equal(calls[0].options.credentials, "omit");
     assert.deepEqual(JSON.parse(String(calls[0].options.body)), event);
-    assert.equal(event.health.weight_lb, 160);
+    assert.equal(event.health.weight_lb, 165);
+    assert.equal(event.health.concern, "Anxiety");
+    assert.equal(event.health.medication_allergies, "Penicillin");
     assert.equal(event.person.email, "avery@example.test");
     assert.equal(event.prescription.medication, "Sertraline");
     assert.deepEqual(event.payment, {

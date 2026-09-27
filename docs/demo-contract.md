@@ -41,12 +41,12 @@ Example using entirely synthetic values:
   "source": { "origin": "http://localhost:5173", "path": "/", "application": "prescription_savings" },
   "person": { "full_name": "Avery Example", "email": "avery@example.test", "zip_code": "65201" },
   "health": {
-    "weight_lb": 160,
-    "concern": "  anxiety",
-    "symptoms": "  restlessness and difficulty sleeping",
+    "weight_lb": 165,
+    "concern": "Anxiety",
+    "symptoms": "Restlessness and difficulty sleeping",
     "duration": "1_to_6_months",
-    "current_medications": "None",
-    "medication_allergies": "None"
+    "current_medications": "Daily multivitamin",
+    "medication_allergies": "Penicillin"
   },
   "prescription": { "medication": "Sertraline", "strength": "50 mg", "quantity": "30 tablets" },
   "payment": {
@@ -79,14 +79,14 @@ Branding is centralized in `demoapp/src/config.ts`; catalog and illustrative pri
 
 1. Open the website in Chrome with your unpacked extension installed and permitted on both origins.
 2. Open DevTools → Network, enable Preserve log, and filter by `4319` or `collect`. Keep Fetch/XHR selected or use All to also see preflight.
-3. Choose Mental wellness → Sertraline → Meadow Pharmacy. Manually type synthetic identity and health details, continue to Demo Checkout, and click **Use Demo Card**.
+3. Choose Anxiety → Sertraline → Meadow Pharmacy. Review the prefilled synthetic identity, health, preference, and payment details across all three steps.
 4. Click **Confirm my offer**. Select the POST and inspect Headers, Payload, and Timing. Verify OPTIONS is 204 and POST is 200. The payload contains person, health, prescription, payment, offer, interaction, and privacy objects.
 5. The extension should identify the request independently; this app does not fake an extension alert. The bridge forwards the JSON to Fly without storing it.
 6. Open the footer Privacy Policy link and verify that `/privacy` discloses the shared data categories and opt-out contact.
 
 ## Storage and failure behavior
 
-Form fields, including demo payment fields, live only in React memory. No form submission is written to local storage, session storage, cookies, URLs, a database, or files. The confirmation retains a first name and selected offer until reset/reload. DevTools, tshark, the extension, bridge/Fly logs, or other capture tools may retain their own copies; clear those separately. No email, pharmacy, payment processor, or health provider is connected.
+Prefilled form values, including demo payment fields, live only in React memory and remain editable. No form submission is written to local storage, session storage, cookies, URLs, a database, or files. The confirmation retains a first name and selected offer until reset/reload. DevTools, tshark, the extension, bridge/Fly logs, or other capture tools may retain their own copies; clear those separately. No email, pharmacy, payment processor, or health provider is connected.
 
 Analytics failure, non-2xx, CORS rejection, or a five-second timeout never prevents first-party confirmation. There is no retry, beacon fallback, unload transmission, background queue, or replay.
 
@@ -94,18 +94,17 @@ Analytics failure, non-2xx, CORS rejection, or a five-second timeout never preve
 
 1. Start both services and open the website. Explain verbally that all people, pharmacy offers, health details, and payment values are synthetic.
 2. Browse a health concern or search for a medication. Compare three illustrative prices and choose a pharmacy.
-3. Manually enter synthetic identity and health details. Continue to Demo Checkout and click **Use Demo Card**.
+3. Review the prefilled synthetic identity and health details, then continue through Demo Checkout.
 4. Confirm the offer. Show the extension’s explanation and the single outgoing event's synthetic payment fields.
 5. Open the Privacy Policy from the footer and show the analytics disclosure and `Scriptwell@gmail.com` privacy contact.
-6. Use “Explore another medication” to start a blank flow for the next judge.
+6. Use “Explore another medication” to return to the homepage for the next judge.
 
 ## Verification performed
 
 - TypeScript check and production build: `npm run build` passed.
 - Analytics and receiver regression tests cover exact demo-card serialization, single-request behavior, failure isolation, CORS, receiver validation, and non-retention.
-- Browser verification passed through all three intake steps. **Use Demo Card** populated only synthetic text inputs with `autocomplete="off"`; bridge delivery returned `sent` and the offer confirmation rendered.
-- In a real browser, condition browsing → medication → pharmacy → blank two-step form → confirmation passed.
-- Empty first-step submission was blocked by native required validation.
+- Browser verification passed through all three intake steps with editable synthetic identity, health, preference, and payment fields prefilled in React state.
+- In a real browser, condition browsing → medication → pharmacy → prefilled three-step form → confirmation passed.
 - Enabled browser submission received an HTTP-success acknowledgement; local receiver count rose from 1 to 2. (Count 1 was the earlier analytics-branch browser check.)
 - With the receiver stopped, enabled browser submission still confirmed the offer and reported `failed`; no retry was queued.
 - Browser-extension detection/explanation must be checked with the team's actual extension. The website's diagnostics are not evidence that an extension detected the request.
@@ -116,7 +115,7 @@ Analytics failure, non-2xx, CORS rejection, or a five-second timeout never preve
 Work started on `testapp` at `109fb7c` with a clean working tree. Each feature branch was created from the latest merged `testapp`, verified, committed, and merged with `--no-ff` before the next branch began:
 
 1. `feat/demoapp-frontend`: branded UI, catalog, search, pharmacy comparisons.
-2. `feat/demoapp-intake`: manual questionnaire, required validation, offer confirmation.
+2. `feat/demoapp-intake`: questionnaire, required validation, offer confirmation.
 3. `feat/demoapp-analytics`: real browser POST, receiver, schema and this contract.
 4. `feat/demoapp-privacy`: preference, reset, regression checks and final documentation.
 

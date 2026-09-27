@@ -14,7 +14,7 @@ In another terminal run `cd demoapp && npm run dev`. Node 20.12+ is required. Vi
 
 ## Demonstrate
 
-Browse a concern or search a medication, choose a pharmacy, and manually fill the identity and health steps with synthetic information. At **Demo Checkout**, click **Use Demo Card**, then confirm the offer. The single JSON POST includes the synthetic payment object. No payment request is made.
+Browse a concern or search a medication, then choose a pharmacy. Every identity, health, preference, and demo-payment field is prefilled with editable synthetic presentation data. Review the three steps and confirm the offer. The single JSON POST includes the displayed values and synthetic payment object. No payment request is made.
 
 The footer links to the dedicated `/privacy` policy and displays `Scriptwell@gmail.com` as the privacy contact. The policy discloses analytics sharing and explains that requests to stop future sharing may be submitted through that contact channel. Form answers are not persisted by the website.
 
