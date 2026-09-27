@@ -124,6 +124,9 @@ check_children() {
 trap stop EXIT
 trap 'exit 130' INT TERM
 
+# Nothing is writing yet (the ports above are free), so the runtime log can be rotated safely.
+python3 'network trace/event_store.py' --new-session || exit 1
+
 set -m
 start "Local API" python3 'network trace/local_api.py'
 set +m

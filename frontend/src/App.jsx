@@ -91,7 +91,7 @@ export default function App() {
     return () => { active = false; controller.abort(); window.clearTimeout(timer); };
   }, []);
 
-  const input = snapshot?.data || toSession(observations);
+  const input = snapshot?.data || toSession(observations, { simple: view === "simple" });
   const session = useMemo(() => normalizeSession(input), [input]);
   const duration = (session.events.at(-1)?.at || 0) + FLIGHT_SECONDS;
   return <SessionExperience key={snapshot?.revision || "live"} session={session} view={view} onViewChange={setView} connection={snapshot ? "Loaded session" : connection} duration={duration} />;

@@ -2,10 +2,33 @@ import json
 import hashlib
 import os
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 
 # Local append-only log. This file never gets uploaded by the collectors or the extension.
 EVENTS_PATH = Path(os.environ.get("HEALTHTRACE_EVENTS_PATH", Path(__file__).resolve().parent / "events.jsonl"))
+ARCHIVES_KEPT = 5
+
+
+def archive_pattern(path):
+    return f"{path.stem}.session-*{path.suffix}"
+
+
+def start_new_session(path=None, keep=ARCHIVES_KEPT):
+    """Archive a non-empty runtime log beside itself, start an empty one, and prune old archives.
+
+    Call only while no collector or local API is writing. Returns the archive path, or None.
+    """
+    path = Path(path or EVENTS_PATH)
+    archived = None
+    if path.exists() and path.stat().st_size:
+        archived = path.with_name(f"{path.stem}.session-{datetime.now():%Y%m%d-%H%M%S-%f}{path.suffix}")
+        path.replace(archived)
+    path.write_text("", encoding="utf-8")
+    archives = sorted(path.parent.glob(archive_pattern(path)))
+    for old in archives[:max(0, len(archives) - keep)]:
+        old.unlink()
+    return archived
 
 
 def append_event(event: dict) -> None:
@@ -50,3 +73,13 @@ def read_events(limit=500):
         except ValueError:
             continue
     return result
+
+
+if __name__ == "__main__":
+    import sys
+
+    if sys.argv[1:] != ["--new-session"]:
+        sys.exit("usage: event_store.py --new-session")
+    previous = start_new_session()
+    note = f"; previous log archived to {previous.name}" if previous else ""
+    print(f"Event log: cleared for new demo session ({EVENTS_PATH}{note})", flush=True)

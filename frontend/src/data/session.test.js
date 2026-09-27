@@ -1,7 +1,55 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizeSession, advancePlayback, flightProgress, eventAtTime } from "./session.js";
-import { toSession } from "./liveEvents.js";
+import { simpleObservations, toSession } from "./liveEvents.js";
+
+// One ScriptWell submission as the local API stores it (shape of real captures, synthetic values).
+const at = (seconds) => new Date(Date.UTC(2026, 8, 27, 0, 0, seconds)).toISOString();
+const finding = { field: "payment.card_number", value: "4242424242424242", category: "financial", severity: "HIGH", detection_method: "rule", confidence: 0.97 };
+const submission = [
+  { event_id: "page", source: "mitm", host: "scriptwell.fly.dev", method: "GET", path: "/", timestamp: at(0), body: null, findings: [] },
+  { event_id: "script", source: "browser_extension", host: "scriptwell.fly.dev", method: "GET", path: "/assets/index-abc.js", timestamp: at(0), body: null, findings: [] },
+  { event_id: "style", source: "mitm", host: "scriptwell.fly.dev", method: "GET", path: "/assets/index-abc.css?v=1", timestamp: at(0), body: null, findings: [] },
+  { event_id: "icon", source: "mitm", host: "scriptwell.fly.dev", method: "GET", path: "/favicon.ico", timestamp: at(1), body: null, findings: [] },
+  { event_id: "preflight-ext", source: "browser_extension", host: "fly-analytics.fly.dev", method: "OPTIONS", path: "/collect", timestamp: at(20), body: null, findings: [] },
+  { event_id: "preflight-mitm", source: "mitm", host: "fly-analytics.fly.dev", method: "OPTIONS", path: "/collect", timestamp: at(20), body: null, findings: [] },
+  { event_id: "post-ext", source: "browser_extension", host: "fly-analytics.fly.dev", method: "POST", path: "/collect", timestamp: at(20), body: null, findings: [] },
+  { event_id: "post-mitm", source: "mitm", host: "fly-analytics.fly.dev", method: "POST", path: "/collect", timestamp: at(21), body: { payment: { card_number: "4242424242424242" } }, findings: [finding] },
+];
+const ids = (observations) => observations.map((event) => event.event_id);
+
+test("simple view keeps the sensitive POST and hides preflights, assets, page loads, and its metadata twin", () => {
+  assert.deepEqual(ids(simpleObservations(submission)), ["post-mitm"]);
+  const session = toSession(submission, { simple: true });
+  assert.deepEqual(session.destinations.map((d) => d.id), ["fly-analytics.fly.dev"]);
+  assert.deepEqual(session.events.map((e) => e.id), ["post-mitm"]);
+  assert.equal(session.events[0].at, 21, "timing stays anchored to the full recording");
+  assert.equal(session.destinations[0].requests[0].fields.length, 1);
+});
+
+test("technical view still exposes every stored observation from every source", () => {
+  const session = toSession(submission);
+  assert.deepEqual(session.events.map((e) => e.id), ids(submission));
+  assert.deepEqual(session.destinations.map((d) => d.id), ["scriptwell.fly.dev", "fly-analytics.fly.dev"]);
+  assert.deepEqual(toSession(submission, { simple: false }), session);
+});
+
+test("metadata-only records stay visible when no collector saw the same request", () => {
+  const extensionOnly = submission.filter((event) => event.source === "browser_extension");
+  assert.deepEqual(ids(simpleObservations(extensionOnly)), ["post-ext"]);
+  const later = { ...submission[6], event_id: "post-ext-later", timestamp: at(59) };
+  assert.deepEqual(ids(simpleObservations([...submission, later])), ["post-mitm", "post-ext-later"]);
+});
+
+test("sensitive findings are never hidden, whatever the method or path", () => {
+  const sensitiveGet = { ...submission[0], event_id: "get-with-findings", findings: [finding] };
+  const bodyPost = { ...submission[7], event_id: "body-no-findings", findings: [] };
+  assert.deepEqual(ids(simpleObservations([sensitiveGet, bodyPost])), ["get-with-findings", "body-no-findings"]);
+});
+
+test("an empty event log renders an empty session in both views", () => {
+  for (const simple of [true, false]) assert.deepEqual(toSession([], { simple }), { source: { name: "ScriptWell" }, destinations: [], events: [] });
+});
 
 test("live observations become a ScriptWell session grouped by host", () => {
   const session = toSession([

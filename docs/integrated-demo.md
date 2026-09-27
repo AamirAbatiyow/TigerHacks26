@@ -43,6 +43,8 @@ After the one-time setup below (`npm ci --prefix frontend`, the extension build,
 
 It checks for `python3`, `mitmdump`, `tshark`, `npm`, `curl`, `lsof`, and `networksetup`, and refuses to start if port 8765, 18080, or 5174 is already in use. It starts the local API first and waits for it, then mitmproxy on `127.0.0.1:18080`, the tshark collector on `en0`, and the dashboard on `http://localhost:5174`. It does not start ScriptWell; open `https://scriptwell.fly.dev`. If any service exits, the script names it and stops the others. Ctrl-C stops everything it started, including tshark and Vite child processes, and nothing else.
 
+Each run starts with an empty event log: before the local API starts, the launcher moves a non-empty `network trace/events.jsonl` (or `HEALTHTRACE_EVENTS_PATH`) to `events.session-<timestamp>.jsonl` beside it, keeps the five most recent archives, and prints `Event log: cleared for new demo session`. Event logs and archives are gitignored runtime data. The dashboard's Simple view shows only meaningful disclosures: requests with findings, and body-bearing non-GET requests. It hides OPTIONS/HEAD, GET page and asset loads without findings, and an extension metadata record when mitmproxy or tshark captured the same request's body within 10 seconds. The Technical view and `GET /events` still include every stored observation.
+
 The launcher also manages the macOS secure (HTTPS) web proxy, so there is no manual proxy step. It saves the current secure-proxy settings for the network service behind the default route (override with `PROXY_SERVICE=Wi-Fi ./start_demo.sh`). Once mitmproxy is listening it sets the secure proxy to `127.0.0.1:18080` and prints `Secure proxy: enabled -> 127.0.0.1:18080`. On Ctrl-C, SIGTERM, a startup failure, or a service exiting, it restores the exact previous settings and prints `Secure proxy: restored previous state`. The HTTP web proxy must be off: the launcher refuses to start if it is on, and it also refuses an authenticated secure proxy, whose credentials it cannot restore. While the demo runs, every app's HTTPS goes through mitmproxy. The existing mitmproxy CA trust is required and is not modified.
 
 Manual prerequisite: load the repository's `extension/` directory as an unpacked extension in Chrome, as described below.
@@ -110,7 +112,7 @@ curl --max-time 20 --proxy http://127.0.0.1:18080 \
 
 `tshark -D` lists interface names; use the actual outbound interface (lo0 for loopback). Packet capture permissions may be required. Fly keeps HTTP available solely for this synthetic test. The optional Node receiver remains a transport test utility for the same demo app and is not used by the integrated default.
 
-For an isolated fresh session, set the same `HEALTHTRACE_EVENTS_PATH` to a new local JSONL path in **all three Python/collector terminals**. Otherwise all use `network trace/events.jsonl`. Stop processes with Ctrl+C. Privacy results are stored in ignored `network trace/privacy.sqlite3`.
+For a fresh session when starting services by hand, run `python3 'network trace/event_store.py' --new-session` first (with nothing running), or set the same `HEALTHTRACE_EVENTS_PATH` to a new local JSONL path in **all three Python/collector terminals**. Otherwise all use `network trace/events.jsonl`. Stop processes with Ctrl+C. Privacy results are stored in ignored `network trace/privacy.sqlite3`.
 
 ## Deployed ScriptWell
 
