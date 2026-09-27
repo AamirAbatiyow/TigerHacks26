@@ -14,7 +14,7 @@ Node 20.12+ required. Visit **http://localhost:5173**. The browser sends analyti
 
 ## Demonstrate
 
-Browse a concern or search a medication, choose a pharmacy, and complete the identity and health steps with fictional information. At **Demo Checkout**, click **Use Demo Card**, then confirm the offer. The single JSON POST to `https://fly-analytics.fly.dev/collect` includes the synthetic payment object. No payment request is made. Inspect it with the extension or Chrome DevTools.
+Browse a concern or search a medication, choose a pharmacy, and complete the identity and health steps with information. At **Demo Checkout**, click **Use Demo Card**, then confirm the offer. The single JSON POST to `https://fly-analytics.fly.dev/collect` includes the synthetic payment object. No payment request is made. Inspect it with the extension or Chrome DevTools.
 
 The footer links to the dedicated `/privacy` policy and displays `Scriptwell@gmail.com` as the privacy contact. The policy discloses analytics sharing and explains that requests to stop future sharing may be submitted through that contact channel. There is no in-page sharing toggle. Form answers are not persisted by the website.
 
