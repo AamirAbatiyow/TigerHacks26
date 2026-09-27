@@ -85,7 +85,7 @@ class SemanticClassifierTests(unittest.TestCase):
                              (finding['category'], finding['severity']), field)
             self.assertIn(hybrid[field]['detection_method'], ('rule', 'rule+semantic'))
         added = {field: f['category'] for field, f in hybrid.items() if field not in baseline}
-        self.assertEqual(added, {'interaction.search_term': 'mental_health'})
+        self.assertEqual(added, {'interaction.search_term': 'mental_health', 'payment.billing_zip': 'location'})
         self.assertEqual(hybrid['interaction.search_term']['detection_method'], 'semantic')
 
     def test_alternate_field_names_generalize(self):

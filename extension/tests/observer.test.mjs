@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { buildView } from '../../frontend/src/data/liveEvents.js';
+import { toSession } from '../../frontend/src/data/liveEvents.js';
 
 test('MV3 observer posts metadata locally and excludes its own event API', async () => {
   let observer;
@@ -37,12 +37,12 @@ test('MV3 observer posts metadata locally and excludes its own event API', async
 });
 
 test('dashboard preserves canonical fields and never fabricates empty events', () => {
-  assert.deepEqual(buildView([]), {nodes: [], events: []});
+  assert.deepEqual(toSession([]), {source: {name: 'ScriptWell'}, destinations: [], events: []});
   const event = {event_id:'real-1', host:'fly-analytics.fly.dev', timestamp:'2026-01-01T00:00:00Z', source:'mitm', method:'POST', path:'/collect', body:{email:'demo@example.test'}, findings:[{field:'email',value:'demo@example.test',category:'identity',severity:'HIGH'}]};
-  const {nodes, events} = buildView([event]);
+  const {destinations, events} = toSession([event]);
   assert.equal(events[0].timestamp, event.timestamp);
-  assert.deepEqual(nodes[0].requests[0].findings, event.findings);
-  assert.equal(nodes[0].requests[0].fields[0].value, '"demo@example.test"');
+  assert.deepEqual(destinations[0].requests[0].findings, event.findings);
+  assert.equal(destinations[0].requests[0].fields[0].value, '"demo@example.test"');
 });
 
 

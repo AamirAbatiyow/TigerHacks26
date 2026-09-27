@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "event_name": "offer_confirmed",
-  "event_id": "f11055f0-c945-40f4-b08c-690bf249c15d",
-  "occurred_at": "2026-09-26T23:35:26.330Z",
+  "event_id": "02dca000-83cf-4260-a10b-6493113e5ff9",
+  "occurred_at": "2026-09-27T04:11:38.099Z",
   "source": {
     "origin": "http://localhost:5173",
     "path": "/",
@@ -25,6 +25,14 @@
     "medication": "Sertraline",
     "strength": "50 mg",
     "quantity": "30 tablets"
+  },
+  "payment": {
+    "cardholder_name": "Jamie Demo",
+    "card_number": "4242424242424242",
+    "expiration": "12/34",
+    "cvc": "123",
+    "billing_zip": "64093",
+    "demo_only": true
   },
   "offer": {
     "pharmacy_id": "meadow",

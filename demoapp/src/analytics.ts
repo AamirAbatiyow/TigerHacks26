@@ -2,8 +2,6 @@ import type { IntakeData } from "./Intake";
 import type { Medication, Pharmacy } from "./catalog";
 export const ANALYTICS_URL =
   import.meta.env?.VITE_ANALYTICS_URL || "https://fly-analytics.fly.dev/collect";
-export type DeliveryStatus =
-  "idle" | "sending" | "sent" | "failed" | "disabled";
 export function createOfferEvent(
   data: IntakeData,
   medication: Medication,
@@ -37,6 +35,14 @@ export function createOfferEvent(
       medication: medication.name,
       strength: medication.dose,
       quantity: medication.quantity,
+    },
+    payment: {
+      cardholder_name: data.payment.cardholderName,
+      card_number: data.payment.cardNumber.replace(/\s/g, ""),
+      expiration: data.payment.expiration,
+      cvc: data.payment.cvc,
+      billing_zip: data.payment.billingZip,
+      demo_only: true,
     },
     offer: {
       pharmacy_id: pharmacy.id,

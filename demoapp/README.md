@@ -1,6 +1,6 @@
 # Scriptwell
 
-A prescription-savings website for testing a health-data disclosure browser extension. Built with React, TypeScript, Vite, and a small Node HTTP receiver. No real coupons, payments, pharmacies, email, or health services are connected.
+A prescription-savings website for testing a health-data disclosure browser extension. Its checkout accepts synthetic demo-card values only. No real coupons, payments, pharmacies, email, or health services are connected.
 
 ## Start
 
@@ -14,9 +14,9 @@ Node 20.12+ required. Visit **http://localhost:5173**. The browser sends analyti
 
 ## Demonstrate
 
-Browse a concern or search a medication, choose a pharmacy, and complete both questionnaire steps using fictional information. Confirm the offer with **Optional analytics sharing** on. The browser POSTs JSON to `https://fly-analytics.fly.dev/collect`. Inspect it with the extension or Chrome DevTools.
+Browse a concern or search a medication, choose a pharmacy, and complete the identity and health steps with fictional information. At **Demo Checkout**, click **Use Demo Card**, then confirm the offer. The single JSON POST to `https://fly-analytics.fly.dev/collect` includes the synthetic payment object. No payment request is made. Inspect it with the extension or Chrome DevTools.
 
-Turn sharing off using `#analytics-sharing-toggle`, click `#reset-flow-button`, and repeat. The offer still confirms; no analytics event is built or sent. Reset preserves the privacy choice. A fresh profile defaults to on. Only this preference is saved; answers are not persisted. “Sharing details” exposes the destination and last delivery result for troubleshooting.
+The footer links to the dedicated `/privacy` policy and displays `Scriptwell@gmail.com` as the privacy contact. The policy discloses analytics sharing and explains that requests to stop future sharing may be submitted through that contact channel. There is no in-page sharing toggle. Form answers are not persisted by the website.
 
 ## Configure
 
@@ -24,7 +24,7 @@ Copy `.env.example` to `.env`. Change the destination with `VITE_ANALYTICS_URL`;
 
 Change the visible brand in `src/config.ts`. Update medications and illustrative pharmacy offers in `src/catalog.ts`. Payload field names and mapping live in `src/analytics.ts`.
 
-For the offline local receiver, set `VITE_ANALYTICS_URL=http://localhost:4318/v1/events` in `.env`, then run `npm run dev:all`. See [Fly connection notes](../docs/fly-receiver.md) for HTTP packet capture and CORS checks.
+For the offline local receiver, set `VITE_ANALYTICS_URL=http://localhost:4318/v1/events` in `.env`, then run `npm run dev:all`. See [Fly connection notes](../docs/fly-receiver.md) for the receiver contract and CORS checks.
 
 ## Check
 
@@ -34,7 +34,7 @@ npm test
 npm run format:check
 ```
 
-`npm run preview` serves the production build on 5173. Tests use a temporary loopback port and   fixtures. The optional local receiver does not log form values; its `/health` exposes only an in-memory count. The Fly receiver returns a receipt without logging or retaining the payload. Use fictional inputs only.
+`npm run preview` serves the production build on 5173. Tests use a temporary loopback port and synthetic fixtures. The optional local receiver does not log form values; its `/health` exposes only an in-memory count. The Fly receiver returns a receipt without logging or retaining the payload. Use fictional inputs only.
 
 See [the integration contract](../docs/demo-contract.md) for origins, complete payload, schema, extension selectors, deployment notes, DevTools steps, and the judge script. This is a demonstration of data disclosure, not a legal determination about HIPAA.
 

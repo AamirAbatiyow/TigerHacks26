@@ -45,4 +45,6 @@ body { width: 340px; max-height: 600px; overflow-x: hidden; overflow-y: auto; }
 .primary-button > span:not(.primary-arrow) { margin-left: 0; font-size: 22px; white-space: normal; text-align: center; }
 .primary-arrow { position: static; width: 45px; margin: 0; transform: none; }
 .primary-button:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+.file-button { width: 85%; margin: 14px auto 0; background: radial-gradient(ellipse at 55% 110%, #cf1733, transparent 75%), linear-gradient(110deg, #ff5265, #e72d46 55%, #ff6575); box-shadow: 0 7px 30px 8px #e72d4638, inset 0 1px 0 #ffffff20; }
+.file-button > span:not(.primary-arrow) { text-shadow: 0 1px 2px #9f183066; }
 .refresh-button { padding: 0; border: 0; background: transparent; color: #0665ff; font-size: 15px; text-decoration: underline; }

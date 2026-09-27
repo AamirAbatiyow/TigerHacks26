@@ -5,10 +5,10 @@ import {
   createOfferEvent,
   sendOfferEvent,
 } from "../src/analytics";
-import { withOptionalSharing } from "../src/privacy";
 import { medications, pharmacies } from "../src/catalog";
+import { DEMO_PAYMENT } from "../src/Intake";
 
-test("Fly transport sends the entered nested JSON once and opt-out sends nothing", async () => {
+test("Fly transport sends the entered nested JSON exactly once", async () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const previousNavigator = Object.getOwnPropertyDescriptor(
     globalThis,
@@ -47,15 +47,13 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
         currentMedications: "None",
         allergies: "None",
         pharmacyPreference: "lowest_price",
+        payment: { ...DEMO_PAYMENT },
       },
-      medications[2],
+      medications.find((medication) => medication.id === "sertraline")!,
       pharmacies[0],
       "anxiety",
     );
-    assert.equal(
-      await withOptionalSharing(true, () => sendOfferEvent(event)),
-      "sent",
-    );
+    assert.equal(await sendOfferEvent(event), "sent");
     assert.equal(calls.length, 1);
     assert.equal(calls[0].url, ANALYTICS_URL);
     assert.equal(calls[0].options.method, "POST");
@@ -65,10 +63,19 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
     assert.equal(event.health.weight_lb, 160);
     assert.equal(event.person.email, "avery@example.test");
     assert.equal(event.prescription.medication, "Sertraline");
-    assert.equal(
-      await withOptionalSharing(false, () => sendOfferEvent(event)),
-      "disabled",
+    assert.deepEqual(event.payment, {
+      cardholder_name: "Jamie Demo",
+      card_number: "4242424242424242",
+      expiration: "12/34",
+      cvc: "123",
+      billing_zip: "64093",
+      demo_only: true,
+    });
+    assert.deepEqual(
+      JSON.parse(String(calls[0].options.body)).payment,
+      event.payment,
     );
+    assert.equal(calls.length, 1, "checkout must not create a second request");
     assert.equal(calls.length, 1);
     globalThis.fetch = async () => {
       throw new TypeError("Network unavailable");

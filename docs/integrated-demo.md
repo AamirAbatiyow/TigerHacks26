@@ -11,7 +11,7 @@ The canonical extension contains the migrated observer: metadata normalization, 
 
 ## Real flow
 
-1. ScriptWell (`demoapp`, local or deployed) builds a synthetic prescription offer and POSTs it to `https://fly-analytics.fly.dev/collect` when optional sharing is enabled.
+1. ScriptWell (`demoapp`, local or deployed) builds a synthetic prescription offer, including a demo-only payment object, and POSTs it to `https://fly-analytics.fly.dev/collect` when the offer is confirmed.
 2. The MV3 HealthTrace observer records request metadata and POSTs only to `http://127.0.0.1:8765/events`. It does not read request bodies, perform classification, or send observations to Fly. Its host permissions cover the demo/Fly destinations and the local API; it skips its own API requests.
 3. With the browser configured to use mitmproxy, the HTTPS request is decrypted locally. The response hook normalizes it and POSTs it (raw body base64-encoded) to `http://127.0.0.1:8765/events` with `source: "mitm"`. For plaintext HTTP, tshark parses the on-wire body and POSTs it the same way with `source: "tshark"`. Collectors are standard-library only (`collectors/local_sink.py`): they never classify, load the model, or write the event log, and they never forward requests to the local API itself.
 4. The local API is the single ingestion path for all three sources (`process_event`). Requests with a browser `Origin` are always treated as metadata-only extension events. It runs the shared classifier, which filters demo traffic, sanitizes bodies, normalizes the event, generates an observation UUID, and appends it to local JSONL. Binary/compressed bodies remain absent; size/type metadata is retained.
@@ -87,7 +87,7 @@ Load the repository's **extension/** directory as an unpacked MV3 extension in C
 
 `./start_demo.sh` routes HTTPS through mitmproxy and restores the proxy on exit; if you start services by hand instead, the secure web proxy must point at `127.0.0.1:18080` while mitmdump runs. Complete mitmproxy's local CA trust setup if not already installed; do not bypass certificate warnings. The extension does not change proxy settings or install a CA.
 
-Open `http://localhost:5173`, choose Sertraline and a pharmacy, keep all information fictional, select pharmacy preference and duration, and confirm the offer. Sharing details should show an acknowledged request. The dashboard should show browser metadata plus mitm findings. Disable optional sharing and repeat: the offer still completes but no new analytics disclosure is sent.
+Open `http://localhost:5173`, choose Sertraline and a pharmacy, keep all information fictional, select pharmacy preference and duration, click **Use Demo Card**, and confirm the offer. The dashboard should show browser metadata plus mitm findings for that one POST. There is no in-page sharing toggle; `/privacy` describes the disclosure and the contact for requesting that future sharing stop.
 
 For a plaintext HTTP capture without changing the demo default:
 
@@ -142,10 +142,10 @@ To observe the deployed site, run `./start_demo.sh` with the extension loaded. `
 - `network trace/event_filters.py`, `event_store.py`, `local_api.py`, new `live_privacy.py`: ScriptWell/receiver filtering, recursion exclusions, normalized local reads, local privacy provider, and unified API.
 - `network trace/collectors/tshark_collector.py`: configurable capture interface; existing parsing preserved. It and `mitm_collector.py` forward events through `collectors/local_sink.py` instead of calling the classifier.
 - `network trace/fly-analytics/server.py`, `privacy/contract.py`: restrictive CORS, bounded JSON receipt handling, preserved privacy routes, explicit unknown residency supported.
-- `frontend/src/App.jsx`, `components/PrivacyPanel.jsx`, `components/NetworkScene.jsx`, new `data/liveEvents.js`, `vite.config.js`: polling and connection/empty states, presentation mapping from canonical events, real privacy findings, separate UI port, consistent app label.
+- `frontend/src/App.jsx`, `components/PrivacyPanel.jsx`, `components/NetworkScene.jsx`, `data/liveEvents.js`, `data/session.js`, `vite.config.js`: simple and technical views of the same live local-API session, polling and connection status, real privacy findings, separate UI port.
 - Removed the mock graph source, playback timer, and fixed popup count. Rebuilt `extension/visualization/` so its compiled JS no longer contains the mock network graph.
 - `extension/background.js`, manifest, popup HTML/JS, and privacy loader: integrated MV3 observer, local API reads, real count, retained existing privacy actions.
-- `demoapp/src/analytics.ts`, `Intake.tsx`, `.env.example`: HTTPS default, fictional sample answers, synthetic-input notice. Existing privacy toggle remains authoritative.
+- `demoapp/src/analytics.ts`, `Intake.tsx`, `.env.example`: HTTPS default, fictional sample answers, synthetic checkout payment fields, and the `/privacy` policy. There is no in-page sharing toggle.
 - Tests under `network trace/tests/`, `extension/tests/`, and `demoapp/tests/`; README/contract pointers and this guide; `.gitignore` excludes local privacy results.
 
 ## Verification (2026-09-26)
