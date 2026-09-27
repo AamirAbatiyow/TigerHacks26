@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { LOCAL_API } from '../data/liveEvents';
 
 const statusLabels = {
   READY: 'Ready to process',
@@ -10,7 +11,7 @@ const statusLabels = {
 };
 
 async function request(path, options) {
-  const response = await fetch(`/api/privacy/${path}`, options);
+  const response = await fetch(`${LOCAL_API}/api/privacy/${path}`, options);
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Privacy service unavailable');
   return data;
@@ -25,13 +26,15 @@ export default function PrivacyPanel() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([request('findings'), request('results')])
+    const refresh = () => Promise.all([request('findings'), request('results')])
       .then(([input, saved]) => {
-        if (active) { setFindings(input.findings); setResults(saved.results); }
+        if (active) { setFindings(input.findings); setResults(saved.results); setError(''); }
       })
-      .catch((err) => { if (active) setError(`${err.message}. Start the Python server with PRIVACY_LOCAL_MODE=1.`); })
+      .catch((err) => { if (active) setError(`${err.message}. Start network trace/local_api.py.`); })
       .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    refresh();
+    const timer = window.setInterval(refresh, 3000);
+    return () => { active = false; window.clearInterval(timer); };
   }, []);
 
   async function run(eventId) {
@@ -52,11 +55,12 @@ export default function PrivacyPanel() {
 
   return (
     <aside className="details-panel privacy-panel">
-      <span className="panel-label">Local fixture provider</span>
+      <span className="panel-label">Local network findings</span>
       <h2>Privacy opt-out agent</h2>
-      <p>These are placeholder findings, separate from the simulated network events. Processing records a result; official portals may require your action.</p>
+      <p>These findings come from locally observed requests. Unsupported destinations have no verified opt-out mechanism; processing does not submit a request.</p>
       {loading && <p role="status">Loading privacy findings…</p>}
       {error && <p role="alert">{error}</p>}
+      {!loading && !error && rows.length === 0 && <p>No sensitive local findings yet.</p>}
       <div aria-live="polite">
         {rows.map((row) => {
           const saved = results.some((r) => r.event_id === row.event_id);

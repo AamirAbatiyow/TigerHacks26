@@ -22,7 +22,7 @@ function popup(initial) {
   const documentListeners = {};
   let closed = false;
   let data = initial;
-  for (const id of ['closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel', 'privacyFinding',
+  for (const id of ['packetCount', 'closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel', 'privacyFinding',
     'privacyReason', 'privacyStatus', 'refreshPrivacyFindings']) {
     nodes.set(id, {
       value: '', listeners: {}, disabled: false, textContent: '',
@@ -33,6 +33,7 @@ function popup(initial) {
   }
   const source = fs.readFileSync(new URL('../popup.js', import.meta.url), 'utf8').replace(/^import[^\n]+\n/, '');
   vm.runInNewContext(source, {
+    fetch: async () => ({ ok: true, json: async () => ({ events: [] }) }),
     loadPrivacyFindings: async () => { if (data instanceof Error) throw data; return typeof data === 'function' ? data() : data; },
     officialDestination, actionLabel,
     Option: class { constructor(label, value) { this.label = label; this.value = value; } },
@@ -137,7 +138,7 @@ test('merged popup keeps report navigation, close button, and Escape handling', 
 
 test('merged markup supplies every popup script control and has only one opt-out action', () => {
   const html = fs.readFileSync(new URL('../popup.html', import.meta.url), 'utf8');
-  for (const id of ['closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel',
+  for (const id of ['packetCount', 'closePopup', 'viewDetails', 'privacyOptOut', 'privacyOptOutLabel',
     'privacyFinding', 'privacyReason', 'privacyStatus', 'refreshPrivacyFindings']) {
     assert.ok(html.includes(`id="${id}"`), `Missing ${id}`);
   }

@@ -1,7 +1,6 @@
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -9,23 +8,9 @@ import NetworkScene from "./components/NetworkScene";
 import DetailsPanel from "./components/DetailsPanel";
 import PrivacyPanel from "./components/PrivacyPanel";
 
-import { mockNodes } from "./data/mockNodes";
-import { mockEventSequence } from "./data/mockEvents";
+import { buildView, LOCAL_API } from "./data/liveEvents";
 
 import "./index.css";
-
-function createEvent(template, number) {
-  return {
-    ...template,
-    runtimeId: `${template.id}-${number}`,
-
-    timestamp: new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }),
-  };
-}
 
 function App() {
   const [privacyOpen, setPrivacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
@@ -41,77 +26,32 @@ function App() {
   const [viewServiceId, setViewServiceId] =
     useState(null);
 
-  const [events, setEvents] =
-    useState([]);
-
-  const [activeNodeId, setActiveNodeId] =
-    useState(null);
-
-  const eventIndex = useRef(0);
-  const eventNumber = useRef(0);
-
-  const drillService = useMemo(
-    () =>
-      mockNodes.find(
-        (node) =>
-          node.id === viewServiceId
-      ) || null,
-    [viewServiceId]
-  );
+  const [observations, setObservations] = useState([]);
+  const [connection, setConnection] = useState('Connecting');
+  const { nodes, events } = useMemo(() => buildView(observations), [observations]);
+  const activeNodeId = events.at(-1)?.nodeId || null;
+  const drillService = nodes.find((node) => node.id === viewServiceId) || null;
 
   useEffect(() => {
-    function addNextEvent() {
-      const template =
-        mockEventSequence[
-          eventIndex.current %
-            mockEventSequence.length
-        ];
-
-      eventNumber.current += 1;
-
-      const event =
-        createEvent(
-          template,
-          eventNumber.current
-        );
-
-      setEvents((current) => {
-        const updated = [
-          ...current,
-          event,
-        ];
-
-        return updated.slice(-8);
-      });
-
-      setActiveNodeId(
-        template.nodeId
-      );
-
-      eventIndex.current += 1;
-
-      window.setTimeout(() => {
-        setActiveNodeId((current) =>
-          current ===
-          template.nodeId
-            ? null
-            : current
-        );
-      }, 2200);
+    let active = true;
+    const controller = new AbortController();
+    let timer;
+    async function refresh() {
+      try {
+        const response = await fetch(`${LOCAL_API}/events`, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error('Local API unavailable');
+        const data = await response.json();
+        if (active) {
+          setObservations(data.events);
+          setConnection(data.events.length ? 'Monitoring' : 'Waiting for local events');
+        }
+      } catch {
+        if (active) setConnection('Local API disconnected');
+      }
+      if (active) timer = window.setTimeout(refresh, 2000);
     }
-
-    addNextEvent();
-
-    const interval =
-      window.setInterval(
-        addNextEvent,
-        4200
-      );
-
-    return () =>
-      window.clearInterval(
-        interval
-      );
+    refresh();
+    return () => { active = false; controller.abort(); window.clearTimeout(timer); };
   }, []);
 
   function enterService(service) {
@@ -154,7 +94,7 @@ function App() {
 
   function selectTimelineEvent(event) {
     const service =
-      mockNodes.find(
+      nodes.find(
         (node) =>
           node.id === event.nodeId
       );
@@ -234,7 +174,7 @@ function App() {
 
           <div className="status">
             <span className="status-dot" />
-            Monitoring
+            {connection}
           </div>
         </div>
       </header>
@@ -281,7 +221,7 @@ function App() {
                   : undefined
               }
             >
-              MyHealth App
+              ScriptWell
             </button>
 
             {drillService && (
@@ -300,7 +240,7 @@ function App() {
           {!drillService && (
             <div className="session-summary">
               <span className="session-label">
-                Current session
+                Recent local observations
               </span>
 
               <div className="summary-stat">
@@ -356,7 +296,7 @@ function App() {
           )}
 
           <NetworkScene
-            nodes={mockNodes}
+            nodes={nodes}
             selectedNode={
               selectedNode
             }
@@ -393,7 +333,7 @@ function App() {
 
         {privacyOpen ? <PrivacyPanel /> : <DetailsPanel
           selectedNode={
-            selectedNode
+            nodes.find((node) => node.id === selectedNode?.id) || selectedNode
           }
           selectedRequest={
             selectedRequest
@@ -434,7 +374,7 @@ function App() {
               >
                 <span className="timeline-time">
                   {
-                    event.timestamp
+                    new Date(event.timestamp).toLocaleTimeString()
                   }
                 </span>
 

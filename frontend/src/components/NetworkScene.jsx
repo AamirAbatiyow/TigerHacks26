@@ -746,7 +746,7 @@ function CenterNode({
             "0 1px 4px rgba(0,0,0,.8)",
         }}
       >
-        MyHealth App
+        ScriptWell
       </Html>
     </group>
   );

@@ -6,15 +6,11 @@ from pathlib import Path
 
 HTTP_URL = "http://fly-analytics.fly.dev/collect"
 HTTPS_URL = "https://fly-analytics.fly.dev/collect"
-PROXY = "http://127.0.0.1:8081"
+PROXY = "http://127.0.0.1:18080"
 MITM_CA = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
 
-PAYLOAD = {
-    "user_id": "12345",
-    "birth_control": "IUD",
-    "pregnancy_goal": "trying_to_conceive",
-    "symptom": "nausea",
-}
+# Use the fixture exported by the current demo's real payload builder.
+PAYLOAD = json.loads((Path(__file__).parent / "tests" / "demo-payload.json").read_text())
 
 
 def post(url, opener):

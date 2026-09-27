@@ -34,7 +34,7 @@ test("Fly transport sends the entered nested JSON once and opt-out sends nothing
     return new Response("OK", { status: 200 });
   };
   try {
-    assert.equal(ANALYTICS_URL, "http://fly-analytics.fly.dev/collect");
+    assert.equal(ANALYTICS_URL, "https://fly-analytics.fly.dev/collect");
     const event = createOfferEvent(
       {
         fullName: "Avery Example",

@@ -2,6 +2,11 @@
 // Never forward browser-observability data to Fly.io or any remote service.
 // Demo filtering happens in the local API, so this only posts to loopback.
 const LOCAL_EVENTS_URL = "http://127.0.0.1:8765/events";
+// Exact ScriptWell origins (local and deployed) and the synthetic-data receiver.
+// Each must also be listed in manifest.json host_permissions.
+const SCRIPTWELL_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "https://scriptwell.fly.dev"];
+const RECEIVER_ORIGINS = ["https://fly-analytics.fly.dev", "http://fly-analytics.fly.dev"];
+const OBSERVED_URLS = [...RECEIVER_ORIGINS, ...SCRIPTWELL_ORIGINS].map((origin) => `${origin}/*`);
 
 function isLocalEventApi(url) {
   try {
@@ -75,6 +80,6 @@ function observe(details) {
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
   observe,
-  { urls: ["<all_urls>"] },
+  { urls: OBSERVED_URLS },
   ["requestHeaders"]
 );

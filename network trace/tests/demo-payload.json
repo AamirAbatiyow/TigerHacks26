@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "event_name": "offer_confirmed",
+  "event_id": "f11055f0-c945-40f4-b08c-690bf249c15d",
+  "occurred_at": "2026-09-26T23:35:26.330Z",
+  "source": {
+    "origin": "http://localhost:5173",
+    "path": "/",
+    "application": "prescription_savings"
+  },
+  "person": {
+    "full_name": "Avery Example",
+    "email": "avery@example.test",
+    "zip_code": "65201"
+  },
+  "health": {
+    "weight_lb": 160,
+    "concern": "Fictional anxiety",
+    "symptoms": "Fictional restlessness",
+    "duration": "1_to_6_months",
+    "current_medications": "None",
+    "medication_allergies": "None"
+  },
+  "prescription": {
+    "medication": "Sertraline",
+    "strength": "50 mg",
+    "quantity": "30 tablets"
+  },
+  "offer": {
+    "pharmacy_id": "meadow",
+    "pharmacy_name": "Meadow Pharmacy",
+    "illustrative_price_usd": 9.6
+  },
+  "interaction": {
+    "search_term": "anxiety",
+    "pharmacy_preference": "lowest_price",
+    "language": "en-US",
+    "viewport_width": 1440,
+    "trigger": "confirm_offer"
+  },
+  "privacy": {
+    "optional_analytics_enabled": true
+  }
+}

@@ -5,7 +5,7 @@ document.getElementById('viewDetails').addEventListener('click', () => {
   if (globalThis.chrome?.runtime?.getURL) {
     chrome.tabs.create({ url: chrome.runtime.getURL('visualization/index.html') });
   } else {
-    window.open('http://127.0.0.1:5173/', '_blank', 'noopener');
+    window.open('http://127.0.0.1:5174/', '_blank', 'noopener');
   }
 });
 document.addEventListener('keydown', (event) => {
@@ -71,7 +71,7 @@ optOutButton.addEventListener('click', async () => {
   const eventId = findingSelect.value;
   optOutButton.disabled = true;
   try {
-    // Re-resolve on click: fixture/provider changes and expired strategies must take effect.
+    // Re-resolve on click: provider changes and expired strategies must take effect.
     const current = (await loadPrivacyFindings()).find((f) => f.event_id === eventId);
     if (version !== requestVersion || findingSelect.value !== eventId) return;
     renderFinding(current);
@@ -86,3 +86,15 @@ optOutButton.addEventListener('click', async () => {
 });
 
 refreshFindings();
+
+async function refreshCount() {
+  try {
+    const response = await fetch('http://127.0.0.1:8765/events', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Unavailable');
+    const { events } = await response.json();
+    document.getElementById('packetCount').textContent = String(events.length);
+  } catch {
+    document.getElementById('packetCount').textContent = 'Unavailable';
+  }
+}
+refreshCount();

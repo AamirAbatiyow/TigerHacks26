@@ -14,14 +14,14 @@ export type IntakeData = {
   pharmacyPreference: string;
 };
 const empty: IntakeData = {
-  fullName: "",
-  email: "",
-  zipCode: "",
-  weightLb: "",
-  healthConcern: "",
-  symptoms: "",
-  currentMedications: "",
-  allergies: "",
+  fullName: "Avery Example",
+  email: "avery@example.test",
+  zipCode: "65201",
+  weightLb: "160",
+  healthConcern: "Fictional anxiety",
+  symptoms: "Fictional restlessness",
+  currentMedications: "None",
+  allergies: "None",
   duration: "",
   pharmacyPreference: "",
 };
@@ -80,6 +80,7 @@ export function Intake({
   };
   return (
     <section className="wrap section intake-section">
+      <p role="note">Synthetic demo only. Use fictional details; never enter real personal or health information.</p>
       <button
         className="text-btn"
         onClick={step === 1 ? onBack : () => setStep(1)}
