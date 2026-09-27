@@ -1,981 +1,106 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-import {
-  Canvas,
-  useFrame,
-  useThree,
-} from "@react-three/fiber";
-
-import {
-  Html,
-  OrbitControls,
-  QuadraticBezierLine,
-  Stars,
-} from "@react-three/drei";
-
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls, QuadraticBezierLine, Stars } from "@react-three/drei";
 import * as THREE from "three";
 import ServiceSymbol from "./ServiceSymbol";
 
-const requestOffsets = [
-  [1.55, 0.35, 0.1],
-  [-1.4, 0.8, -0.2],
-  [0.5, 1.45, 0.2],
-  [-0.7, -1.4, 0.25],
-  [1.25, -1.05, -0.25],
-  [-1.55, -0.45, -0.1],
-];
+function midpoint(node) {
+  return [node.position[0] * .5, node.position[1] * .5 + .25, node.position[2] * .45 + .4];
+}
 
-function ResponsiveCamera({
-  drillService,
-  controlsRef,
-}) {
+function CameraLayout() {
   const { size } = useThree();
-
-  const targetZ = useRef(9);
-  const transitioning = useRef(true);
-
-  useEffect(() => {
-    const aspect =
-      size.width / size.height;
-
-    if (drillService) {
-      targetZ.current = 6.2;
-    } else if (aspect > 1.8) {
-      targetZ.current = 10.5;
-    } else if (aspect > 1.4) {
-      targetZ.current = 9.4;
-    } else {
-      targetZ.current = 8.5;
-    }
-
-    transitioning.current = true;
-  }, [
-    drillService,
-    size.width,
-    size.height,
-  ]);
-
+  const pending = useRef(true);
+  useEffect(() => { pending.current = true; }, [size.width, size.height]);
   useFrame(({ camera }) => {
-    if (!transitioning.current) {
-      return;
-    }
-
-    camera.position.z =
-      THREE.MathUtils.lerp(
-        camera.position.z,
-        targetZ.current,
-        0.07
-      );
-
-    if (controlsRef.current) {
-      controlsRef.current.target.lerp(
-        new THREE.Vector3(0, 0, 0),
-        0.08
-      );
-
-      controlsRef.current.update();
-    }
-
-    if (
-      Math.abs(
-        camera.position.z -
-          targetZ.current
-      ) < 0.03
-    ) {
-      camera.position.z =
-        targetZ.current;
-
-      transitioning.current =
-        false;
-    }
-
+    if (!pending.current) return;
+    const aspect = size.width / size.height;
+    camera.position.set(0, 0, aspect < 1 ? 13 : aspect > 1.8 ? 10.5 : 9.4);
+    camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
+    pending.current = false;
   });
-
   return null;
 }
 
-function GlowSphere({
-  color,
-  radius,
-  opacity,
-}) {
-  return (
-    <mesh>
-      <sphereGeometry
-        args={[radius, 32, 32]}
-      />
+function Glow({ color, radius, opacity }) {
+  return <mesh><sphereGeometry args={[radius, 32, 32]} /><meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>;
+}
 
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        blending={
-          THREE.AdditiveBlending
-        }
-      />
+function Transfer({ node, progress }) {
+  const ref = useRef(null);
+  const curve = useMemo(() => new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(...midpoint(node)), new THREE.Vector3(...node.position)), [node]);
+  useFrame(() => {
+    if (ref.current) ref.current.position.copy(curve.getPoint(progress));
+  });
+  return <group ref={ref}><mesh><sphereGeometry args={[.05, 16, 16]} /><meshBasicMaterial color={node.sensitive ? "#ff94be" : "#a8f4ff"} /></mesh><Glow color={node.color} radius={.10} opacity={.22} /></group>;
+}
+
+function DestinationNode({ node, active, onSelect }) {
+  const [hovered, setHovered] = useState(false);
+  return <group position={node.position}>
+    <mesh onClick={(event) => { event.stopPropagation(); onSelect(node); }} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+      <sphereGeometry args={[.25, 40, 40]} />
+      <meshPhysicalMaterial color={node.color} emissive={node.color} emissiveIntensity={active ? .75 : hovered ? .5 : .3} roughness={.18} metalness={.12} clearcoat={1} />
     </mesh>
-  );
+    <Glow color={node.color} radius={.30} opacity={active ? .22 : .12} />
+    <Glow color={node.color} radius={.35} opacity={.05} />
+
+  </group>;
 }
 
-function getServiceCurve(node) {
-  return new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(0, 0, 0),
-
-    new THREE.Vector3(
-      node.position[0] * 0.5,
-      node.position[1] * 0.5 + 0.25,
-      node.position[2] * 0.45 + 0.4
-    ),
-
-    new THREE.Vector3(
-      ...node.position
-    )
-  );
+function Scene({ nodes, activeNodeId, transfer, onEnterService }) {
+  const transferNode = nodes.find((node) => node.id === transfer?.nodeId);
+  return <>
+    <CameraLayout />
+    <ambientLight intensity={.22} />
+    <directionalLight position={[5, 6, 8]} intensity={1.4} />
+    <pointLight position={[-5, 2, 4]} intensity={3} color="#38bdf8" />
+    <pointLight position={[4, -4, 2]} intensity={2.4} color="#a855f7" />
+    <Stars radius={45} depth={25} count={75} factor={.35} saturation={0} fade speed={0} />
+    <mesh><sphereGeometry args={[.55, 48, 48]} /><meshPhysicalMaterial color="#147ea0" emissive="#0e6486" emissiveIntensity={.25} roughness={.25} clearcoat={1} /></mesh>
+    <Glow color="#22d3ee" radius={.64} opacity={.14} />
+    <Glow color="#22d3ee" radius={.73} opacity={.05} />
+    {nodes.map((node) => <group key={node.id}>
+      <QuadraticBezierLine start={[0, 0, 0]} end={node.position} mid={midpoint(node)} color={node.color} lineWidth={activeNodeId === node.id ? 1.4 : .65} transparent opacity={activeNodeId === node.id ? .9 : .32} />
+      <DestinationNode node={node} active={activeNodeId === node.id} onSelect={onEnterService} />
+    </group>)}
+    {transferNode && <Transfer node={transferNode} progress={transfer.progress} />}
+    <OrbitControls enablePan={false} minDistance={7} maxDistance={16} zoomSpeed={.55} enableDamping dampingFactor={.06} />
+  </>;
 }
 
-function ServiceParticle({
-  node,
-  offset,
-  active,
-}) {
-  const ref = useRef();
-
-  const curve = useMemo(
-    () => getServiceCurve(node),
-    [node]
-  );
-
-  useFrame(({ clock }) => {
-    if (!ref.current) {
-      return;
+function LabelProjection({ nodes, labelRefs, sourceRef }) {
+  useFrame(({ camera, size }) => {
+    if (sourceRef.current) {
+      // Keep the logo at a fixed world size relative to the source sphere.
+      const distance = camera.position.length();
+      const pixelsPerUnit = size.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * distance);
+      sourceRef.current.style.transform = `translate(-50%, -50%) scale(${pixelsPerUnit * .8 / 76})`;
     }
-
-    const speed =
-      active && node.sensitive
-        ? 0.10
-        : 0.055;
-
-    const t =
-      (clock.getElapsedTime() *
-        speed +
-        offset) %
-      1;
-
-    ref.current.position.copy(
-      curve.getPoint(t)
-    );
+    nodes.forEach((node) => {
+      const element = labelRefs.current.get(node.id);
+      if (!element) return;
+      const point = new THREE.Vector3(...node.position).project(camera);
+      element.style.visibility = point.z < -1 || point.z > 1 ? "hidden" : "visible";
+      element.style.transform = `translate(${(point.x + 1) * size.width / 2}px, ${(-point.y + 1) * size.height / 2}px) translate(-50%, -50%)`;
+      element.style.zIndex = String(Math.round((1 - point.z) * 100));
+    });
   });
-
-  const color =
-    active && node.sensitive
-      ? "#FB4D6D"
-      : node.color;
-
-  return (
-    <group ref={ref}>
-      <mesh>
-        <sphereGeometry
-          args={[
-            0.025,
-            10,
-            10,
-          ]}
-        />
-
-        <meshBasicMaterial
-          color={color}
-        />
-      </mesh>
-
-      <GlowSphere
-        color={color}
-        radius={0.055}
-        opacity={0.16}
-      />
-    </group>
-  );
+  return null;
 }
 
-function ServiceNode({
-  node,
-  drillService,
-  activeNodeId,
-  onEnterService,
-}) {
-  const [hovered, setHovered] =
-    useState(false);
-
-  const isDrilled =
-    drillService?.id === node.id;
-
-  const anotherDrilled =
-    drillService && !isDrilled;
-
-  const active =
-    activeNodeId === node.id;
-
-  const color =
-    active && node.sensitive
-      ? "#FB4D6D"
-      : node.color;
-
-  return (
-    <group position={node.position}>
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-
-          onEnterService(node);
-        }}
-        onPointerOver={(event) => {
-          event.stopPropagation();
-
-          setHovered(true);
-
-          document.body.style.cursor =
-            "pointer";
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-
-          document.body.style.cursor =
-            "default";
-        }}
-      >
-        <sphereGeometry
-          args={[
-            isDrilled
-              ? 0.32
-              : 0.25,
-            48,
-            48,
-          ]}
-        />
-
-        <meshPhysicalMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={
-            active
-              ? 0.75
-              : hovered ||
-                isDrilled
-              ? 0.5
-              : 0.3
-          }
-          roughness={0.18}
-          metalness={0.12}
-          clearcoat={1}
-          clearcoatRoughness={
-            0.12
-          }
-          transparent
-          opacity={
-            anotherDrilled
-              ? 0.08
-              : 1
-          }
-        />
-      </mesh>
-
-      {!anotherDrilled && (
-        <>
-          <GlowSphere
-            color={color}
-            radius={
-              isDrilled
-                ? 0.39
-                : 0.30
-            }
-            opacity={
-              active
-                ? 0.28
-                : 0.13
-            }
-          />
-
-          <GlowSphere
-            color={color}
-            radius={
-              isDrilled
-                ? 0.46
-                : 0.35
-            }
-            opacity={0.06}
-          />
-        </>
-      )}
-
-      <Html
-        position={[
-          0,
-          0,
-          0,
-        ]}
-        center
-        style={{
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-          color: anotherDrilled
-            ? "#334155"
-            : "#E2E8F0",
-          fontSize: "12px",
-          fontWeight: 500,
-          textShadow:
-            "0 1px 4px rgba(0,0,0,.8)",
-        }}
-      >
-        <div className="node-annotation">
-          {!anotherDrilled && <ServiceSymbol category={node.category} className="service-symbol" />}
-          <span>{node.name}</span>
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-function RequestParticle({
-  start,
-  end,
-  color,
-  offset,
-}) {
-  const ref = useRef();
-
-  const curve = useMemo(() => {
-    const a =
-      new THREE.Vector3(
-        ...start
-      );
-
-    const b =
-      new THREE.Vector3(
-        ...end
-      );
-
-    const midpoint =
-      a.clone().lerp(b, 0.5);
-
-    midpoint.z += 0.25;
-
-    return new THREE.QuadraticBezierCurve3(
-      a,
-      midpoint,
-      b
-    );
-  }, [start, end]);
-
-  useFrame(({ clock }) => {
-    if (!ref.current) {
-      return;
-    }
-
-    const t =
-      (clock.getElapsedTime() *
-        0.2 +
-        offset) %
-      1;
-
-    ref.current.position.copy(
-      curve.getPoint(t)
-    );
-  });
-
-  return (
-    <group ref={ref}>
-      <mesh>
-        <sphereGeometry
-          args={[
-            0.025,
-            8,
-            8,
-          ]}
-        />
-
-        <meshBasicMaterial
-          color={color}
-        />
-      </mesh>
-
-      <GlowSphere
-        color={color}
-        radius={0.055}
-        opacity={0.18}
-      />
-    </group>
-  );
-}
-
-function RequestNode({
-  request,
-  service,
-  position,
-  selectedRequest,
-  onSelectRequest,
-}) {
-  const [hovered, setHovered] =
-    useState(false);
-
-  const ref = useRef();
-
-  const selected =
-    selectedRequest?.id ===
-    request.id;
-
-  useFrame(() => {
-    if (!ref.current) {
-      return;
-    }
-
-    const target =
-      selected
-        ? 1.2
-        : hovered
-        ? 1.1
-        : 1;
-
-    ref.current.scale.lerp(
-      new THREE.Vector3(
-        target,
-        target,
-        target
-      ),
-      0.1
-    );
-  });
-
-  const color =
-    request.sensitive
-      ? "#FB4D6D"
-      : service.color;
-
-  return (
-    <group position={position}>
-      <mesh
-        ref={ref}
-        onClick={(event) => {
-          event.stopPropagation();
-
-          onSelectRequest(request);
-        }}
-        onPointerOver={(event) => {
-          event.stopPropagation();
-
-          setHovered(true);
-
-          document.body.style.cursor =
-            "pointer";
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-
-          document.body.style.cursor =
-            "default";
-        }}
-      >
-        <sphereGeometry
-          args={[
-            0.1,
-            36,
-            36,
-          ]}
-        />
-
-        <meshPhysicalMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={
-            selected
-              ? 1.3
-              : hovered
-              ? 1
-              : 0.6
-          }
-          roughness={0.2}
-          clearcoat={1}
-          clearcoatRoughness={
-            0.15
-          }
-        />
-      </mesh>
-
-      <GlowSphere
-        color={color}
-        radius={0.145}
-        opacity={
-          selected
-            ? 0.26
-            : 0.12
-        }
-      />
-
-      <Html
-        position={[
-          0,
-          -0.22,
-          0,
-        ]}
-        center
-        style={{
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            color: selected
-              ? "#FFFFFF"
-              : "#CBD5E1",
-            fontSize: "9px",
-            fontWeight: 500,
-            textShadow:
-              "0 1px 4px rgba(0,0,0,.8)",
-          }}
-        >
-          {request.name}
-        </div>
-
-        <div
-          style={{
-            color: "#64748B",
-            fontSize: "7px",
-            marginTop: "2px",
-          }}
-        >
-          {request.method}
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-function DrillRequests({
-  service,
-  selectedRequest,
-  onSelectRequest,
-}) {
-  if (!service) {
-    return null;
-  }
-
-  return (
-    <>
-      {service.requests.map(
-        (request, index) => {
-          const offset =
-            requestOffsets[
-              index %
-                requestOffsets.length
-            ];
-
-          const requestPosition = [
-            service.position[0] +
-              offset[0],
-
-            service.position[1] +
-              offset[1],
-
-            service.position[2] +
-              offset[2],
-          ];
-
-          const color =
-            request.sensitive
-              ? "#FB4D6D"
-              : service.color;
-
-          const midpoint = [
-            (service.position[0] +
-              requestPosition[0]) /
-              2,
-
-            (service.position[1] +
-              requestPosition[1]) /
-                2 +
-              0.15,
-
-            (service.position[2] +
-              requestPosition[2]) /
-                2 +
-              0.2,
-          ];
-
-          return (
-            <group
-              key={request.id}
-            >
-              <QuadraticBezierLine
-                start={
-                  service.position
-                }
-                end={
-                  requestPosition
-                }
-                mid={midpoint}
-                color={color}
-                lineWidth={
-                  selectedRequest?.id ===
-                  request.id
-                    ? 1.5
-                    : 0.65
-                }
-                transparent
-                opacity={
-                  selectedRequest &&
-                  selectedRequest.id !==
-                    request.id
-                    ? 0.12
-                    : 0.55
-                }
-              />
-
-              <RequestParticle
-                start={
-                  service.position
-                }
-                end={
-                  requestPosition
-                }
-                color={color}
-                offset={0}
-              />
-
-              <RequestParticle
-                start={
-                  service.position
-                }
-                end={
-                  requestPosition
-                }
-                color={color}
-                offset={0.5}
-              />
-
-              <RequestNode
-                request={request}
-                service={service}
-                position={
-                  requestPosition
-                }
-                selectedRequest={
-                  selectedRequest
-                }
-                onSelectRequest={
-                  onSelectRequest
-                }
-              />
-            </group>
-          );
-        }
-      )}
-    </>
-  );
-}
-
-function CenterNode({
-  drillService,
-}) {
-  if (drillService) {
-    return null;
-  }
-
-  return (
-    <group>
-      <mesh>
-        <sphereGeometry
-          args={[
-            0.55,
-            64,
-            64,
-          ]}
-        />
-
-        <meshPhysicalMaterial
-          color="#22D3EE"
-          emissive="#22D3EE"
-          emissiveIntensity={0.35}
-          roughness={0.16}
-          metalness={0.12}
-          clearcoat={1}
-          clearcoatRoughness={
-            0.1
-          }
-        />
-      </mesh>
-
-      <GlowSphere
-        color="#22D3EE"
-        radius={0.64}
-        opacity={0.18}
-      />
-
-      <GlowSphere
-        color="#22D3EE"
-        radius={0.73}
-        opacity={0.08}
-      />
-
-
-    </group>
-  );
-}
-
-function GraphRoot({
-  children,
-  drillService,
-}) {
-  const ref = useRef();
-
-  useFrame(() => {
-    if (!ref.current) {
-      return;
-    }
-
-    const target =
-      drillService
-        ? new THREE.Vector3(
-            -drillService.position[0],
-            -drillService.position[1],
-            -drillService.position[2]
-          )
-        : new THREE.Vector3(
-            0,
-            0,
-            0
-          );
-
-    ref.current.position.lerp(
-      target,
-      0.08
-    );
-  });
-
-  return (
-    <group ref={ref}>
-      {children}
-    </group>
-  );
-}
-
-function Scene({
-  nodes,
-  selectedRequest,
-  drillService,
-  activeNodeId,
-  onEnterService,
-  onSelectRequest,
-}) {
-  const controlsRef =
-    useRef();
-
-  return (
-    <>
-      <ResponsiveCamera
-        drillService={
-          drillService
-        }
-        controlsRef={
-          controlsRef
-        }
-      />
-
-      <ambientLight
-        intensity={0.22}
-      />
-
-      <directionalLight
-        position={[5, 6, 8]}
-        intensity={1.4}
-      />
-
-      <pointLight
-        position={[-5, 2, 4]}
-        intensity={3}
-        color="#38BDF8"
-      />
-
-      <pointLight
-        position={[4, -4, 2]}
-        intensity={2.4}
-        color="#A855F7"
-      />
-
-      <Stars
-        radius={45}
-        depth={25}
-        count={75}
-        factor={0.35}
-        saturation={0}
-        fade
-        speed={0.025}
-      />
-
-      <GraphRoot
-        drillService={
-          drillService
-        }
-      >
-        <CenterNode
-          drillService={
-            drillService
-          }
-        />
-
-        {nodes.map((node) => (
-          <group key={node.id}>
-            {!drillService && (
-              <>
-                <QuadraticBezierLine
-                  start={[
-                    0,
-                    0,
-                    0,
-                  ]}
-                  end={node.position}
-                  mid={[
-                    node.position[0] *
-                      0.5,
-
-                    node.position[1] *
-                        0.5 +
-                      0.25,
-
-                    node.position[2] *
-                        0.45 +
-                      0.4,
-                  ]}
-                  color={node.color}
-                  lineWidth={
-                    activeNodeId ===
-                    node.id
-                      ? 1.2
-                      : 0.65
-                  }
-                  transparent
-                  opacity={
-                    activeNodeId ===
-                    node.id
-                      ? 0.85
-                      : 0.32
-                  }
-                />
-
-                <ServiceParticle
-                  node={node}
-                  offset={0}
-                  active={
-                    activeNodeId ===
-                    node.id
-                  }
-                />
-
-              </>
-            )}
-
-            <ServiceNode
-              node={node}
-              drillService={
-                drillService
-              }
-              activeNodeId={
-                activeNodeId
-              }
-              onEnterService={
-                onEnterService
-              }
-            />
-          </group>
-        ))}
-
-        <DrillRequests
-          service={drillService}
-          selectedRequest={
-            selectedRequest
-          }
-          onSelectRequest={
-            onSelectRequest
-          }
-        />
-      </GraphRoot>
-
-      <OrbitControls
-        ref={controlsRef}
-        enablePan={false}
-        minDistance={
-          drillService
-            ? 4.5
-            : 7
-        }
-        maxDistance={
-          drillService
-            ? 10
-            : 16
-        }
-        zoomSpeed={0.55}
-        autoRotate={false}
-        autoRotateSpeed={0.04}
-        enableDamping
-        dampingFactor={0.06}
-      />
-    </>
-  );
-}
-
-export default function NetworkScene({
-  nodes,
-  selectedRequest,
-  drillService,
-  activeNodeId,
-  onEnterService,
-  onSelectRequest,
-  onClear,
-}) {
-  return (
-    <Canvas
-      camera={{
-        position: [0, 0, 9],
-        fov: 40,
-        near: 0.1,
-        far: 100,
-      }}
-      dpr={[1, 2]}
-      gl={{
-        antialias: true,
-
-        toneMapping:
-          THREE.ACESFilmicToneMapping,
-
-        toneMappingExposure:
-          1.15,
-      }}
-      onPointerMissed={onClear}
-    >
-      <Scene
-        nodes={nodes}
-        selectedRequest={
-          selectedRequest
-        }
-        drillService={
-          drillService
-        }
-        activeNodeId={
-          activeNodeId
-        }
-        onEnterService={
-          onEnterService
-        }
-        onSelectRequest={
-          onSelectRequest
-        }
-      />
+export default function NetworkScene({ sourceName, nodes, activeNodeId, transfer, onEnterService, onClear }) {
+  const labelRefs = useRef(new Map());
+  const sourceRef = useRef(null);
+  return <div className="network-stage">
+    <Canvas camera={{ position: [0, 0, 9.4], fov: 40, near: .1, far: 100 }} dpr={[1, 2]} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }} onPointerMissed={onClear}>
+      <Scene nodes={nodes} activeNodeId={activeNodeId} transfer={transfer} onEnterService={onEnterService} />
+      <LabelProjection nodes={nodes} labelRefs={labelRefs} sourceRef={sourceRef} />
     </Canvas>
-  );
+    <div className="app-node-mark" ref={sourceRef}><img src="./healthtrace-mark.svg" alt="HealthTrace" /><span>{sourceName}</span></div>
+    <div className="projected-labels">{nodes.map((node) => <button key={node.id} ref={(element) => { if (element) labelRefs.current.set(node.id, element); else labelRefs.current.delete(node.id); }} className="technical-node-label" onClick={() => onEnterService(node)} aria-label={`Inspect ${node.name}, ${node.fields.length} fields`}>
+      <ServiceSymbol category={node.category} className="service-symbol" /><span>{node.name}<small>{node.fields.length} {node.fields.length === 1 ? "field" : "fields"}</small></span>
+    </button>)}</div>
+  </div>;
 }

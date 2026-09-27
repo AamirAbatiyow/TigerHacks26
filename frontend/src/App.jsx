@@ -1,467 +1,79 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import NetworkScene from "./components/NetworkScene";
+import SimpleFlow from "./components/SimpleFlow";
+import SessionTimeline from "./components/SessionTimeline";
 import DetailsPanel from "./components/DetailsPanel";
 import PrivacyPanel from "./components/PrivacyPanel";
-import ServiceSymbol from "./components/ServiceSymbol";
-
+import usePlayback from "./hooks/usePlayback";
+import { normalizeSession, eventAtTime, flightProgress, FLIGHT_SECONDS } from "./data/session";
 import { mockNodes } from "./data/mockNodes";
 import { mockEventSequence } from "./data/mockEvents";
-
 import "./index.css";
+import "./views.css";
 
-function createEvent(template, number) {
-  return {
-    ...template,
-    runtimeId: `${template.id}-${number}`,
+const demoInput = { source: { name: "MyHealth App" }, destinations: mockNodes };
 
-    timestamp: new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }),
-  };
-}
-
-function App() {
+function SessionExperience({ session, isDemo, view, onViewChange }) {
+  const [inspection, setInspection] = useState(null);
   const [privacyOpen, setPrivacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
-  const [mode, setMode] =
-    useState("normal");
+  const lastRecordedTime = session.events.at(-1)?.at || 0;
+  const playback = usePlayback(isDemo ? 24 : lastRecordedTime + FLIGHT_SECONDS);
+  const demoCount = Math.floor(playback.liveTime / 8) + 1;
+  const events = useMemo(() => isDemo ? Array.from({ length: demoCount }, (_, index) => {
+    const template = mockEventSequence[index % mockEventSequence.length];
+    return { ...template, id: `${template.id}-${index}`, at: index * 8 };
+  }) : session.events, [isDemo, demoCount, session.events]);
+  const currentEvent = eventAtTime(events, playback.cursor);
+  const progress = flightProgress(currentEvent, playback.cursor);
+  const transfer = progress === null ? null : { nodeId: currentEvent.nodeId, progress };
+  const nodeId = inspection?.nodeId ?? currentEvent?.nodeId;
+  const selectedNode = session.nodes.find((node) => node.id === nodeId) || null;
+  const requestId = inspection ? inspection.requestId : currentEvent?.requestId;
+  const selectedRequest = selectedNode?.requests.find((request) => request.id === requestId) || null;
+  const observedEvents = events.filter((event) => event.at <= playback.cursor);
 
-  const [selectedNode, setSelectedNode] =
-    useState(mockNodes[0]);
+  function selectDestination(node) { setInspection({ nodeId: node.id, requestId: null }); }
+  function seek(time) { setInspection(null); playback.seek(time); }
+  function replay(event) { setInspection(null); playback.seek(event.at, true); }
+  function goLive() { setInspection(null); playback.goLive(); }
 
-  const [selectedRequest, setSelectedRequest] =
-    useState(null);
-
-  const [viewServiceId, setViewServiceId] =
-    useState(null);
-
-  const [events, setEvents] =
-    useState([]);
-
-  const [activeNodeId, setActiveNodeId] =
-    useState(null);
-
-  const eventIndex = useRef(0);
-  const eventNumber = useRef(0);
-
-  const drillService = useMemo(
-    () =>
-      mockNodes.find(
-        (node) =>
-          node.id === viewServiceId
-      ) || null,
-    [viewServiceId]
-  );
-
-  useEffect(() => {
-    function addNextEvent() {
-      const template =
-        mockEventSequence[
-          eventIndex.current %
-            mockEventSequence.length
-        ];
-
-      eventNumber.current += 1;
-
-      const event =
-        createEvent(
-          template,
-          eventNumber.current
-        );
-
-      setEvents((current) => {
-        const updated = [
-          ...current,
-          event,
-        ];
-
-        return updated.slice(-8);
-      });
-
-      setActiveNodeId(
-        template.nodeId
-      );
-
-      eventIndex.current += 1;
-
-      window.setTimeout(() => {
-        setActiveNodeId((current) =>
-          current ===
-          template.nodeId
-            ? null
-            : current
-        );
-      }, 2200);
-    }
-
-    if (eventNumber.current === 0) addNextEvent();
-
-    const interval =
-      window.setInterval(
-        addNextEvent,
-        4200
-      );
-
-    return () =>
-      window.clearInterval(
-        interval
-      );
-  }, []);
-
-  function enterService(service) {
-    setSelectedNode(service);
-    setSelectedRequest(null);
-    setViewServiceId(service.id);
-  }
-
-  function goBack() {
-    setViewServiceId(null);
-    setSelectedRequest(null);
-    setSelectedNode(null);
-  }
-
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      if (viewServiceId) {
-        goBack();
-      } else {
-        setSelectedNode(null);
-        setSelectedRequest(null);
-      }
-    }
-
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
-
-    return () =>
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
-  }, [viewServiceId]);
-
-  function selectTimelineEvent(event) {
-    const service =
-      mockNodes.find(
-        (node) =>
-          node.id === event.nodeId
-      );
-
-    if (!service) return;
-
-    const request =
-      service.requests.find(
-        (item) =>
-          item.id ===
-          event.requestId
-      );
-
-    setSelectedNode(service);
-    setViewServiceId(service.id);
-
-    if (request) {
-      setSelectedRequest(request);
-    }
-  }
-
-  const sensitiveCount =
-    events.filter(
-      (event) => event.sensitive
-    ).length;
-
-  const contactedServices =
-    new Set(
-      events.map(
-        (event) =>
-          event.nodeId
-      )
-    ).size;
-
-  return (
-    <div className={`app ${privacyOpen ? "privacy-mode" : ""}`}>
-      <header className="topbar">
-        <div className="brand">
-          <img className="brand-logo" src="./healthtrace-mark.svg" alt="" />
-          <h1>HealthTrace</h1>
-
-          <span className="subtitle">
-            See where your data travels
-          </span>
+  return <div className={`app dual-view ${view} ${privacyOpen ? "privacy-mode" : ""}`} data-playback-time={playback.cursor.toFixed(2)} data-playback-status={playback.status} data-transfer-progress={progress ?? ""}>
+    <header className="topbar">
+      <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>HealthTrace</h1><span className="subtitle">See where your data travels</span></div>
+      <div className="topbar-actions">
+        <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy opt-outs"}</button>
+        <div className="mode-toggle" role="group" aria-label="Visualization view">
+          <button className={view === "simple" ? "active" : ""} aria-pressed={view === "simple"} onClick={() => onViewChange("simple")}>Simple view</button>
+          <button className={view === "technical" ? "active" : ""} aria-pressed={view === "technical"} onClick={() => onViewChange("technical")}>Technical view</button>
         </div>
-
-        <div className="topbar-actions">
-          <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>
-            {privacyOpen ? "Network inspector" : "Privacy opt-outs"}
-          </button>
-          <div className="mode-toggle">
-            <button
-              className={
-                mode === "normal"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMode("normal")
-              }
-            >
-              Simple view
-            </button>
-
-            <button
-              className={
-                mode === "technical"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMode("technical")
-              }
-            >
-              Technical view
-            </button>
-          </div>
-
-          <div className="status">
-            <span className="status-dot" />
-            Monitoring
-          </div>
-        </div>
-      </header>
-
-      <main className={`workspace ${privacyOpen ? "privacy-open" : ""}`}>
-        <section className="visualization">
-          {!drillService && <div className="app-node-mark"><ServiceSymbol /><span>MyHealth App</span></div>}
-          <div className="legend">
-            <span>
-              <i className="cyan" />
-              First party
-            </span>
-
-            <span>
-              <i className="purple" />
-              Analytics
-            </span>
-
-            <span>
-              <i className="pink" />
-              Advertising
-            </span>
-
-            <span>
-              <i className="green" />
-              API
-            </span>
-
-            <span>
-              <i className="yellow" />
-              Unknown
-            </span>
-          </div>
-
-          <div className="breadcrumb">
-            <button
-              className={
-                drillService
-                  ? "breadcrumb-link"
-                  : "breadcrumb-current"
-              }
-              onClick={
-                drillService
-                  ? goBack
-                  : undefined
-              }
-            >
-              MyHealth App
-            </button>
-
-            {drillService && (
-              <>
-                <span className="breadcrumb-arrow">
-                  ›
-                </span>
-
-                <span className="breadcrumb-current">
-                  {drillService.name}
-                </span>
-              </>
-            )}
-          </div>
-
-          {!drillService && (
-            <div className="session-summary">
-              <span className="session-label">
-                Current session
-              </span>
-
-              <div className="summary-stat">
-                <strong>
-                  {contactedServices}
-                </strong>
-
-                <span>
-                  services contacted
-                </span>
-              </div>
-
-              <div className="summary-stat">
-                <strong>
-                  {sensitiveCount}
-                </strong>
-
-                <span>
-                  sensitive events
-                </span>
-              </div>
-
-              <div className="summary-stat">
-                <strong>
-                  {events.length}
-                </strong>
-
-                <span>
-                  events observed
-                </span>
-              </div>
-            </div>
-          )}
-
-          {drillService && (
-            <div className="drill-summary">
-              <span className="session-label">
-                Service requests
-              </span>
-
-              <strong>
-                {
-                  drillService
-                    .requests
-                    .length
-                }
-              </strong>
-
-              <span>
-                observed requests
-              </span>
-            </div>
-          )}
-
-          <NetworkScene
-            nodes={mockNodes}
-            selectedNode={
-              selectedNode
-            }
-            selectedRequest={
-              selectedRequest
-            }
-            drillService={
-              drillService
-            }
-            activeNodeId={
-              activeNodeId
-            }
-            onEnterService={
-              enterService
-            }
-            onSelectRequest={
-              setSelectedRequest
-            }
-            onClear={() => {
-              if (
-                !drillService
-              ) {
-                setSelectedNode(
-                  null
-                );
-              }
-
-              setSelectedRequest(
-                null
-              );
-            }}
-          />
-        </section>
-
-        {privacyOpen ? <PrivacyPanel /> : <DetailsPanel
-          onSelectRequest={setSelectedRequest}
-          selectedNode={
-            selectedNode
-          }
-          selectedRequest={
-            selectedRequest
-          }
-          mode={mode}
-        />}
-      </main>
-
-      <footer className="timeline">
-        <div className="timeline-heading">
-          <span className="panel-label">
-            Session activity
-          </span>
-
-          <span className="timeline-live">
-            <i />
-            Live
-          </span>
-        </div>
-
-        <div className="timeline-events">
-          {events.map(
-            (event) => (
-              <button
-                key={
-                  event.runtimeId
-                }
-                className={`timeline-event ${
-                  event.sensitive
-                    ? "sensitive"
-                    : ""
-                }`}
-                onClick={() =>
-                  selectTimelineEvent(
-                    event
-                  )
-                }
-              >
-                <span className="timeline-time">
-                  {
-                    event.timestamp
-                  }
-                </span>
-
-                <span className="timeline-event-body">
-                  <strong>
-                    {event.title}
-                  </strong>
-
-                  <small>
-                    {event.detail}
-                  </small>
-                </span>
-
-                {event.sensitive && (
-                  <span className="sensitive-dot" />
-                )}
-              </button>
-            )
-          )}
-        </div>
-      </footer>
-    </div>
-  );
+        <span className="session-origin">{isDemo ? "Demo session" : "Captured session"}</span>
+      </div>
+    </header>
+    <main className={`workspace ${privacyOpen ? "privacy-open" : ""}`}>
+      {view === "simple" ? <SimpleFlow source={session.source} nodes={session.nodes} selectedNodeId={selectedNode?.id} activeEvent={currentEvent} progress={progress} onSelect={selectDestination} /> :
+        <section className="visualization" aria-label="Technical 3D network">
+          <div className="technical-hint">Drag to rotate / Scroll to zoom</div>
+          <div className="session-summary"><span className="session-label">At this point in time</span><div className="summary-stat"><strong>{new Set(observedEvents.map((event) => event.nodeId)).size}</strong><span>destinations contacted</span></div><div className="summary-stat"><strong>{observedEvents.length}</strong><span>transfers recorded</span></div></div>
+          <NetworkScene sourceName={session.source.name} nodes={session.nodes} selectedRequest={selectedRequest} drillService={null} activeNodeId={transfer?.nodeId} transfer={transfer} onEnterService={selectDestination} onSelectRequest={(request) => setInspection({ nodeId: selectedNode?.id, requestId: request.id })} onClear={() => setInspection(null)} />
+        </section>}
+      {privacyOpen ? <PrivacyPanel /> : <DetailsPanel selectedNode={selectedNode} selectedRequest={selectedRequest} mode={view} onSelectRequest={(request) => setInspection({ nodeId: selectedNode.id, requestId: request?.id || null })} />}
+    </main>
+    <SessionTimeline playback={playback} events={events} nodes={session.nodes} activeEvent={currentEvent} onSeek={seek} onReplay={replay} onGoLive={goLive} />
+  </div>;
 }
 
-export default App;
+export default function App({ sessionData }) {
+  const [view, setView] = useState("simple");
+  const [snapshot, setSnapshot] = useState({ data: null, revision: 0 });
+  useEffect(() => {
+    function receive(event) {
+      if (!event.detail || !Array.isArray(event.detail.destinations)) return;
+      setSnapshot((previous) => ({ data: event.detail, revision: previous.revision + 1 }));
+    }
+    window.addEventListener("healthtrace:session", receive);
+    return () => window.removeEventListener("healthtrace:session", receive);
+  }, []);
+  const input = snapshot.data || sessionData;
+  const session = useMemo(() => normalizeSession(input || demoInput), [input]);
+  return <SessionExperience key={snapshot.revision} session={session} isDemo={!input} view={view} onViewChange={setView} />;
+}
