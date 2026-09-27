@@ -33,25 +33,15 @@ export type IntakeData = {
   pharmacyPreference: string;
   payment: DemoPaymentData;
 };
-const empty: IntakeData = {
-  fullName: "Avery Example",
-  email: "avery@example.test",
-  zipCode: "65201",
-  weightLb: "160",
-  healthConcern: "Fictional anxiety",
-  symptoms: "Fictional restlessness",
-  currentMedications: "None",
-  allergies: "None",
-  duration: "",
-  pharmacyPreference: "",
-  payment: {
-    cardholderName: "",
-    cardNumber: "",
-    expiration: "",
-    cvc: "",
-    billingZip: "",
-    demoOnly: true,
-  },
+const symptomsByCondition: Record<string, string> = {
+  anxiety: "Restlessness and difficulty sleeping",
+  depression: "Low mood and reduced interest in usual activities",
+  "high-cholesterol": "Elevated cholesterol on a recent screening",
+  "high-blood-pressure": "Headaches and elevated home blood pressure readings",
+  "type-2-diabetes": "Increased thirst and fatigue",
+  "seasonal-allergies": "Sneezing, runny nose, and itchy eyes",
+  acne: "Recurring facial breakouts",
+  asthma: "Wheezing and shortness of breath",
 };
 
 export const createPrefilledIntake = (medication: Medication): IntakeData => ({

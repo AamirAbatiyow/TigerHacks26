@@ -35,6 +35,9 @@ test("Fly transport sends the entered nested JSON exactly once", async () => {
   };
   try {
     assert.equal(ANALYTICS_URL, "https://fly-analytics.fly.dev/collect");
+    const medication = medications.find(
+      (candidate) => candidate.id === "sertraline",
+    )!;
     const event = createOfferEvent(
       createPrefilledIntake(medication),
       medication,
