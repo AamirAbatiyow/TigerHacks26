@@ -49,6 +49,38 @@ The launcher also manages the macOS secure (HTTPS) web proxy, so there is no man
 
 Manual prerequisite: load the repository's `extension/` directory as an unpacked extension in Chrome, as described below.
 
+## Gmail opt-out (local only)
+
+Privacy email is sent from the user's own Gmail account by the local API. The Fly receiver has no Gmail routes. Tokens and the OAuth client file stay on this machine, and nothing is sent until the user opens **Review email** and clicks **Send with Gmail**. Connect does not send mail. A destination with no verified email strategy is left unsupported; the draft will not invent an address. The user may type a recipient. A statutory deadline is included only when `rules.json` has an effective jurisdiction rule with a numeric `response_deadline_days` and an `https` source. The shipped California rule does not state a number of days, so drafts omit one.
+
+The only Gmail scope requested is `https://www.googleapis.com/auth/gmail.send`. `openid` and `https://www.googleapis.com/auth/userinfo.email` are requested so the panel can show the connected address. Mailbox read scopes are not requested.
+
+One-time Google Cloud setup:
+
+1. Create or select a project at [Google Cloud Console](https://console.cloud.google.com/).
+2. Enable the Gmail API for that project (APIs & Services → Library → Gmail API).
+3. Configure the OAuth consent screen. Add the Gmail send scope `https://www.googleapis.com/auth/gmail.send`, plus the non-sensitive `openid` and `userinfo.email` scopes if the console lists them separately. While the app is in testing, add the Gmail account you will send from as a test user.
+4. Create an OAuth client of type **Desktop app** (APIs & Services → Credentials → Create credentials → OAuth client ID). Do not create a Web client; the local callback is the desktop loopback flow.
+5. Download the client JSON. Put it at `secrets/google_oauth_client.json`, or point `PATIENTPRIVY_GOOGLE_CLIENT_SECRET` at the downloaded file. `secrets/` is gitignored. Do not commit the file.
+6. Install the local libraries from the repository root: `python3 -m pip install -r 'network trace/requirements-gmail.txt'`
+
+The local API stores the resulting token at `network trace/.state/gmail_token.json` (override with `PATIENTPRIVY_GMAIL_TOKEN`). That directory is gitignored. The file holds the access token, refresh token, and enough client data to refresh; the API never prints those values.
+
+Use it from the dashboard at `http://localhost:5174/?privacy=1`:
+
+- **Connect Gmail** opens Google's consent page through a localhost callback owned by the local API. When it finishes, the panel shows `Connected as user@gmail.com`.
+- **Review email** builds a local draft. Check To, Subject, and the full message. Edit the text if you want. **Cancel** sends nothing.
+- **Send with Gmail** is the only control that posts to `/api/gmail/send`, and only after that review.
+- **Disconnect Gmail** deletes the local token and best-effort revokes it at Google. Also remove HealthTrace at [Google Account permissions](https://myaccount.google.com/permissions) if you want to confirm the grant is gone.
+
+```sh
+export PATIENTPRIVY_GOOGLE_CLIENT_SECRET="$PWD/secrets/google_oauth_client.json"
+python3 -m pip install -r 'network trace/requirements-gmail.txt'
+./start_demo.sh
+```
+
+Then open the dashboard privacy panel, connect, review one finding, and send. No automated test sends real mail.
+
 ## Local ScriptWell (commands from repository root, separate terminals)
 
 Requires Python 3.10+, Node 22.12+ for the dashboard toolchain, mitmproxy, tshark, and Chrome.

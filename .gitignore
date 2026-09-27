@@ -3,7 +3,9 @@
 **/__pycache__/
 **/*.pyc
 network trace/fly-analytics/data/
-
+secrets/
+network trace/.state/
+**/gmail_token.json
 network trace/privacy.sqlite3*
 network trace/models/
 

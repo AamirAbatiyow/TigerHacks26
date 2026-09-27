@@ -956,6 +956,14 @@ button:focus-visible { outline: 2px solid #67c6e3; outline-offset: 3px; }
 .privacy-panel dd { margin: 0; overflow-wrap: anywhere; }
 .privacy-panel summary { cursor: pointer; color: #94a3b8; font-size: 11px; }
 .privacy-result { border-top: 1px solid #172033; padding-top: 14px; }
+.privacy-panel input[type="checkbox"] { width: auto; margin-right: 6px; }
+.privacy-panel input:not([type="checkbox"]), .privacy-panel textarea {
+  width: 100%; box-sizing: border-box; margin: 4px 0 8px; background: #0e172b; color: #e2e8f0;
+  border: 1px solid #334155; border-radius: 5px; padding: 6px 8px; font: inherit;
+}
+.privacy-panel label { display: block; color: #94a3b8; font-size: 11px; margin-top: 8px; }
+.gmail-review { border: 1px solid #334155; border-radius: 8px; padding: 12px; margin: 12px 0; background: #0e172b; }
+.gmail-actions { display: flex; gap: 8px; margin-top: 8px; }
 
 @media (max-width: 700px) {
   .privacy-mode .topbar { padding: 0 12px; gap: 8px; }
