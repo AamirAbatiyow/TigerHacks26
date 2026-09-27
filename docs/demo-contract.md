@@ -18,7 +18,7 @@ Example using entirely synthetic values:
   "event_name": "offer_confirmed",
   "event_id": "05663dd6-e364-4f1e-8480-e980e50a1e45",
   "occurred_at": "2026-09-26T18:00:00.000Z",
-  "source": { "origin": "http://localhost:5173", "path": "/", "application": "prescription_savings" },
+  "source": { "origin": "http://localhost:5173", "path": "/", "application": "prescription_savings", "support_email": "scriptwellcontact@gmail.com" },
   "person": { "full_name": "Avery Example", "email": "avery@example.test", "zip_code": "65201" },
   "health": {
     "weight_lb": 165,
@@ -37,9 +37,9 @@ Example using entirely synthetic values:
     "billing_zip": "64093",
     "demo_only": true
   },
-  "offer": { "pharmacy_id": "meadow", "pharmacy_name": "Meadow Pharmacy", "illustrative_price_usd": 9.6 },
+  "offer": { "pharmacy_id": "meadow", "pharmacy_name": "Meadow Pharmacy", "support_email": "scriptwellcontact@gmail.com", "illustrative_price_usd": 9.6 },
   "interaction": { "search_term": "mental", "pharmacy_preference": "lowest_price", "language": "en-US", "viewport_width": 1440, "trigger": "confirm_offer" },
-  "privacy": { "optional_analytics_enabled": true }
+  "privacy": { "optional_analytics_enabled": true, "contact_email": "scriptwellcontact@gmail.com", "privacy_email": "scriptwellcontact@gmail.com" }
 }
 ```
 
@@ -47,7 +47,7 @@ Example using entirely synthetic values:
 
 ## Privacy policy and opt-out requests
 
-The site has no in-page analytics opt-out control. The footer links to **`/privacy`** and displays **`Scriptwell@gmail.com`**. The policy describes the contact, health, prescription, interaction, pharmacy, and synthetic payment information included in the analytics event. It states that a request to stop future analytics sharing may be submitted through the privacy contact. Processing that request is outside the demo application's current UI and cannot recall information already transmitted.
+The site has no in-page analytics opt-out control. The footer links to **`/privacy`** and displays **`scriptwellcontact@gmail.com`**. The policy describes the contact, health, prescription, interaction, pharmacy, and synthetic payment information included in the analytics event. It states that a request to stop future analytics sharing may be submitted through the privacy contact. Processing that request is outside the demo application's current UI and cannot recall information already transmitted.
 
 ## Configuration
 
@@ -76,7 +76,7 @@ Analytics failure, non-2xx, CORS rejection, or a five-second timeout never preve
 2. Browse a health concern or search for a medication. Compare three illustrative prices and choose a pharmacy.
 3. Review the prefilled synthetic identity and health details, then continue through Demo Checkout.
 4. Confirm the offer. Show the extension’s explanation and the single outgoing event's synthetic payment fields.
-5. Open the Privacy Policy from the footer and show the analytics disclosure and `Scriptwell@gmail.com` privacy contact.
+5. Open the Privacy Policy from the footer and show the analytics disclosure and `scriptwellcontact@gmail.com` privacy contact.
 6. Use “Explore another medication” to return to the homepage for the next judge.
 
 ## Verification performed
@@ -92,7 +92,7 @@ Analytics failure, non-2xx, CORS rejection, or a five-second timeout never preve
 
 ## Privacy
 
-There is no in-page analytics toggle. The footer links to `/privacy` and displays `Scriptwell@gmail.com`. The policy describes the contact, health, prescription, interaction, pharmacy, and synthetic payment information included in the analytics event, and says a request to stop future analytics sharing may be submitted through that contact. Processing that request is outside this demo and cannot recall information already transmitted.
+There is no in-page analytics toggle. The footer links to `/privacy` and displays `scriptwellcontact@gmail.com`. The policy describes the contact, health, prescription, interaction, pharmacy, and synthetic payment information included in the analytics event, and says a request to stop future analytics sharing may be submitted through that contact. Processing that request is outside this demo and cannot recall information already transmitted.
 
 1. `feat/demoapp-frontend`: branded UI, catalog, search, pharmacy comparisons.
 2. `feat/demoapp-intake`: questionnaire, required validation, offer confirmation.

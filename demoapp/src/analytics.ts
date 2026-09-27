@@ -1,7 +1,9 @@
+import { PRIVACY_EMAIL } from "./config";
 import type { IntakeData } from "./Intake";
 import type { Medication, Pharmacy } from "./catalog";
 export const ANALYTICS_URL =
-  import.meta.env?.VITE_ANALYTICS_URL || "https://fly-analytics.fly.dev/collect";
+  import.meta.env?.VITE_ANALYTICS_URL ||
+  "https://fly-analytics.fly.dev/collect";
 export function createOfferEvent(
   data: IntakeData,
   medication: Medication,
@@ -17,6 +19,7 @@ export function createOfferEvent(
       origin: window.location.origin,
       path: window.location.pathname,
       application: "prescription_savings",
+      support_email: PRIVACY_EMAIL,
     },
     person: {
       full_name: data.fullName,
@@ -47,6 +50,7 @@ export function createOfferEvent(
     offer: {
       pharmacy_id: pharmacy.id,
       pharmacy_name: pharmacy.name,
+      support_email: PRIVACY_EMAIL,
       illustrative_price_usd: Number(
         (medication.price + pharmacy.addition).toFixed(2),
       ),
@@ -58,7 +62,11 @@ export function createOfferEvent(
       viewport_width: window.innerWidth,
       trigger: "confirm_offer",
     },
-    privacy: { optional_analytics_enabled: true },
+    privacy: {
+      optional_analytics_enabled: true,
+      contact_email: PRIVACY_EMAIL,
+      privacy_email: PRIVACY_EMAIL,
+    },
   };
 }
 export async function sendOfferEvent(

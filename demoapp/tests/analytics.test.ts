@@ -55,6 +55,18 @@ test("Fly transport sends the entered nested JSON exactly once", async () => {
     assert.equal(event.health.concern, "Anxiety");
     assert.equal(event.health.medication_allergies, "Penicillin");
     assert.equal(event.person.email, "avery@example.test");
+    assert.equal(event.source.support_email, "scriptwellcontact@gmail.com");
+    assert.equal(event.offer.support_email, "scriptwellcontact@gmail.com");
+    assert.equal(event.privacy.contact_email, "scriptwellcontact@gmail.com");
+    assert.equal(event.privacy.privacy_email, "scriptwellcontact@gmail.com");
+    const intake = createPrefilledIntake(medication);
+    assert.equal(intake.pharmacyPreference, "lowest_price");
+    assert.equal(intake.duration, "1_to_6_months");
+    assert.equal(intake.payment.cardholderName, DEMO_PAYMENT.cardholderName);
+    assert.equal(intake.payment.cardNumber, DEMO_PAYMENT.cardNumber);
+    assert.equal(intake.payment.expiration, DEMO_PAYMENT.expiration);
+    assert.equal(intake.payment.cvc, DEMO_PAYMENT.cvc);
+    assert.equal(intake.payment.billingZip, DEMO_PAYMENT.billingZip);
     assert.equal(event.prescription.medication, "Sertraline");
     assert.deepEqual(event.payment, {
       cardholder_name: "Jamie Demo",

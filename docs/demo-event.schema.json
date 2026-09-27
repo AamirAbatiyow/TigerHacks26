@@ -38,7 +38,8 @@
       "required": [
         "origin",
         "path",
-        "application"
+        "application",
+        "support_email"
       ],
       "properties": {
         "origin": {
@@ -50,6 +51,9 @@
         },
         "application": {
           "const": "prescription_savings"
+        },
+        "support_email": {
+          "const": "scriptwellcontact@gmail.com"
         }
       }
     },
@@ -182,6 +186,7 @@
       "required": [
         "pharmacy_id",
         "pharmacy_name",
+        "support_email",
         "illustrative_price_usd"
       ],
       "properties": {
@@ -190,6 +195,9 @@
         },
         "pharmacy_name": {
           "type": "string"
+        },
+        "support_email": {
+          "const": "scriptwellcontact@gmail.com"
         },
         "illustrative_price_usd": {
           "type": "number",
@@ -234,11 +242,19 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "optional_analytics_enabled"
+        "optional_analytics_enabled",
+        "contact_email",
+        "privacy_email"
       ],
       "properties": {
         "optional_analytics_enabled": {
           "const": true
+        },
+        "contact_email": {
+          "const": "scriptwellcontact@gmail.com"
+        },
+        "privacy_email": {
+          "const": "scriptwellcontact@gmail.com"
         }
       }
     }

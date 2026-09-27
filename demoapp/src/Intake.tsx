@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Check, Pill } from "lucide-react";
 import { conditions, money, type Medication, type Pharmacy } from "./catalog";
+import { PRIVACY_EMAIL } from "./config";
 
 export type DemoPaymentData = {
   cardholderName: string;
@@ -179,7 +180,12 @@ export function Intake({
   };
   return (
     <section className="wrap section intake-section">
-      <p role="note">Synthetic demo only. Use fictional details; never enter real personal or health information.</p>
+      <p role="note">
+        Synthetic demo only. Use fictional details; never enter real personal or
+        health information. Pharmacy preference, duration, and demo payment are
+        already filled in, so you can continue through each step. Privacy
+        contact: <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+      </p>
       <button
         className="text-btn"
         onClick={step === 1 ? onBack : () => setStep((current) => current - 1)}
@@ -494,6 +500,9 @@ export function Intake({
               <small>Selected pharmacy</small>
             </div>
           </div>
+          <p>
+            Questions: <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+          </p>
           <div className="summary-price">
             <span>Price</span>
             <strong>{money(medication.price + pharmacy.addition)}</strong>
@@ -538,6 +547,9 @@ export function Confirmation({
           </div>
         </div>
       </article>
+      <p>
+        Contact <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+      </p>
       <button className="dark-btn" onClick={onBrowse}>
         Explore another medication <ArrowRight size={16} />
       </button>

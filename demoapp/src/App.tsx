@@ -159,6 +159,10 @@ export default function App() {
                     <br className="desktop" /> Take the next step with a little
                     more peace of mind.
                   </p>
+                  <p>
+                    Privacy contact:{" "}
+                    <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>
+                  </p>
                   <form
                     className="search"
                     role="search"

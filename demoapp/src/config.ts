@@ -3,4 +3,4 @@ export const BRAND = {
   name: "Scriptwell",
 };
 
-export const PRIVACY_EMAIL = "Scriptwell@gmail.com";
+export const PRIVACY_EMAIL = "scriptwellcontact@gmail.com";

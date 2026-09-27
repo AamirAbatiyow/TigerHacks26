@@ -1,12 +1,13 @@
 {
   "schema_version": "1.0",
   "event_name": "offer_confirmed",
-  "event_id": "02dca000-83cf-4260-a10b-6493113e5ff9",
-  "occurred_at": "2026-09-27T04:11:38.099Z",
+  "event_id": "942fed1f-1f11-4a3e-813b-6a9498d5fb44",
+  "occurred_at": "2026-09-27T06:24:29.278Z",
   "source": {
     "origin": "http://localhost:5173",
     "path": "/",
-    "application": "prescription_savings"
+    "application": "prescription_savings",
+    "support_email": "scriptwellcontact@gmail.com"
   },
   "person": {
     "full_name": "Avery Example",
@@ -37,6 +38,7 @@
   "offer": {
     "pharmacy_id": "meadow",
     "pharmacy_name": "Meadow Pharmacy",
+    "support_email": "scriptwellcontact@gmail.com",
     "illustrative_price_usd": 9.6
   },
   "interaction": {
@@ -47,6 +49,8 @@
     "trigger": "confirm_offer"
   },
   "privacy": {
-    "optional_analytics_enabled": true
+    "optional_analytics_enabled": true,
+    "contact_email": "scriptwellcontact@gmail.com",
+    "privacy_email": "scriptwellcontact@gmail.com"
   }
 }
