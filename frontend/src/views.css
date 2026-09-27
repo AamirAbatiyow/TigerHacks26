@@ -79,3 +79,13 @@
 @media (max-width: 780px) { .source-transfer { left: 27px; top: 27px; width: 0; } }
 
 @media (max-width: 700px) { .privacy-open .simple-view { display: none; } }
+
+/* Give the editable request room while keeping the existing dashboard layout. */
+.privacy-mode .workspace { grid-template-columns: minmax(0, 1fr) min(48vw, 620px); }
+.privacy-panel { min-width: 0; }
+.privacy-panel select { width: 100%; padding: 8px; border: 1px solid #334155; border-radius: 5px; background: #0e172b; color: #e2e8f0; }
+.privacy-panel textarea { resize: vertical; min-height: 220px; }
+.gmail-actions { flex-wrap: wrap; }
+.gmail-actions a { display: inline-flex; align-items: center; text-decoration: none; }
+.gmail-actions a[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+@media (max-width: 700px) { .privacy-mode .workspace { display: block; } }

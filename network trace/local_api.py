@@ -4,6 +4,9 @@ import json
 import re
 import sys
 import time
+import uuid
+import hashlib
+from urllib.parse import parse_qs, urlsplit
 from http.server import HTTPServer
 from pathlib import Path
 
@@ -98,46 +101,79 @@ class Handler(PrivacyHandler):
             raise ValidationError('Send only the approved email. Captured observations are not accepted here.')
         return payload
 
-    def _gmail_draft(self, payload):
-        allowed = {'event_id', 'to', 'state', 'include_identity', 'identity'}
+    def _action_draft(self, payload):
+        allowed = {'event_id', 'to', 'state', 'include_identity', 'identity', 'contacts'}
         if set(payload) - allowed or not isinstance(payload.get('event_id'), str):
-            raise ValidationError('Drafts accept event_id and optional recipient, state, and selected identity fields.')
+            raise ValidationError('Drafts need a finding id and optional recipient, state, or discovered contacts.')
         finding = self.server.provider.getPrivacyFinding(payload['event_id'])
+        event = next((e for e in read_events() if e.get('event_id') == finding.event_id), {})
         draft = build_privacy_email(
             self.server.engine, finding, to=payload.get('to'), state=payload.get('state'),
-            include_identity=payload.get('include_identity'), identity=payload.get('identity'))
-        draft['can_send'] = bool(draft['to'])
-        if not draft['to']:
-            draft['error'] = 'No verified privacy email for this destination. Enter a recipient to continue. No address was guessed.'
+            include_identity=payload.get('include_identity'), identity=payload.get('identity'),
+            event=event, contacts=payload.get('contacts'))
+        draft['draft_id'] = str(uuid.uuid4())
+        # Drafts are temporary local memory, shared by extension and dashboard.
+        now = time.monotonic()
+        self.server.drafts = {key: value for key, value in self.server.drafts.items() if now - value['created'] < 1800}
+        if len(self.server.drafts) >= 100:
+            self.server.drafts.pop(next(iter(self.server.drafts)))
+        self.server.drafts[draft['draft_id']] = {'draft': draft, 'created': now}
         return draft
 
-    def _gmail_send(self, payload):
-        allowed = {'approved', 'to', 'subject', 'body', 'recipient_source', 'event_id'}
+    def _get_draft(self, draft_id):
+        saved = self.server.drafts.get(draft_id) if isinstance(draft_id, str) else None
+        if not saved or time.monotonic() - saved['created'] >= 1800:
+            raise ValidationError('Draft expired. Take Privacy Action again to review a fresh draft.')
+        return saved
+
+    def _action_send(self, payload):
+        allowed = {'approved', 'draft_id', 'to', 'subject', 'body', 'recipient_source', 'recipient_confirmed'}
         if set(payload) - allowed:
-            raise ValidationError('Send the approved to, subject, and body only.')
+            raise ValidationError('Send only the reviewed draft and email fields.')
         if payload.get('approved') is not True:
             raise ValidationError('Explicit approval is required. Review the email and choose Send with Gmail.')
+        saved = self._get_draft(payload.get('draft_id'))
+        draft = saved['draft']
         to, subject, body = payload.get('to'), payload.get('subject'), payload.get('body')
         source = payload.get('recipient_source')
-        if not isinstance(to, str) or not isinstance(subject, str) or not isinstance(body, str) or source not in {'user', 'verified'}:
-            raise ValidationError('Approved email must include to, subject, body, and recipient source.')
+        if not all(isinstance(x, str) for x in (to, subject, body)) or source not in {'user', 'verified', 'discovered'}:
+            raise ValidationError('Review recipient, subject, message, and recipient source.')
         if any(char in to or char in subject for char in '\r\n') or not EMAIL.fullmatch(to.strip()) or not subject.strip() or not body.strip():
-            raise ValidationError('To and subject must be single lines, and the message cannot be empty.')
+            raise ValidationError('Enter one email address, a single-line subject, and a message.')
         if len(subject) > 200 or len(body) > 8000 or len(to) > 254:
             raise ValidationError('The approved email is too long.')
         if source == 'verified':
-            if not isinstance(payload.get('event_id'), str):
-                raise ValidationError('A verified recipient requires the finding id.')
-            finding = self.server.provider.getPrivacyFinding(payload['event_id'])
-            draft = build_privacy_email(self.server.engine, finding)
-            if not draft['to'] or to.strip() != draft['to']:
-                raise ValidationError('That address is not the verified privacy contact for this destination.')
-        return self.server.gmail.send_message(to.strip(), subject.strip(), body)
+            finding = self.server.provider.getPrivacyFinding(draft['event_id'])
+            current = build_privacy_email(self.server.engine, finding)
+            if draft['recipient_source'] != source or current['to'] != to.strip() or draft['to'] != to.strip():
+                raise ValidationError('The verified contact changed. Review a new draft.')
+        if source == 'discovered':
+            if payload.get('recipient_confirmed') is not True:
+                raise ValidationError('Confirm the discovered recipient and its page source before sending.')
+            if not any(c['email'] == to.strip() for c in draft['recipient_candidates']):
+                raise ValidationError('This address was not discovered for this draft.')
+        fingerprint = hashlib.sha256(json.dumps([to.strip(), subject.strip(), body]).encode()).hexdigest()
+        if saved.get('receipt') and saved.get('fingerprint') == fingerprint:
+            return saved['receipt']
+        if saved.get('attempted'):
+            raise ValidationError('This draft has already been attempted. Check Gmail Sent before creating another request.')
+        # Claim before the external call: no implicit retry or duplicate send after a lost response.
+        saved.update(attempted=True, fingerprint=fingerprint)
+        receipt = self.server.gmail.send_message(to.strip(), subject.strip(), body)
+        saved['receipt'] = {'ok': True, 'delivery_status': 'gmail_sent', **receipt}
+        return saved['receipt']
 
     def do_GET(self):
         if not self.privacy_allowed():
             return
         path = self.path.split('?', 1)[0]
+        if path == '/api/privacy/actions/draft':
+            try:
+                draft_id = parse_qs(urlsplit(self.path).query).get('id', [None])[0]
+                self.respond(200, self._get_draft(draft_id)['draft'])
+            except ValidationError as exc:
+                self.respond(400, {'error': str(exc)})
+            return
         if path == '/api/gmail/status':
             self.respond(200, self.server.gmail.status())
             return
@@ -150,7 +186,7 @@ class Handler(PrivacyHandler):
         if not self.privacy_allowed():
             return
         path = self.path.split('?', 1)[0]
-        if path.startswith('/api/gmail/'):
+        if path.startswith('/api/gmail/') or path.startswith('/api/privacy/actions/'):
             try:
                 payload = {} if path in {'/api/gmail/connect', '/api/gmail/disconnect'} and self.headers.get('Content-Length', '0') == '0' else self._json_object(MAX_GMAIL_BYTES)
                 if path == '/api/gmail/connect':
@@ -158,11 +194,10 @@ class Handler(PrivacyHandler):
                     self.respond(400 if result.get('error') else 200, result)
                 elif path == '/api/gmail/disconnect':
                     self.respond(200, self.server.gmail.disconnect())
-                elif path == '/api/gmail/draft':
-                    self.respond(200, self._gmail_draft(payload))
-                elif path == '/api/gmail/send':
-                    result = self._gmail_send(payload)
-                    self.respond(200, {'ok': True, 'email': result.get('email'), 'message_id': result.get('message_id')})
+                elif path == '/api/privacy/actions/draft':
+                    self.respond(200, self._action_draft(payload))
+                elif path == '/api/privacy/actions/send':
+                    self.respond(200, self._action_send(payload))
                 else:
                     self.respond(404, {'error': 'Not found'})
             except KeyError:
@@ -200,6 +235,7 @@ class Handler(PrivacyHandler):
 def create_server(port=PORT, db_path=None, gmail=None):
     server = HTTPServer((HOST, port), Handler)
     server.privacy_enabled = True
+    server.drafts = {}
     server.provider = EventPrivacyFindingProvider()
     server.engine = OptOutEngine()
     server.store = ResultStore(db_path or ROOT / 'privacy.sqlite3')

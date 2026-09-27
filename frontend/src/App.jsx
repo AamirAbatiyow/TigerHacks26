@@ -33,7 +33,7 @@ function SessionExperience({ session, view, onViewChange, connection, duration }
     <header className="topbar">
       <div className="brand"><img className="brand-logo" src="./healthtrace-mark.svg" alt="" /><h1>PatientPrivy</h1><span className="subtitle">See where your data travels</span></div>
       <div className="topbar-actions">
-        <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy opt-outs"}</button>
+        <button className="privacy-button" aria-pressed={privacyOpen} onClick={() => setPrivacyOpen((open) => !open)}>{privacyOpen ? "Network inspector" : "Privacy actions"}</button>
         <div className="mode-toggle" role="group" aria-label="Visualization view">
           <button className={view === "simple" ? "active" : ""} aria-pressed={view === "simple"} onClick={() => onViewChange("simple")}>Simple view</button>
           <button className={view === "technical" ? "active" : ""} aria-pressed={view === "technical"} onClick={() => onViewChange("technical")}>Technical view</button>

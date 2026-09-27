@@ -101,7 +101,7 @@ class EmailDraftTests(unittest.TestCase):
         self.assertEqual(draft["to"], "privacy@example.test")
         self.assertEqual(draft["recipient_source"], "verified")
         self.assertIn("Example Health", draft["subject"])
-        self.assertIn(DEFAULT_ACTION, draft["body"])
+        self.assertIn("Please limit retaining or using", draft["body"])
         self.assertIn("Categories observed: financial, identity.", draft["body"])
         self.assertIn("response period of 45 days (https://www.oag.ca.gov/privacy/ccpa).", draft["body"])
         self.assertNotIn("litigation", draft["body"].lower())
@@ -234,6 +234,18 @@ class GmailServiceTests(unittest.TestCase):
             self.assertNotIn("ya29.SECRET", str(caught.exception))
             self.assertIn("rejected", str(caught.exception).lower())
 
+    def test_revoked_account_status_is_shared_and_does_not_leak_tokens(self):
+        with tempfile.TemporaryDirectory() as directory:
+            token = Path(directory) / 'token.json'
+            token.write_text(json.dumps({'token': 'SECRET', 'account_email': 'me@gmail.com'}))
+            service = GmailService(token_path=token)
+            with patch('gmail_service.urlopen', side_effect=HTTPError('https://gmail.googleapis.com',401,'revoked',None,None)):
+                with self.assertRaises(GmailError):
+                    service.send_message('contact@example.test','Privacy request','Approved message')
+            self.assertFalse(service.status()['connected'])
+            self.assertIn('revoked', service.status()['error'])
+            self.assertNotIn('SECRET', json.dumps(service.status()))
+
 
 class GmailApiTests(unittest.TestCase):
     def post(self, server, path, payload, origin="http://localhost:5174"):
@@ -273,24 +285,23 @@ class GmailApiTests(unittest.TestCase):
                 try:
                     status = json.load(urlopen(f"http://127.0.0.1:{server.server_port}/api/gmail/status", timeout=5))
                     self.assertEqual(status["status"], "disconnected")
-                    code, draft = self.post(server, "/api/gmail/draft", {"event_id": "evt-sentinel"})
+                    code, draft = self.post(server, "/api/privacy/actions/draft", {"event_id": "evt-sentinel"})
                     self.assertEqual(code, 200)
                     self.assertIsNone(draft["to"])
-                    self.assertFalse(draft["can_send"])
-                    self.assertIn("No address was guessed", draft["error"])
+                    self.assertEqual(draft["legal_basis"], "general")
                     self.assertNotIn(SENTINEL, json.dumps(draft))
                     self.assertNotIn("payment.card_number", json.dumps(draft))
                     self.assertIn("financial", draft["body"])
-                    code, manual = self.post(server, "/api/gmail/draft", {"event_id": "evt-sentinel", "to": "privacy@example.test"})
+                    code, manual = self.post(server, "/api/privacy/actions/draft", {"event_id": "evt-sentinel", "to": "privacy@example.test"})
                     self.assertEqual((code, manual["recipient_source"]), (200, "user"))
                     self.assertNotIn(SENTINEL, manual["body"])
-                    code, denied = self.post(server, "/api/gmail/send", {
+                    code, denied = self.post(server, "/api/privacy/actions/send", {
                         "to": "privacy@example.test", "subject": manual["subject"], "body": manual["body"],
-                        "recipient_source": "user", "event_id": "evt-sentinel",
+                        "recipient_source": "user", "draft_id": manual["draft_id"],
                     })
                     self.assertEqual(code, 400)
                     self.assertIn("Explicit approval", denied["error"])
-                    code, leaked = self.post(server, "/api/gmail/send", {
+                    code, leaked = self.post(server, "/api/privacy/actions/send", {
                         "approved": True, "to": "privacy@example.test", "subject": "Privacy request",
                         "body": "Approved text only.", "recipient_source": "user", "findings": [{"value": SENTINEL}],
                     })
@@ -299,18 +310,19 @@ class GmailApiTests(unittest.TestCase):
                     code, connect = self.post(server, "/api/gmail/connect", {})
                     self.assertEqual(code, 400)
                     self.assertEqual(gmail.sent, [])
-                    code, sent = self.post(server, "/api/gmail/send", {
+                    code, sent = self.post(server, "/api/privacy/actions/send", {
                         "approved": True, "to": "privacy@example.test", "subject": manual["subject"],
-                        "body": manual["body"], "recipient_source": "user", "event_id": "evt-sentinel",
+                        "body": manual["body"], "recipient_source": "user", "draft_id": manual["draft_id"],
                     })
                     self.assertEqual(code, 200)
                     self.assertEqual(sent["email"], "user@gmail.com")
                     self.assertEqual(gmail.sent, [("privacy@example.test", manual["subject"], manual["body"])])
                     self.assertNotIn(SENTINEL, gmail.sent[0][2])
+                    _, fresh = self.post(server, "/api/privacy/actions/draft", {"event_id": "evt-sentinel"})
                     gmail.send_message = lambda *args: (_ for _ in ()).throw(GmailError("Could not reach Gmail. Nothing was sent."))
-                    code, failed = self.post(server, "/api/gmail/send", {
+                    code, failed = self.post(server, "/api/privacy/actions/send", {
                         "approved": True, "to": "privacy@example.test", "subject": "Privacy request",
-                        "body": "Approved text only.", "recipient_source": "user",
+                        "body": "Approved text only.", "recipient_source": "user", "draft_id": fresh["draft_id"],
                     })
                     self.assertEqual(code, 409)
                     self.assertIn("Nothing was sent", failed["error"])
@@ -335,15 +347,15 @@ class GmailApiTests(unittest.TestCase):
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                code, draft = self.post(server, "/api/gmail/draft", {"event_id": "evt-1", "state": "CA",
+                code, draft = self.post(server, "/api/privacy/actions/draft", {"event_id": "evt-1", "state": "CA",
                     "include_identity": {"email": False}, "identity": {"email": "hidden@example.test"}})
                 self.assertEqual(code, 200)
                 self.assertEqual(draft["to"], "privacy@example.test")
                 self.assertEqual(draft["deadline"]["days"], 45)
                 self.assertNotIn("hidden@example.test", draft["body"])
-                code, mismatch = self.post(server, "/api/gmail/send", {
+                code, mismatch = self.post(server, "/api/privacy/actions/send", {
                     "approved": True, "to": "other@example.test", "subject": draft["subject"], "body": draft["body"],
-                    "recipient_source": "verified", "event_id": "evt-1",
+                    "recipient_source": "verified", "draft_id": draft["draft_id"],
                 })
                 self.assertEqual(code, 400)
             finally:

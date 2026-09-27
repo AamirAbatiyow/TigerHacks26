@@ -1,12 +1,13 @@
 """Local privacy-request drafts. Nothing in this module contacts Gmail or the network."""
 import re
+from urllib.parse import urlsplit, unquote
 from datetime import date
 
 from privacy.contract import PrivacyFinding, US_STATES, ValidationError
 
-EMAIL = re.compile(r"[^\s@]+@[^\s@]+\.[^\s@]+")
+EMAIL = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,63}")
 DEFAULT_ACTION = (
-    "Please delete my personal information and cease retaining it to the extent required by applicable law. "
+    "Please delete my personal information and cease retaining or using it to the extent required by applicable law. "
     "Please confirm receipt and completion within any applicable statutory period. "
     "I reserve all rights and remedies available to me."
 )
@@ -19,13 +20,13 @@ def _company_matches(strategy, finding):
 
 
 def _strategy_address(strategy):
-    if strategy.get("submission_method") != "email" or strategy.get("status") != "verified":
+    if strategy.get("status") != "verified":
         return None
     if not str(strategy.get("applicability") or "").strip():
         return None
     endpoint = str(strategy.get("verified_endpoint") or "")
     if endpoint.lower().startswith("mailto:"):
-        address = endpoint[7:].split("?", 1)[0].strip()
+        address = unquote(endpoint[7:]).strip() if "?" not in endpoint else ""
     else:
         address = str(strategy.get("contact_email") or "").strip()
     return address if EMAIL.fullmatch(address) else None
@@ -45,15 +46,10 @@ def _strategy_fresh(strategy, engine):
 
 def verified_email_recipient(engine, finding):
     """The single fresh verified privacy mailbox for this company, or None. Never invent one."""
-    right = engine.rules["reason_to_right"].get(finding.reason.code)
     matches = []
     for strategy in engine.strategies:
         address = _strategy_address(strategy)
         if not address or not _company_matches(strategy, finding) or not _strategy_fresh(strategy, engine):
-            continue
-        if right and right not in strategy.get("rights", []):
-            continue
-        if finding.user.state and finding.user.state not in strategy.get("jurisdiction", []):
             continue
         matches.append(address)
     unique = sorted(set(matches))
@@ -123,8 +119,16 @@ def _selected_identity(include_identity, identity):
     return lines
 
 
-def build_privacy_email(engine, finding, *, to=None, state=None, include_identity=None, identity=None):
+def build_privacy_email(engine, finding, *, to=None, state=None, include_identity=None, identity=None, event=None, contacts=None):
     """Draft one message. `to` is used only when the caller supplies it; otherwise only a verified mailbox is used."""
+    # Resolve an observed bare domain only through an exact existing registry entry.
+    if finding.company.name == finding.company.domain:
+        known = {(s['company'], s['canonical_domain']) for s in engine.strategies
+                 if finding.company.domain in s.get('domains', []) and _strategy_fresh(s, engine)}
+        if len(known) == 1:
+            raw = finding.to_dict()
+            raw['company']['name'] = next(iter(known))[0]
+            finding = PrivacyFinding.parse(raw)
     finding = _with_state(finding, state.strip().upper() if isinstance(state, str) and state.strip() else None)
     supplied = to.strip() if isinstance(to, str) else ""
     if supplied:
@@ -134,17 +138,47 @@ def build_privacy_email(engine, finding, *, to=None, state=None, include_identit
     else:
         recipient = verified_email_recipient(engine, finding)
         source = "verified" if recipient else None
-    deadline = verified_response_deadline(engine, finding)
+    candidates = discovered_contacts(event or {}, contacts or [])
+    recipient_evidence = None
+    organization = finding.company.name
+    organization_domain = finding.company.domain
+    if source == "verified":
+        recipient_evidence = next((s['source'] for s in engine.strategies
+            if _company_matches(s, finding) and _strategy_address(s) == recipient and _strategy_fresh(s, engine)), None)
+    elif source is None and len(candidates) == 1:
+        recipient, source = candidates[0]['email'], 'discovered'
+        recipient_evidence = candidates[0]['source_url']
+        organization = organization_domain = urlsplit(recipient_evidence).hostname
+    if source is None and candidates:
+        domains = {urlsplit(c['source_url']).hostname for c in candidates}
+        if len(domains) == 1:
+            organization = organization_domain = next(iter(domains))
+    resolution, strategy = engine.resolve(finding)
+    # An observed app's contact is not the observed third party's legal mechanism.
+    legal = bool(strategy and organization_domain == finding.company.domain)
+    deadline = verified_response_deadline(engine, finding) if legal else None
+    right = resolution.get('privacy_right') if legal else None
+    request_type = right.replace('_', ' ').capitalize() if right else 'General privacy / deletion request'
     categories = " ".join(finding.reason.description.split())
     lines = [
-        f"I am writing to {finding.company.name} ({finding.company.domain}).",
+        f"I am writing to {organization} ({organization_domain}).",
         "",
-        f"Request: {finding.reason.label}.",
+        f"Request: {request_type}.",
     ]
     if categories:
         lines.append(f"Categories observed: {categories}.")
         lines.append("This list names categories only.")
-    lines.extend(["", DEFAULT_ACTION, ""])
+    action = {
+        'targeted_advertising_opt_out': 'Please stop using my personal information for targeted advertising to the extent required by applicable law.',
+        'sale_sharing_opt_out': 'Please stop selling or sharing my personal information to the extent required by applicable law.',
+        'limit_sensitive_data': 'Please limit retaining or using my sensitive personal information to the extent required by applicable law.',
+    }.get(right, DEFAULT_ACTION)
+    lines.extend(["", action, ""])
+    if organization_domain != finding.company.domain:
+        lines.extend([f"This concerns data sent from your app to {finding.company.domain}.", ""])
+    if legal and strategy['submission_method'] != 'email':
+        lines.extend(["Please advise how to complete this request through your official mechanism. This email does not complete that process.", ""])
+
     if deadline:
         lines.append(
             f"The verified {deadline['jurisdiction']} rule states a response period of "
@@ -160,7 +194,51 @@ def build_privacy_email(engine, finding, *, to=None, state=None, include_identit
     return {
         "to": recipient,
         "recipient_source": source,
-        "subject": f"Privacy request regarding {finding.company.name}",
+        "event_id": finding.event_id,
+        "organization": organization,
+        "observed_destination": finding.company.domain,
+        "categories": [c.strip() for c in categories.split(',') if c.strip()],
+        "request_type": request_type,
+        "legal_basis": 'verified' if legal else 'general',
+        "legal_source": strategy['source'] if legal else None,
+        "official_destination": resolution['destination'] if legal and strategy['submission_method'] != 'email' else None,
+        "instructions": strategy['instructions'] if legal else 'General request; no jurisdiction-specific right or deadline has been established.',
+        "recipient_evidence": recipient_evidence,
+        "recipient_candidates": candidates if source != 'verified' else [],
+        "requires_recipient_confirmation": source == 'discovered',
+        "subject": f"Privacy request regarding {organization}",
         "body": "\n".join(lines).strip() + "\n",
         "deadline": deadline,
     }
+
+
+def discovered_contacts(event, contacts):
+    """Only user-invoked mailto candidates on the observed destination/app; never crawl URLs."""
+    if not isinstance(contacts, list) or len(contacts) > 10:
+        raise ValidationError('Provide at most ten discovered contacts')
+    allowed = set()
+    for url in (event.get('initiator'), f"{event.get('scheme') or 'https'}://{event.get('host') or ''}"):
+        try:
+            parsed = urlsplit(url or '')
+            if parsed.scheme in {'http', 'https'} and parsed.hostname:
+                allowed.add((parsed.scheme, parsed.hostname, parsed.port or (443 if parsed.scheme == 'https' else 80)))
+        except ValueError:
+            continue
+    result = []
+    for contact in contacts:
+        if not isinstance(contact, dict) or set(contact) != {'email', 'source_url'}:
+            raise ValidationError('Discovered contacts need email and source_url only')
+        email, url = contact['email'], contact['source_url']
+        if not isinstance(email, str) or not EMAIL.fullmatch(email) or len(email) > 254 or not isinstance(url, str) or len(url) > 2048:
+            raise ValidationError('Invalid discovered contact')
+        try:
+            parsed = urlsplit(url)
+            origin = (parsed.scheme, parsed.hostname, parsed.port or (443 if parsed.scheme == 'https' else 80))
+        except ValueError:
+            raise ValidationError('Invalid contact source') from None
+        if origin not in allowed or parsed.username or parsed.password:
+            continue
+        candidate = {'email': email, 'source_url': parsed._replace(query='', fragment='').geturl()}
+        if candidate not in result:
+            result.append(candidate)
+    return result

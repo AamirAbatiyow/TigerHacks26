@@ -22,3 +22,7 @@ node --check extension/privacy-findings.mjs
 ```
 
 See [the integrated guide](../docs/integrated-demo.md) for the full demo and proxy setup. Loading the extension does not configure the browser proxy or install a CA.
+
+## Privacy actions
+
+The popup has one **Take Privacy Action** button. It opens the shared editable review inside the bundled extension dashboard, with Gmail and email-app delivery choices. Reload the extension for the user-invoked `activeTab`/`scripting` contact-discovery permissions. See [the privacy-action guide](../docs/privacy-actions.md); the old simulated filing page is removed.

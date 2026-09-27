@@ -1,4 +1,6 @@
-# Privacy opt-out feature
+# Privacy engine and action flow
+
+The extension and dashboard use the unified [privacy-action review](../../../docs/privacy-actions.md). The engine/result-store API described below remains available for compatibility and tests; its legacy UNSUPPORTED status does not disable general email drafting.
 
 The dashboard and polished extension consume real local observations through the
 shared API on `127.0.0.1:8765`. Start from the repository root:
@@ -10,24 +12,30 @@ npm run dev --prefix frontend
 
 Run those in separate terminals. Open `http://127.0.0.1:5174/?privacy=1`.
 The bundled extension dashboard uses the same API. **Refresh privacy issues** reloads
-current findings in the popup; its action re-resolves the selected finding before
-opening a verified official mechanism. Unsupported or unavailable findings disable it.
-**Process finding** records an engine result locally; opening a portal never marks a
-request submitted or completed.
+current findings in the popup. **Take Privacy Action** re-resolves the selected finding,
+looks for a contact on the active page, and opens a local draft in the shared review
+screen. The user reviews and approves the recipient and message, then chooses Gmail
+or their email app. Missing verified strategies produce a clearly labeled general
+request. Official mechanism links remain available where a verified strategy requires
+them; neither opening a link nor sending an email establishes company completion.
 
 ## Provider boundary
 
 `network trace/live_privacy.py` adapts real classified observations to `PrivacyFinding`.
 Only destination and category metadata are copied, never raw payload values. Residency
-and company identity are not guessed. Unknown residency is represented by null;
-unsupported destinations such as the Fly demo receiver cannot trigger a submission.
-`ResultStore` persists results in `network trace/privacy.sqlite3` (ignored by Git).
+and company identity are not guessed. Unknown residency is represented by null.
+Destinations without a verified strategy, such as the Fly demo receiver, can still
+support a general request with a user-reviewed recipient. `ResultStore` persists
+legacy engine results in `network trace/privacy.sqlite3` (ignored by Git); email drafts
+and temporary send receipts live only in the local API process.
 
 The existing contract, resolver, strategy registry, and result store are shared:
 
 - GET `/api/privacy/findings`: redacted resolution previews.
-- POST `/api/privacy/run` with a real `event_id`: provider → engine → store.
-- GET `/api/privacy/results`: stored metadata and evidence, without raw user fields.
+- POST/GET `/api/privacy/actions/draft`: create or retrieve a local review draft.
+- POST `/api/privacy/actions/send`: send an explicitly approved draft through local Gmail.
+- Legacy POST `/api/privacy/run` with a real `event_id`: provider → engine → store.
+- Legacy GET `/api/privacy/results`: stored metadata and evidence, without raw user fields.
 
 The JSON fixture provider remains for regression tests and explicit isolated testing
 via `PRIVACY_LOCAL_MODE=1 python3 'network trace/fly-analytics/server.py'` on port 8080.
@@ -41,7 +49,8 @@ See [the integrated guide](../../../docs/integrated-demo.md) for the complete se
 
 Only CA rules and exact configured Microsoft identities are enabled in this MVP.
 The reason mapping covers advertising, sale/sharing, sensitive-data limitation, and
-explicit deletion. Rights without a verified matching strategy stop as unsupported.
+explicit deletion. Rights without a verified matching strategy resolve as unsupported
+in the engine; the action flow then offers a general request without a statutory claim.
 A CA address alone is not enough: strategies carry official company applicability
 statements and supported actions. This is not a universal legal applicability checker.
 
@@ -79,9 +88,11 @@ not automatically trusted. Adding a manual company primarily means adding and
 independently verifying configuration, rather than changing controllers.
 
 The resolver prefers universal/government → HTTP → portal → email mechanisms. It
-never derives addresses or paths. No automatic external submission adapter is installed:
+never derives addresses or paths. No automatic engine submission adapter is installed:
 the reviewed MVP mechanisms need real user browser/account context. There is no SMTP
 infrastructure or verified, safely automatable POST contract in this repository.
+The separate user-approved Gmail delivery step sends the reviewed message through
+the user's account; it does not report an engine action as completed.
 
 A future reviewed adapter is registered by strategy ID in `OptOutEngine(adapters=...)`
 and implements `submit(strategy, privacy_right, minimum_fields, event_id)`. Automation
@@ -108,8 +119,7 @@ Future external adapters must use the event ID for remote idempotency when avail
 The integrated API binds to `127.0.0.1:8765`, validates the loopback Host, and permits
 only the port 5174 dashboard origins and Chrome extension origins through CORS.
 The popup and bundled/standalone dashboards call it directly; no Vite proxy is needed.
-The popup includes `X-PatientPrivy-Extension` on its finding read. This is single-user
-local infrastructure, not authenticated remote access.
+This is single-user local infrastructure, not authenticated remote access.
 
 The extension's observation POST goes only to the local `/events` endpoint. Its Fly
 host permissions enable request observation, not remote telemetry submission. Neither
@@ -147,12 +157,10 @@ completion evidence, deduplication, changed event conflicts, and local route pro
    strategy when supporting a new company; never put a destination in the incoming
    finding or extension button handler.
 
-No future external GET URL, active-tab attribution, or account model is invented.
-The current popup explicitly selects a finding. A future page-specific provider can
-return only the applicable finding, which the popup then selects automatically.
-Moving the application backend requires updating `PRIVACY_FINDINGS_URL` in
-`extension/privacy-findings.mjs` and the matching manifest host permission plus the dashboard API base; the opt-out
-resolver and UI logic stay unchanged. A remotely hosted backend also needs auth.
+The current popup explicitly selects a finding. Active-page contact discovery does
+not change that finding or infer legal applicability. The shared action client uses
+`LOCAL_API` in `extension/privacy-findings.mjs`, with matching loopback permissions
+in the manifest. Keep observation, draft, OAuth, and send APIs local.
 
 Popup integration checks (from the repository root):
 
@@ -160,6 +168,7 @@ Popup integration checks (from the repository root):
 node --test extension/tests/privacy-findings.test.mjs
 ```
 
-These exercise selection, different companies/rights, provider destination changes,
-missing/unsupported/unsafe findings, unavailable service, and refreshed data. They use
-simulated backend responses and never open real company pages.
+These exercise selection, general requests, shared action API calls, selection races,
+contact extraction, restricted pages, and no automatic sends. They use simulated
+backend responses and never send real email. See the action guide for full validation
+and the remaining manual Gmail/OAuth checks.

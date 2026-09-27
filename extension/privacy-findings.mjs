@@ -1,11 +1,19 @@
-// This is the application's local backend, not a company opt-out destination.
-// A future fetching service plugs into PrivacyFindingProvider on that backend.
-export const PRIVACY_FINDINGS_URL = 'http://127.0.0.1:8765/api/privacy/findings';
+// One local action API for the popup and the shared review screen.
+export const LOCAL_API = 'http://127.0.0.1:8765';
+export const PRIVACY_FINDINGS_URL = `${LOCAL_API}/api/privacy/findings`;
 
-export async function loadPrivacyFindings(fetcher = fetch, extensionId = globalThis.chrome?.runtime?.id) {
-  const response = await fetcher(PRIVACY_FINDINGS_URL, { cache: 'no-store', headers: extensionId ? { 'X-PatientPrivy-Extension': extensionId } : {} });
-  if (!response.ok) throw new Error('Privacy finding service unavailable');
+export async function privacyRequest(path, payload, fetcher = fetch) {
+  const response = await fetcher(`${LOCAL_API}${path}`, {
+    cache: 'no-store',
+    ...(payload === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}),
+  });
   const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Local privacy service unavailable');
+  return data;
+}
+
+export async function loadPrivacyFindings(fetcher = fetch) {
+  const data = await privacyRequest('/api/privacy/findings', undefined, fetcher);
   if (!Array.isArray(data.findings)) throw new Error('Invalid privacy finding response');
   const ids = new Set();
   for (const finding of data.findings) {
@@ -18,19 +26,36 @@ export async function loadPrivacyFindings(fetcher = fetch, extensionId = globalT
   return data.findings;
 }
 
-export function officialDestination(finding) {
-  if (!finding || !['READY', 'ACTION_REQUIRED'].includes(finding.status)
-      || !finding.privacy_right || !finding.strategy_id || !finding.jurisdiction) return null;
-  try {
-    const url = new URL(finding.destination);
-    if (url.protocol !== 'https:' || url.username || url.password) return null;
-    // Preserve exactly the same destination used by the dashboard link.
-    return finding.destination;
-  } catch { return null; }
+export function createPrivacyDraft(payload, fetcher = fetch) {
+  return privacyRequest('/api/privacy/actions/draft', payload, fetcher);
 }
 
-export function actionLabel(finding) {
-  if (finding?.privacy_right === 'deletion') return 'Request deletion';
-  if (finding?.privacy_right === 'limit_sensitive_data') return 'Limit sensitive data';
-  return 'Opt out';
+// Runs only on the page where the user invoked the extension. No crawling or form values.
+export function pageContacts() {
+  const source = new URL(location.href);
+  source.search = ''; source.hash = '';
+  if (!['https:', 'http:'].includes(source.protocol)) return [];
+  const contacts = [];
+  for (const link of document.querySelectorAll('a[href^="mailto:"]')) {
+    const context = `${link.textContent} ${link.parentElement?.textContent || ''} ${document.title}`;
+    if (!/privacy|contact|data protection/i.test(context)) continue;
+    try {
+      const email = decodeURIComponent(link.getAttribute('href').slice(7).split('?')[0]);
+      if (/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email) && !contacts.some((c) => c.email === email)) {
+        contacts.push({email, source_url: source.href});
+      }
+    } catch { /* Malformed mailto links are not recipients. */ }
+    if (contacts.length === 10) break;
+  }
+  return contacts;
+}
+
+export async function discoverPageContacts(browser = globalThis.chrome) {
+  try {
+    if (!browser?.scripting) return [];
+    const [tab] = await browser.tabs.query({active: true, currentWindow: true});
+    if (!tab?.id) return [];
+    const [result] = await browser.scripting.executeScript({target: {tabId: tab.id}, func: pageContacts});
+    return Array.isArray(result?.result) ? result.result : [];
+  } catch { return []; } // Restricted pages still get a manual-recipient review.
 }

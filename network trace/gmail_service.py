@@ -98,6 +98,7 @@ class GmailService:
         self._thread = None
         self._generation = 0
         self._error = None
+        self._authorization_invalid = False
 
     def _load_token(self):
         try:
@@ -164,6 +165,8 @@ class GmailService:
         if self._thread and self._thread.is_alive():
             return {"connected": False, "status": "pending", "email": None}
         data = self._load_token()
+        if self._authorization_invalid:
+            return {"connected": False, "status": "disconnected", "email": None, "error": self._error}
         if data:
             email = data.get("account_email")
             return {
@@ -227,6 +230,7 @@ class GmailService:
             if generation != self._generation:
                 return
             self._save_credentials(creds, _email_from_id_token(getattr(creds, "id_token", None)))
+            self._authorization_invalid = False
             self._error = None
         except Exception as exc:
             if generation == self._generation:
@@ -275,9 +279,9 @@ class GmailService:
         except HTTPError as exc:
             if exc.code == 401:
                 raise GmailError("Gmail authorization expired or was revoked. Connect Gmail again.") from None
-            raise GmailError("Gmail rejected the message. Nothing else was sent.") from None
-        except URLError:
-            raise GmailError("Could not reach Gmail. Nothing was sent.") from None
+            raise GmailError("Gmail rejected the message. Check Sent mail before trying again.") from None
+        except (URLError, TimeoutError, OSError):
+            raise GmailError("Gmail did not confirm delivery. Check Sent mail before trying again.") from None
         except (ValueError, json.JSONDecodeError):
             raise GmailError("Gmail returned an unreadable response. Check Sent mail before trying again.") from None
         message_id = payload.get("id") if isinstance(payload, dict) else None
@@ -287,6 +291,14 @@ class GmailService:
 
     def send_message(self, to, subject, body):
         """Send one already-approved plain-text message. Callers must enforce approval before this."""
-        access, email = self._access()
-        message_id = self._post_raw(access, encode_message(to, subject, body, email))
+        try:
+            access, email = self._access()
+            message_id = self._post_raw(access, encode_message(to, subject, body, email))
+        except GmailError as exc:
+            if 'revoked' in str(exc) or 'expired' in str(exc):
+                self._authorization_invalid = True
+                self._error = str(exc)
+            raise
+        except Exception:
+            raise GmailError("Gmail did not confirm delivery. Check Sent mail before trying again.") from None
         return {"message_id": message_id, "email": email}

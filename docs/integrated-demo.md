@@ -16,7 +16,7 @@ The canonical extension contains the migrated observer: metadata normalization, 
 3. With the browser configured to use mitmproxy, the HTTPS request is decrypted locally. The response hook normalizes it and POSTs it (raw body base64-encoded) to `http://127.0.0.1:8765/events` with `source: "mitm"`. For plaintext HTTP, tshark parses the on-wire body and POSTs it the same way with `source: "tshark"`. Collectors are standard-library only (`collectors/local_sink.py`): they never classify, load the model, or write the event log, and they never forward requests to the local API itself.
 4. The local API is the single ingestion path for all three sources (`process_event`). Requests with a browser `Origin` are always treated as metadata-only extension events. It runs the shared classifier, which filters demo traffic, sanitizes bodies, normalizes the event, generates an observation UUID, and appends it to local JSONL. Binary/compressed bodies remain absent; size/type metadata is retained.
 5. GET `/events` returns the latest 500 observations. Existing captures receive stable legacy IDs and are reclassified in memory without rewriting the historical log. Incomplete lines are ignored. The dashboard on port 5174, its extension bundle, and popup read this local API. Browser metadata and collector payload observations are separate records, not deduplicated requests.
-6. A local provider adapts classified observations to the existing privacy engine and SQLite result store. It copies categories and destination metadata, not raw values or contact details. No state of residence or corporate identity is inferred. Fly has no configured verified strategy, so its findings are correctly unsupported. Processing records the unsupported result locally and submits nothing.
+6. A local provider adapts classified observations to privacy findings using category and destination metadata, without raw captured values. **Take Privacy Action** resolves a verified strategy where available, otherwise generates a clearly labeled general request. Recipient selection uses a verified registry email, a user-confirmed contact discovered on the observed page, or manual entry. The extension and dashboard share one local review screen and action API. Only explicit approval enables Gmail delivery or an email-app draft; Fly receives no privacy findings, drafts, or OAuth tokens. The legacy engine/result-store API remains available for compatibility.
 
 The remote receiver accepts only `/collect` POSTs, returns `{"ok":true}`, and does not log or retain payload bodies. Its privacy endpoints remain present and disabled remotely. `/collect` CORS permits exactly the origins in `ALLOWED_ORIGINS` (default: `http://localhost:5173`, `http://127.0.0.1:5173`, `https://scriptwell.fly.dev`, and the legacy `http://localhost:3000`); `*` is never honored. The local event API permits the dashboard's port 5174 origins and Chrome extension origins, checks the loopback Host, and rejects unrelated web origins.
 
@@ -51,7 +51,7 @@ Manual prerequisite: load the repository's `extension/` directory as an unpacked
 
 ## Gmail opt-out (local only)
 
-Privacy email is sent from the user's own Gmail account by the local API. The Fly receiver has no Gmail routes. Tokens and the OAuth client file stay on this machine, and nothing is sent until the user opens **Review email** and clicks **Send with Gmail**. Connect does not send mail. A destination with no verified email strategy is left unsupported; the draft will not invent an address. The user may type a recipient. A statutory deadline is included only when `rules.json` has an effective jurisdiction rule with a numeric `response_deadline_days` and an `https` source. The shipped California rule does not state a number of days, so drafts omit one.
+The extension and dashboard now share **Take Privacy Action → local draft → review → Send with Gmail or Open in Email App**. A missing verified strategy becomes a general privacy/deletion request, not a disabled action. Contact provenance, explicit approval, delivery state, and API details are documented in [privacy-actions.md](privacy-actions.md). The receiver has no Gmail or email-action routes, and tokens stay local.
 
 The only Gmail scope requested is `https://www.googleapis.com/auth/gmail.send`. `openid` and `https://www.googleapis.com/auth/userinfo.email` are requested so the panel can show the connected address. Mailbox read scopes are not requested.
 
@@ -69,9 +69,10 @@ The local API stores the resulting token at `network trace/.state/gmail_token.js
 Use it from the dashboard at `http://localhost:5174/?privacy=1`:
 
 - **Connect Gmail** opens Google's consent page through a localhost callback owned by the local API. When it finishes, the panel shows `Connected as user@gmail.com`.
-- **Review email** builds a local draft. Check To, Subject, and the full message. Edit the text if you want. **Cancel** sends nothing.
-- **Send with Gmail** is the only control that posts to `/api/gmail/send`, and only after that review.
-- **Disconnect Gmail** deletes the local token and best-effort revokes it at Google. Also remove PatientPrivy at [Google Account permissions](https://myaccount.google.com/permissions) if you want to confirm the grant is gone.
+- **Take Privacy Action** builds a local draft. Check the organization, recipient evidence, subject, and message. Confirm discovered recipients and approve the displayed message. **Cancel** sends nothing.
+- **Open in Email App** opens a fully encoded `mailto:` draft without Gmail. This is not marked sent.
+- **Send with Gmail** is the only control that posts to `/api/privacy/actions/send`, and only after that review.
+- **Disconnect** deletes the local token and best-effort revokes it at Google. Also remove PatientPrivy at [Google Account permissions](https://myaccount.google.com/permissions) if you want to confirm the grant is gone.
 
 ```sh
 export PATIENTPRIVY_GOOGLE_CLIENT_SECRET="$PWD/secrets/google_oauth_client.json"
@@ -182,7 +183,12 @@ To observe the deployed site, run `./start_demo.sh` with the extension loaded. `
 - `demoapp/src/analytics.ts`, `Intake.tsx`, `.env.example`: HTTPS default, fictional sample answers, synthetic checkout payment fields, and the `/privacy` policy. There is no in-page sharing toggle.
 - Tests under `network trace/tests/`, `extension/tests/`, and `demoapp/tests/`; README/contract pointers and this guide; `.gitignore` excludes local privacy results.
 
-## Verification (2026-09-26)
+## Original integration verification (2026-09-26)
+
+The results below record the original consolidation. Current privacy-action validation
+passes 118 tests plus frontend lint, both dashboard builds, and the demoapp build;
+see [the current action guide](privacy-actions.md#run-and-verify) for the breakdown
+and manual Gmail/OAuth checks.
 
 Baseline: all 13 privacy and 8 extension tests passed. After installing missing dependencies, the pre-existing demo suite had one stale URL assertion (expected Fly HTTP, implementation used a local receiver). Updated it to the integrated HTTPS default.
 
@@ -194,8 +200,10 @@ Final commands:
 (cd 'network trace/fly-analytics' && python3 -m unittest discover -s tests -v)
 python3 -m unittest discover -s 'network trace/tests' -v
 npm test --prefix demoapp
+npm test --prefix frontend
 node --test extension/tests/*.test.mjs
 npm run lint --prefix frontend
+npm run build --prefix frontend
 npm run build --prefix demoapp
 npm run build:extension --prefix frontend
 ```
