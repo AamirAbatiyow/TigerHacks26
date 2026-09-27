@@ -151,6 +151,54 @@ class EmailDraftTests(unittest.TestCase):
         self.assertEqual(explicit["to"], "privacy@example.test")
         self.assertEqual(explicit["recipient_source"], "user")
 
+    def test_scriptwell_letter_uses_payload_identity_and_readable_categories(self):
+        description = ", ".join(sorted({
+            "appointments", "biometrics", "device_identifiers", "diagnoses", "financial",
+            "identity", "location", "medications", "symptoms",
+        }))
+        observed = finding(company="fly-analytics.fly.dev", domain="fly-analytics.fly.dev", state=None)
+        raw = observed.to_dict()
+        raw["reason"]["description"] = description
+        observed = type(observed).parse(raw)
+        event = {
+            "initiator": "https://scriptwell.fly.dev/",
+            "host": "fly-analytics.fly.dev",
+            "body": {
+                "person": {"full_name": "Avery Example", "email": "avery@example.test"},
+                "privacy": {"privacy_email": "scriptwellcontact@gmail.com"},
+            },
+        }
+        draft = build_privacy_email(OptOutEngine(today=TODAY), observed, event=event)
+        self.assertEqual(draft["organization"], "ScriptWell")
+        self.assertEqual(draft["observed_destination"], "fly-analytics.fly.dev")
+        self.assertEqual(draft["subject"], "Request to Delete and Limit Use of My Personal Information")
+        self.assertEqual(draft["legal_basis"], "general")
+        self.assertIsNone(draft["deadline"])
+        self.assertIn("Hello ScriptWell Privacy Team,", draft["body"])
+        self.assertIn("My name is Avery Example, and I’m writing regarding personal information I provided through ScriptWell.", draft["body"])
+        self.assertIn(
+            "The categories observed included health information, prescription and medication information, "
+            "identifying information, location information, device information, payment information, "
+            "and pharmacy or care-related information.",
+            draft["body"],
+        )
+        self.assertIn("Name: Avery Example\nEmail: avery@example.test", draft["body"])
+        self.assertTrue(draft["body"].rstrip().endswith("Avery Example"))
+        self.assertNotIn("fly-analytics.fly.dev", draft["body"])
+        self.assertNotIn("scriptwellcontact@gmail.com", draft["body"])
+        for raw_name in ("device_identifiers", "medications", "diagnoses", "financial", "appointments", "symptoms", "biometrics"):
+            self.assertNotIn(raw_name, draft["body"])
+        self.assertNotIn("litigation", draft["body"].lower())
+        self.assertNotIn("lawsuit", draft["body"].lower())
+        self.assertNotIn("response period", draft["body"])
+        other = {
+            "body": {"person": {"full_name": "Jordan Example", "email": "jordan@example.test"}},
+        }
+        jordan = build_privacy_email(OptOutEngine(today=TODAY), observed, event=other)
+        self.assertIn("My name is Jordan Example,", jordan["body"])
+        self.assertIn("Email: jordan@example.test", jordan["body"])
+        self.assertNotIn("Avery Example", jordan["body"])
+
     def test_manual_recipient_and_selected_identity_only(self):
         draft = build_privacy_email(
             self.engine(), finding(company="fly-analytics.fly.dev", domain="fly-analytics.fly.dev", state=None),
@@ -311,7 +359,10 @@ class GmailApiTests(unittest.TestCase):
                     self.assertEqual(draft["legal_basis"], "general")
                     self.assertNotIn(SENTINEL, json.dumps(draft))
                     self.assertNotIn("payment.card_number", json.dumps(draft))
-                    self.assertIn("financial", draft["body"])
+                    self.assertIn("payment information", draft["body"])
+                    self.assertIn("ScriptWell", draft["body"])
+                    self.assertNotIn("fly-analytics.fly.dev", draft["body"])
+                    self.assertNotIn("financial", draft["body"])
                     code, manual = self.post(server, "/api/privacy/actions/draft", {"event_id": "evt-sentinel", "to": "privacy@example.test"})
                     self.assertEqual((code, manual["recipient_source"]), (200, "user"))
                     self.assertNotIn(SENTINEL, manual["body"])

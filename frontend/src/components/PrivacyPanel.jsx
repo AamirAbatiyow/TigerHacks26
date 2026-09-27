@@ -99,7 +99,7 @@ export default function PrivacyPanel({ observations = [] }) {
       <p>{review.instructions}</p>
       {review.legal_source && <a href={review.legal_source} target="_blank" rel="noopener noreferrer">Verified strategy source</a>}
       {review.official_destination && <p><a href={review.official_destination} target="_blank" rel="noopener noreferrer">Open official mechanism</a> — email does not complete this process.</p>}
-      <p><strong>Detected categories:</strong> {review.categories.join(', ') || 'None listed'}. Raw captured values are not included in the generated email.</p>
+      <p><strong>Detected categories:</strong> {review.category_summary || review.categories.join(', ') || 'None listed'}. Raw captured values are not included in the generated email.</p>
       <PayloadEvidence observation={reviewObservation} showUnavailable />
       {review.recipient_candidates.length > 1 && <label>Discovered contacts<select defaultValue="" onChange={(e) => {
         const candidate = review.recipient_candidates[Number(e.target.value)];

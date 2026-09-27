@@ -61,6 +61,8 @@ class ActionsTests(unittest.TestCase):
         self.gmail.connected = True
         self.assertEqual(self.call('/api/privacy/actions/send', self.approved(draft))[0], 200)
         self.assertEqual(self.gmail.sent[0][0], DEMO_PRIVACY_EMAIL)
+        self.assertEqual(self.gmail.sent[0][1], draft['subject'])
+        self.assertEqual(self.gmail.sent[0][2], draft['body'])
         self.assertEqual(self.call('/api/privacy/actions/send', self.approved(draft, to='Scriptwell@gmail.com'))[0], 400)
 
     def test_general_request_manual_fallback_no_deadline_no_auto_send(self):

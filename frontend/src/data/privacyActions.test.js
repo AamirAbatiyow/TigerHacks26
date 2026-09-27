@@ -42,6 +42,21 @@ test('Gmail failure leaves the mailto draft usable; only approved email is poste
   assert.equal(gmailLabel({connected:true,email:'me@gmail.com'}),'Connected as me@gmail.com');
 });
 
+test('gmail and mailto use the same reviewed subject and body', async () => {
+  const letter = {...review, subject:'Request to Delete and Limit Use of My Personal Information', body:'Hello ScriptWell Privacy Team,\n\nMy name is Avery Example.\n'};
+  let posted;
+  const sent = await sendWithGmail(letter, async (_url, options) => {
+    posted = JSON.parse(options.body);
+    return {ok:true, json:async()=>({email:'me@gmail.com'})};
+  });
+  assert.equal(sent.email, 'me@gmail.com');
+  assert.equal(posted.subject, letter.subject);
+  assert.equal(posted.body, letter.body);
+  const params = new URLSearchParams(mailtoUrl(letter).split('?')[1]);
+  assert.equal(params.get('subject'), letter.subject);
+  assert.equal(params.get('body'), letter.body);
+});
+
 test('extension and dashboard share a draft API and one review screen; no legacy filing action', () => {
   const popup = fs.readFileSync(new URL('../../../extension/popup.js',import.meta.url),'utf8');
   const panel = fs.readFileSync(new URL('../components/PrivacyPanel.jsx',import.meta.url),'utf8');

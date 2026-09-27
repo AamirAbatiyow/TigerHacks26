@@ -3,6 +3,7 @@ import re
 from urllib.parse import urlsplit, unquote
 from datetime import date
 
+from demo_config import APP_NAME, RECEIVER_HOSTS, is_scriptwell_origin
 from privacy.contract import PrivacyFinding, US_STATES, ValidationError
 
 EMAIL = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,63}")
@@ -13,6 +14,28 @@ DEFAULT_ACTION = (
 )
 DEMO_PRIVACY_EMAIL = "scriptwellcontact@gmail.com"
 DEMO_ANALYTICS_HOST = "fly-analytics.fly.dev"
+SCRIPTWELL_SUBJECT = "Request to Delete and Limit Use of My Personal Information"
+# Overlapping health categories share one phrase. Medication findings, including the prescription, share another.
+_CATEGORY_PHRASES = {
+    "diagnoses": "health information",
+    "symptoms": "health information",
+    "biometrics": "health information",
+    "medications": "prescription and medication information",
+    "identity": "identifying information",
+    "location": "location information",
+    "device_identifiers": "device information",
+    "financial": "payment information",
+    "appointments": "pharmacy or care-related information",
+}
+_PHRASE_ORDER = (
+    "health information",
+    "prescription and medication information",
+    "identifying information",
+    "location information",
+    "device information",
+    "payment information",
+    "pharmacy or care-related information",
+)
 
 
 def _company_matches(strategy, finding):
@@ -121,6 +144,85 @@ def _selected_identity(include_identity, identity):
     return lines
 
 
+def human_categories(description):
+    """Readable phrases for classifier categories. Identical phrases are stated once."""
+    phrases = []
+    for category in (part.strip() for part in str(description or "").split(",")):
+        if not category:
+            continue
+        phrase = _CATEGORY_PHRASES.get(category, category.replace("_", " "))
+        if phrase not in phrases:
+            phrases.append(phrase)
+    ordered = [phrase for phrase in _PHRASE_ORDER if phrase in phrases]
+    ordered.extend(phrase for phrase in phrases if phrase not in ordered)
+    if not ordered:
+        return "personal information"
+    if len(ordered) == 1:
+        return ordered[0]
+    return ", ".join(ordered[:-1]) + ", and " + ordered[-1]
+
+
+def _scriptwell_request(finding, event):
+    domain = str(finding.company.domain or "").lower()
+    if domain == DEMO_ANALYTICS_HOST or domain in RECEIVER_HOSTS:
+        return True
+    event = event or {}
+    if is_scriptwell_origin(event.get("initiator")):
+        return True
+    return str(event.get("host") or "").lower() in RECEIVER_HOSTS
+
+
+def _captured_person(event):
+    """Name and email from the ScriptWell payload. Support addresses are not the patient."""
+    body = event.get("body") if isinstance(event, dict) else None
+    person = body.get("person") if isinstance(body, dict) else None
+    if not isinstance(person, dict):
+        return "", ""
+    name = person.get("full_name")
+    email = person.get("email")
+    name = " ".join(name.split()) if isinstance(name, str) else ""
+    email = email.strip() if isinstance(email, str) else ""
+    if not name or any(ord(char) < 32 for char in name) or len(name) > 200:
+        name = ""
+    if not EMAIL.fullmatch(email) or any(char in email for char in "\r\n"):
+        email = ""
+    return name, email
+
+
+def _scriptwell_body(name, email, categories):
+    intro = f"My name is {name}, and I’m writing" if name else "I’m writing"
+    identified = [
+        f"Name: {name or 'not included in the captured request'}",
+        f"Email: {email or 'not included in the captured request'}",
+    ]
+    lines = [
+        "Hello ScriptWell Privacy Team,",
+        "",
+        f"{intro} regarding personal information I provided through ScriptWell.",
+        "",
+        "PatientPrivy detected that information associated with my use of ScriptWell was transmitted to a third-party service. "
+        f"The categories observed included {categories}.",
+        "",
+        "I am requesting that ScriptWell:",
+        "",
+        "- delete personal information associated with my account or activity, to the extent required by applicable law;",
+        "- stop retaining or using that information where it is no longer necessary;",
+        "- stop sharing it with third parties except where legally required or necessary to provide the service; and",
+        "- confirm when this request has been completed.",
+        "",
+        "For identification purposes:",
+        "",
+        *identified,
+        "",
+        "Please reply to this email confirming receipt of my request and let me know if you need any additional information to verify my identity.",
+        "",
+        "Thank you,",
+    ]
+    if name:
+        lines.append(name)
+    return "\n".join(lines).strip() + "\n"
+
+
 def build_privacy_email(engine, finding, *, to=None, state=None, include_identity=None, identity=None, event=None, contacts=None):
     """Draft one message. `to` is used only when the caller supplies it; otherwise only a verified mailbox is used."""
     # Resolve an observed bare domain only through an exact existing registry entry.
@@ -167,44 +269,58 @@ def build_privacy_email(engine, finding, *, to=None, state=None, include_identit
     right = resolution.get('privacy_right') if legal else None
     request_type = right.replace('_', ' ').capitalize() if right else 'General privacy / deletion request'
     categories = " ".join(finding.reason.description.split())
-    lines = [
-        f"I am writing to {organization} ({organization_domain}).",
-        "",
-        f"Request: {request_type}.",
-    ]
-    if categories:
-        lines.append(f"Categories observed: {categories}.")
-        lines.append("This list names categories only.")
-    action = {
-        'targeted_advertising_opt_out': 'Please stop using my personal information for targeted advertising to the extent required by applicable law.',
-        'sale_sharing_opt_out': 'Please stop selling or sharing my personal information to the extent required by applicable law.',
-        'limit_sensitive_data': 'Please limit retaining or using my sensitive personal information to the extent required by applicable law.',
-    }.get(right, DEFAULT_ACTION)
-    lines.extend(["", action, ""])
-    if organization_domain != finding.company.domain:
-        lines.extend([f"This concerns data sent from your app to {finding.company.domain}.", ""])
-    if legal and strategy['submission_method'] != 'email':
-        lines.extend(["Please advise how to complete this request through your official mechanism. This email does not complete that process.", ""])
-
-    if deadline:
-        lines.append(
-            f"The verified {deadline['jurisdiction']} rule states a response period of "
-            f"{deadline['days']} days ({deadline['source']})."
-        )
-        lines.append("")
+    category_list = [c.strip() for c in categories.split(',') if c.strip()]
     identity_lines = _selected_identity(include_identity, identity)
-    if identity_lines:
-        lines.append("Identifying details I chose to include:")
-        lines.extend(identity_lines)
-        lines.append("")
-    lines.append("Please reply to this email address.")
+    scriptwell = _scriptwell_request(finding, event)
+    if scriptwell:
+        organization = APP_NAME
+        name, email = _captured_person(event or {})
+        subject = SCRIPTWELL_SUBJECT
+        body = _scriptwell_body(name, email, human_categories(categories))
+        if identity_lines:
+            body = body.rstrip() + "\n\nAdditional identifying details I chose to include:\n" + "\n".join(identity_lines) + "\n"
+        category_summary = human_categories(categories)
+    else:
+        lines = [
+            f"I am writing to {organization} ({organization_domain}).",
+            "",
+            f"Request: {request_type}.",
+        ]
+        if categories:
+            lines.append(f"Categories observed: {categories}.")
+            lines.append("This list names categories only.")
+        action = {
+            'targeted_advertising_opt_out': 'Please stop using my personal information for targeted advertising to the extent required by applicable law.',
+            'sale_sharing_opt_out': 'Please stop selling or sharing my personal information to the extent required by applicable law.',
+            'limit_sensitive_data': 'Please limit retaining or using my sensitive personal information to the extent required by applicable law.',
+        }.get(right, DEFAULT_ACTION)
+        lines.extend(["", action, ""])
+        if organization_domain != finding.company.domain:
+            lines.extend([f"This concerns data sent from your app to {finding.company.domain}.", ""])
+        if legal and strategy['submission_method'] != 'email':
+            lines.extend(["Please advise how to complete this request through your official mechanism. This email does not complete that process.", ""])
+        if deadline:
+            lines.append(
+                f"The verified {deadline['jurisdiction']} rule states a response period of "
+                f"{deadline['days']} days ({deadline['source']})."
+            )
+            lines.append("")
+        if identity_lines:
+            lines.append("Identifying details I chose to include:")
+            lines.extend(identity_lines)
+            lines.append("")
+        lines.append("Please reply to this email address.")
+        subject = f"Privacy request regarding {organization}"
+        body = "\n".join(lines).strip() + "\n"
+        category_summary = categories
     return {
         "to": recipient,
         "recipient_source": source,
         "event_id": finding.event_id,
         "organization": organization,
         "observed_destination": finding.company.domain,
-        "categories": [c.strip() for c in categories.split(',') if c.strip()],
+        "categories": category_list,
+        "category_summary": category_summary,
         "request_type": request_type,
         "legal_basis": 'verified' if legal else 'general',
         "legal_source": strategy['source'] if legal else None,
@@ -213,8 +329,8 @@ def build_privacy_email(engine, finding, *, to=None, state=None, include_identit
         "recipient_evidence": recipient_evidence,
         "recipient_candidates": [] if source in {"verified", "demo"} else candidates,
         "requires_recipient_confirmation": source == 'discovered',
-        "subject": f"Privacy request regarding {organization}",
-        "body": "\n".join(lines).strip() + "\n",
+        "subject": subject,
+        "body": body,
         "deadline": deadline,
     }
 
