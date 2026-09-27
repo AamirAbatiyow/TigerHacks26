@@ -1,4 +1,5 @@
 import { loadPrivacyFindings, createPrivacyDraft, discoverPageContacts } from './privacy-findings.mjs';
+import { privacyIssueCount } from './sensitive-count.mjs';
 
 document.getElementById('closePopup').addEventListener('click', () => window.close());
 document.getElementById('fileForMe').addEventListener('click', () => {
@@ -104,7 +105,8 @@ async function refreshCount() {
     const response = await fetch('http://127.0.0.1:8765/events', { cache: 'no-store' });
     if (!response.ok) throw new Error('Unavailable');
     const { events } = await response.json();
-    document.getElementById('packetCount').textContent = String(events.length);
+    const records = Array.isArray(events) ? events : [];
+    document.getElementById('packetCount').textContent = String(privacyIssueCount(records));
   } catch {
     document.getElementById('packetCount').textContent = 'Unavailable';
   }

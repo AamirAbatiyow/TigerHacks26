@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPrivacyDraft, loadPrivacyFindings, loadDraft, gmailStatus, connectGmail, disconnectGmail,
   reviewedEmail, mailtoUrl, sendWithGmail, MAILTO_STATUS, gmailLabel } from '../data/privacyActions';
+import PayloadEvidence from './PayloadEvidence';
 
-export default function PrivacyPanel() {
+export default function PrivacyPanel({ observations = [] }) {
   const [findings, setFindings] = useState([]);
   const [review, setReview] = useState(null);
   const [gmail, setGmail] = useState({connected: false});
@@ -74,7 +75,8 @@ export default function PrivacyPanel() {
 
   let href = '';
   try { if (review) { reviewedEmail(review); href = mailtoUrl(review); } } catch { /* Show editable fields until ready. */ }
-  const sourceLabels = {verified: 'Verified strategy contact', discovered: 'Discovered on the observed page — not verified', user: 'Manually entered by you'};
+  const sourceLabels = {verified: 'Verified strategy contact', discovered: 'Discovered on the observed page — not verified', user: 'Manually entered by you', demo: 'ScriptWell demo contact'};
+  const reviewObservation = review ? observations.find((event) => event.event_id === review.event_id) : null;
 
   return <aside className="details-panel privacy-panel">
     <span className="panel-label">Local network findings</span>
@@ -97,7 +99,8 @@ export default function PrivacyPanel() {
       <p>{review.instructions}</p>
       {review.legal_source && <a href={review.legal_source} target="_blank" rel="noopener noreferrer">Verified strategy source</a>}
       {review.official_destination && <p><a href={review.official_destination} target="_blank" rel="noopener noreferrer">Open official mechanism</a> — email does not complete this process.</p>}
-      <p><strong>Detected categories:</strong> {review.categories.join(', ') || 'None listed'}. Raw captured values are not included.</p>
+      <p><strong>Detected categories:</strong> {review.categories.join(', ') || 'None listed'}. Raw captured values are not included in the generated email.</p>
+      <PayloadEvidence observation={reviewObservation} showUnavailable />
       {review.recipient_candidates.length > 1 && <label>Discovered contacts<select defaultValue="" onChange={(e) => {
         const candidate = review.recipient_candidates[Number(e.target.value)];
         edit({to: candidate.email, recipient_source: 'discovered', recipient_evidence: candidate.source_url, recipient_confirmed: false});

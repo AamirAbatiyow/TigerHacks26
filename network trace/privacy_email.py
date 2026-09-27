@@ -11,6 +11,8 @@ DEFAULT_ACTION = (
     "Please confirm receipt and completion within any applicable statutory period. "
     "I reserve all rights and remedies available to me."
 )
+DEMO_PRIVACY_EMAIL = "scriptwellcontact@gmail.com"
+DEMO_ANALYTICS_HOST = "fly-analytics.fly.dev"
 
 
 def _company_matches(strategy, finding):
@@ -149,6 +151,11 @@ def build_privacy_email(engine, finding, *, to=None, state=None, include_identit
         recipient, source = candidates[0]['email'], 'discovered'
         recipient_evidence = candidates[0]['source_url']
         organization = organization_domain = urlsplit(recipient_evidence).hostname
+    # ScriptWell's demo inbox. Page discovery can still surface the retired mailbox.
+    if not supplied and finding.company.domain == DEMO_ANALYTICS_HOST:
+        recipient, source = DEMO_PRIVACY_EMAIL, "demo"
+        recipient_evidence = None
+        organization, organization_domain = finding.company.name, finding.company.domain
     if source is None and candidates:
         domains = {urlsplit(c['source_url']).hostname for c in candidates}
         if len(domains) == 1:
@@ -204,7 +211,7 @@ def build_privacy_email(engine, finding, *, to=None, state=None, include_identit
         "official_destination": resolution['destination'] if legal and strategy['submission_method'] != 'email' else None,
         "instructions": strategy['instructions'] if legal else 'General request; no jurisdiction-specific right or deadline has been established.',
         "recipient_evidence": recipient_evidence,
-        "recipient_candidates": candidates if source != 'verified' else [],
+        "recipient_candidates": [] if source in {"verified", "demo"} else candidates,
         "requires_recipient_confirmation": source == 'discovered',
         "subject": f"Privacy request regarding {organization}",
         "body": "\n".join(lines).strip() + "\n",

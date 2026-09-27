@@ -11,7 +11,7 @@ from test_gmail import finding, Provider, EMAIL_STRATEGY, TODAY, rules_with_dead
 import event_store
 from local_api import create_server
 from privacy.engine import OptOutEngine
-from privacy_email import build_privacy_email, DEFAULT_ACTION
+from privacy_email import build_privacy_email, DEFAULT_ACTION, DEMO_PRIVACY_EMAIL
 from gmail_service import GmailError
 
 
@@ -52,6 +52,16 @@ class ActionsTests(unittest.TestCase):
     def approved(self,draft,**kwargs):
         return {'approved':True,'draft_id':draft['draft_id'],'to':draft['to'] or 'contact@example.test',
                 'subject':draft['subject'],'body':draft['body'],'recipient_source':draft['recipient_source'] or 'user',**kwargs}
+
+    def test_scriptwell_demo_contact_is_sent_without_discovery_confirmation(self):
+        self.server.provider = Provider(finding(state=None, company='fly-analytics.fly.dev', domain='fly-analytics.fly.dev'))
+        draft = self.draft(contacts=[{'email': 'Scriptwell@gmail.com', 'source_url': 'https://scriptwell.fly.dev/privacy'}])
+        self.assertEqual(draft['to'], DEMO_PRIVACY_EMAIL)
+        self.assertEqual(draft['recipient_source'], 'demo')
+        self.gmail.connected = True
+        self.assertEqual(self.call('/api/privacy/actions/send', self.approved(draft))[0], 200)
+        self.assertEqual(self.gmail.sent[0][0], DEMO_PRIVACY_EMAIL)
+        self.assertEqual(self.call('/api/privacy/actions/send', self.approved(draft, to='Scriptwell@gmail.com'))[0], 400)
 
     def test_general_request_manual_fallback_no_deadline_no_auto_send(self):
         draft=self.draft()

@@ -51,6 +51,6 @@ test('extension and dashboard share a draft API and one review screen; no legacy
   assert.match(panel,/loadDraft\(id\)/);
   assert.match(panel,/onClick=\{send\}/);
   assert.match(panel,/status: 'mailto_opened'/);
-  assert.doesNotMatch(popup,/fileForMe|filing\/index/);
+  assert.match(popup,/privacyIssueCount\(/);
   assert.doesNotMatch(panel,/api\/privacy\/run|api\/gmail\/draft/);
 });

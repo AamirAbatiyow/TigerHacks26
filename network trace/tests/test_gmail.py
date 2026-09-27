@@ -27,7 +27,7 @@ from gmail_service import (
 from local_api import create_server
 from privacy.contract import PrivacyFinding
 from privacy.engine import OptOutEngine
-from privacy_email import DEFAULT_ACTION, build_privacy_email, verified_email_recipient
+from privacy_email import DEFAULT_ACTION, DEMO_PRIVACY_EMAIL, build_privacy_email, verified_email_recipient
 from server import create_server as fly_server
 
 SENTINEL = "SENTINEL-CARD-VALUE"
@@ -123,7 +123,8 @@ class EmailDraftTests(unittest.TestCase):
     def test_no_verified_mailbox_is_not_guessed(self):
         engine = OptOutEngine(today=TODAY)
         draft = build_privacy_email(engine, finding(company="fly-analytics.fly.dev", domain="fly-analytics.fly.dev", state=None))
-        self.assertIsNone(draft["to"])
+        self.assertEqual(draft["to"], DEMO_PRIVACY_EMAIL)
+        self.assertEqual(draft["recipient_source"], "demo")
         self.assertIsNone(verified_email_recipient(engine, finding()))
         portal = json.loads((ROOT / "fly-analytics/privacy/strategies.json").read_text())[0]
         self.assertIsNone(verified_email_recipient(self.engine(strategies=[portal]), finding(company="Microsoft", domain="microsoft.com")))
@@ -131,6 +132,24 @@ class EmailDraftTests(unittest.TestCase):
         self.assertIsNone(verified_email_recipient(self.engine(strategies=[https_only]), finding()))
         other = {**EMAIL_STRATEGY, "id": "other", "verified_endpoint": "mailto:other@example.test"}
         self.assertIsNone(verified_email_recipient(self.engine(strategies=[EMAIL_STRATEGY, other]), finding()))
+
+    def test_scriptwell_demo_ignores_the_retired_mailbox(self):
+        engine = OptOutEngine(today=TODAY)
+        event = {"scheme": "https", "host": "fly-analytics.fly.dev", "initiator": "https://scriptwell.fly.dev/"}
+        draft = build_privacy_email(
+            engine, finding(company="fly-analytics.fly.dev", domain="fly-analytics.fly.dev", state=None),
+            event=event, contacts=[{"email": "Scriptwell@gmail.com", "source_url": "https://scriptwell.fly.dev/privacy"}],
+        )
+        self.assertEqual(draft["to"], DEMO_PRIVACY_EMAIL)
+        self.assertEqual(draft["recipient_source"], "demo")
+        self.assertEqual(draft["recipient_candidates"], [])
+        self.assertNotIn("Scriptwell@gmail.com", json.dumps(draft))
+        explicit = build_privacy_email(
+            engine, finding(company="fly-analytics.fly.dev", domain="fly-analytics.fly.dev", state=None),
+            to="privacy@example.test",
+        )
+        self.assertEqual(explicit["to"], "privacy@example.test")
+        self.assertEqual(explicit["recipient_source"], "user")
 
     def test_manual_recipient_and_selected_identity_only(self):
         draft = build_privacy_email(
@@ -287,7 +306,8 @@ class GmailApiTests(unittest.TestCase):
                     self.assertEqual(status["status"], "disconnected")
                     code, draft = self.post(server, "/api/privacy/actions/draft", {"event_id": "evt-sentinel"})
                     self.assertEqual(code, 200)
-                    self.assertIsNone(draft["to"])
+                    self.assertEqual(draft["to"], DEMO_PRIVACY_EMAIL)
+                    self.assertEqual(draft["recipient_source"], "demo")
                     self.assertEqual(draft["legal_basis"], "general")
                     self.assertNotIn(SENTINEL, json.dumps(draft))
                     self.assertNotIn("payment.card_number", json.dumps(draft))

@@ -10,7 +10,7 @@ import { LOCAL_API, toSession } from "./data/liveEvents";
 import "./index.css";
 import "./views.css";
 
-function SessionExperience({ session, view, onViewChange, connection, duration }) {
+function SessionExperience({ session, observations, view, onViewChange, connection, duration }) {
   const [inspection, setInspection] = useState(null);
   const [privacyOpen, setPrivacyOpen] = useState(() => new URLSearchParams(window.location.search).has("privacy"));
   const playback = usePlayback(duration);
@@ -48,7 +48,7 @@ function SessionExperience({ session, view, onViewChange, connection, duration }
           <div className="session-summary"><span className="session-label">At this point in time</span><div className="summary-stat"><strong>{new Set(observedEvents.map((event) => event.nodeId)).size}</strong><span>destinations contacted</span></div><div className="summary-stat"><strong>{observedEvents.length}</strong><span>transfers recorded</span></div></div>
           <NetworkScene sourceName={session.source.name} nodes={session.nodes} activeNodeId={transfer?.nodeId} transfer={transfer} onEnterService={selectDestination} onClear={() => setInspection(null)} />
         </section>}
-      {privacyOpen ? <PrivacyPanel /> : <DetailsPanel selectedNode={selectedNode} selectedRequest={selectedRequest} mode={view} onSelectRequest={(request) => setInspection({ nodeId: selectedNode.id, requestId: request?.id || null })} />}
+      {privacyOpen ? <PrivacyPanel observations={observations} /> : <DetailsPanel selectedNode={selectedNode} selectedRequest={selectedRequest} mode={view} onSelectRequest={(request) => setInspection({ nodeId: selectedNode.id, requestId: request?.id || null })} />}
     </main>
     <SessionTimeline playback={playback} events={events} nodes={session.nodes} activeEvent={currentEvent} onSeek={seek} onReplay={replay} onGoLive={goLive} />
   </div>;
@@ -94,5 +94,5 @@ export default function App() {
   const input = snapshot?.data || toSession(observations, { simple: view === "simple" });
   const session = useMemo(() => normalizeSession(input), [input]);
   const duration = (session.events.at(-1)?.at || 0) + FLIGHT_SECONDS;
-  return <SessionExperience key={snapshot?.revision || "live"} session={session} view={view} onViewChange={setView} connection={snapshot ? "Loaded session" : connection} duration={duration} />;
+  return <SessionExperience key={snapshot?.revision || "live"} session={session} observations={observations} view={view} onViewChange={setView} connection={snapshot ? "Loaded session" : connection} duration={duration} />;
 }

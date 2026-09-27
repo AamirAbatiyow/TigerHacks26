@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {loadPrivacyFindings, pageContacts, discoverPageContacts} from '../privacy-findings.mjs';
+import {privacyIssueCount, sensitiveFieldCount} from '../sensitive-count.mjs';
 const finding={event_id:'evt-1',company:'Example Health',reason_label:'Sensitive data observed',status:'UNSUPPORTED'};
 const flush=()=>new Promise(setImmediate);
 function popup(initial=[finding]) {
@@ -10,10 +11,10 @@ function popup(initial=[finding]) {
   for (const id of ['packetCount','closePopup','fileForMe','viewDetails','privacyOptOut','privacyOptOutLabel','privacyFinding','privacyReason','privacyStatus','refreshPrivacyFindings']) nodes.set(id,{
     value:'',disabled:false,textContent:'',listeners:{},addEventListener(e,f){this.listeners[e]=f;},setAttribute(k,v){this[k]=v;},replaceChildren(){this.value='';},add(){}
   });
-  vm.runInNewContext(fs.readFileSync(new URL('../popup.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/,''),{
+  vm.runInNewContext(fs.readFileSync(new URL('../popup.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/gm,''),{
     loadPrivacyFindings:async()=>{if(data instanceof Error) throw data;return typeof data==='function'?data():data;},
     createPrivacyDraft:async p=>{drafted.push(p);return {draft_id:'local-draft'};},discoverPageContacts:async()=>[], encodeURIComponent,
-    fetch:async()=>({ok:true,json:async()=>({events:[]})}),Option:class{},
+    privacyIssueCount,sensitiveFieldCount,fetch:async()=>({ok:true,json:async()=>({events:[]})}),Option:class{},
     document:{getElementById:id=>nodes.get(id),addEventListener:(e,f)=>{listeners[e]=f;}},
     window:{close:()=>{closed=true;},open:url=>opened.push(url)},
     chrome:{runtime:{getURL:path=>path},tabs:{create:({url})=>opened.push(url)}},
@@ -43,6 +44,19 @@ test('removed findings, unavailable service, or a changed selection do not open 
   const ui=popup();await flush();let resolve;ui.setData(()=>new Promise(r=>{resolve=r;}));
   const click=ui.nodes.get('privacyOptOut').listeners.click();ui.nodes.get('privacyFinding').value='different';ui.nodes.get('privacyFinding').listeners.change();resolve([finding]);await click;
   assert.equal(ui.opened.length,0);
+});
+test('popup counts canonical sensitive fields, not raw observations', () => {
+  const extension = {event_id:'post-ext', source:'browser_extension', method:'POST', host:'fly-analytics.fly.dev', path:'/collect', timestamp:'2026-09-27T00:00:20.000Z', body:null, findings:[]};
+  const thinner = {event_id:'post-tshark', source:'tshark', method:'POST', host:'fly-analytics.fly.dev', path:'/collect', timestamp:'2026-09-27T00:00:20.000Z', body:{partial:true}, findings:[1,2,3,4].map((n) => ({field:`f${n}`}))};
+  const mitm = {event_id:'post-mitm', source:'mitm', method:'POST', host:'fly-analytics.fly.dev', path:'/collect', timestamp:'2026-09-27T00:00:20.020Z', body:{full:true}, findings:Array.from({length:12}, (_, n) => ({field:`f${n}`}))};
+  assert.equal(sensitiveFieldCount([extension]), 0);
+  for (const records of [[extension, mitm], [mitm, extension], [thinner, mitm], [mitm, thinner]]) {
+    assert.equal(sensitiveFieldCount(records), 12);
+  }
+  const html = fs.readFileSync(new URL('../popup.html', import.meta.url), 'utf8');
+  assert.match(html, /privacy issues/);
+  assert.equal(sensitiveFieldCount, privacyIssueCount);
+  assert.doesNotMatch(html, /local observations/);
 });
 test('report, close, Escape remain; popup has a single consolidated privacy action',async()=>{
   const ui=popup();await flush();ui.nodes.get('viewDetails').listeners.click();assert.deepEqual(ui.opened,['visualization/index.html']);

@@ -22,7 +22,7 @@ from privacy.engine import OptOutEngine
 from privacy.store import ResultStore
 from live_privacy import EventPrivacyFindingProvider
 from gmail_service import GmailError, GmailService
-from privacy_email import EMAIL, build_privacy_email
+from privacy_email import DEMO_PRIVACY_EMAIL, EMAIL, build_privacy_email
 
 HOST, PORT = '127.0.0.1', 8765
 UI_ORIGINS = {'http://localhost:5174', 'http://127.0.0.1:5174'}
@@ -136,7 +136,7 @@ class Handler(PrivacyHandler):
         draft = saved['draft']
         to, subject, body = payload.get('to'), payload.get('subject'), payload.get('body')
         source = payload.get('recipient_source')
-        if not all(isinstance(x, str) for x in (to, subject, body)) or source not in {'user', 'verified', 'discovered'}:
+        if not all(isinstance(x, str) for x in (to, subject, body)) or source not in {'user', 'verified', 'discovered', 'demo'}:
             raise ValidationError('Review recipient, subject, message, and recipient source.')
         if any(char in to or char in subject for char in '\r\n') or not EMAIL.fullmatch(to.strip()) or not subject.strip() or not body.strip():
             raise ValidationError('Enter one email address, a single-line subject, and a message.')
@@ -147,6 +147,9 @@ class Handler(PrivacyHandler):
             current = build_privacy_email(self.server.engine, finding)
             if draft['recipient_source'] != source or current['to'] != to.strip() or draft['to'] != to.strip():
                 raise ValidationError('The verified contact changed. Review a new draft.')
+        if source == 'demo':
+            if draft['recipient_source'] != 'demo' or to.strip() != DEMO_PRIVACY_EMAIL or draft['to'] != DEMO_PRIVACY_EMAIL:
+                raise ValidationError('The demo contact changed. Review a new draft.')
         if source == 'discovered':
             if payload.get('recipient_confirmed') is not True:
                 raise ValidationError('Confirm the discovered recipient and its page source before sending.')
