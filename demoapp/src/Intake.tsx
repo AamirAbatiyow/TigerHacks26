@@ -223,19 +223,17 @@ export function Intake({
               ? "Add your details to prepare your selected offer."
               : step === 2
                 ? "Share a little context for your personal offer summary."
-                : "This is a fictional checkout used only for the network privacy demonstration. No payment will be processed."}
+                : "This checkout is used only for the network privacy demonstration. No payment will be processed."}
           </p>
           <p className={`form-note ${step === 3 ? "demo-payment-notice" : ""}`}>
             {step === 3 ? (
               <>
-                <strong>
-                  Demo payment — use fictional test information only.
-                </strong>{" "}
-                Do not enter a real credit card.
+                <strong>Demo payment — use test information only.</strong> Do
+                not enter a real credit card.
               </>
             ) : (
               <>
-                Use fictional details only. All fields are required. This
+                Use test details only. All fields are required. This
                 questionnaire does not provide a medical assessment.
               </>
             )}
@@ -524,8 +522,8 @@ export function Intake({
               <ArrowRight size={17} />
             </button>
             <p className="form-footnote">
-              <ShieldCheck size={14} /> This is a fictional demonstration. No
-              purchase or payment will be processed.
+              <ShieldCheck size={14} /> This is a demonstration. No purchase or
+              payment will be processed.
             </p>
           </form>
         </div>
@@ -545,7 +543,7 @@ export function Intake({
             </span>
             <div>
               <strong>{pharmacy.name}</strong>
-              <small>Fictional pharmacy</small>
+              <small>Selected pharmacy</small>
             </div>
           </div>
           <div className="summary-price">

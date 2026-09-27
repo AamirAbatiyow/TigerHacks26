@@ -107,9 +107,9 @@ export function PrivacyPolicy() {
             <div>
               <h2>Health privacy and demo limits</h2>
               <p>
-                {BRAND.name} is a fictional hackathon demonstration, not a
-                healthcare provider, pharmacy, insurer, or payment service. It
-                does not provide medical advice and does not claim that this
+                {BRAND.name} is a hackathon demonstration, not a healthcare
+                provider, pharmacy, insurer, or payment service. It does not
+                provide medical advice and does not claim that this
                 demonstration establishes a HIPAA violation or HIPAA compliance.
               </p>
               <p>
