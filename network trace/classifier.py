@@ -16,11 +16,16 @@ VOCABULARY = [
     ("mental_health", "HIGH", "mental|depression|anxiety|phq|gad|suicidal|psychiatric|mood"),
     ("substance_use", "HIGH", "substance|alcohol|tobacco|smoking|nicotine|cannabis|recreational drug"),
     ("insurance", "HIGH", "insurance|policy number|member id|subscriber id"),
+    ("financial", "HIGH", "credit card|debit card|card number|card num|card no|cc number|cc num|primary account number|"
+                          "cardholder|card holder|name on card|card last|cvc|cvv|ccv|security code|card verification|"
+                          "exp month|exp year|expiration month|expiration year|expiry month|expiry year|card expiration|"
+                          "card expiry|routing number|routing no|aba number|aba routing|bank account|account number|"
+                          "iban|bic|swift code|swift bic|sort code|payment token|card token"),
     ("biometrics", "HIGH", "weight|height|bmi|blood pressure|heart rate|pulse|glucose|oxygen saturation|temperature|vital|biometric"),
     ("medications", "HIGH", "medication|prescription|drug|dosage|dose|rx|allergy"),
     ("diagnoses", "HIGH", "diagnosis|condition|disease|health concern|health.concern"),
     ("symptoms", "MEDIUM", "symptom|nausea|headache|fatigue|pain|vomiting|dizziness|fever|health.duration"),
-    ("location", "HIGH", "location|latitude|longitude|gps|zip code|zipcode|postal|address"),
+    ("location", "HIGH", "location|latitude|longitude|gps|zip code|zipcode|billing zip|postal|address"),
     ("identity", "HIGH", "email|e mail|phone|telephone|full name|first name|last name|person.name|patient name|date of birth|dob|ssn|contact|user id|account id"),
     ("device_identifiers", "LOW", "device|identifier|advertising id|session id|ip address|fingerprint|viewport|language|user agent"),
     ("appointments", "MEDIUM", "appointment|provider|physician|doctor|clinic|pharmacy|pharmacist"),
@@ -28,7 +33,8 @@ VOCABULARY = [
 
 
 def tokens(value):
-    value = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(value))
+    value = re.sub(r"\[\d+\]", " ", str(value))
+    value = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", value)
     value = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", value).lower()
     aliases = {"allergies": "allergy", "diagnoses": "diagnosis"}
     words = re.findall(r"[a-z]+|[0-9]+", value)
@@ -50,6 +56,109 @@ PATH_RULE_CONFIDENCE = 0.90
 VALUE_RULE_CONFIDENCE = 0.97
 SEMANTIC_CONFIDENCE_CAP = 0.85
 
+# Ambiguous on their own (session expiration, map pan, Swift version); financial only
+# when another word of the path places them in a payment context.
+PAYMENT_CONTEXT = {"payment", "card", "credit", "debit", "cc", "billing", "bank", "checkout", "wallet"}
+CONTEXTUAL_FINANCIAL = [tokens(alias) for alias in
+                        "pan|exp|expiration|expiry|expire|exp date|expiration date|expiry date|valid thru|"
+                        "valid through|swift".split("|")]
+EXPIRY_WORDS = {"exp", "expiration", "expiry", "expire", "valid", "thru"}
+CVC_WORDS = [["cvc"], ["cvv"], ["ccv"], ["security", "code"], ["card", "verification"]]
+ROUTING_WORDS = {"routing", "aba"}
+
+# Issuer prefixes and lengths; together with Luhn, arbitrary numeric IDs rarely qualify.
+CARD_NETWORKS = [
+    (re.compile(r"4"), {13, 16, 19}),
+    (re.compile(r"5[1-5]|222[1-9]|22[3-9]\d|2[3-6]\d\d|27[01]\d|2720"), {16}),
+    (re.compile(r"3[47]"), {15}),
+    (re.compile(r"6011|65|64[4-9]"), {16, 17, 18, 19}),
+    (re.compile(r"35(?:2[89]|[3-8]\d)"), {16, 17, 18, 19}),
+    (re.compile(r"3(?:0[0-5]|[689])"), {14, 15, 16, 17, 18, 19}),
+    (re.compile(r"62"), {16, 17, 18, 19}),
+]
+CARD_TEXT = re.compile(r"\d(?:[ -]?\d){12,18}")
+GROUPED_CARD = re.compile(r"\d{4}([ -])\d{4}\1\d{4}\1\d{4}(?:\1\d{1,3})?|\d{4}([ -])\d{6}\2\d{4,5}")
+EXPIRY_VALUE = re.compile(r"(0?[1-9]|1[0-2])\s?[/-]\s?(\d{2}|20\d{2})")
+IBAN_LENGTHS = {
+    "AD": 24, "AE": 23, "AT": 20, "BE": 16, "BG": 22, "BH": 22, "BR": 29, "CH": 21, "CY": 28, "CZ": 24,
+    "DE": 22, "DK": 18, "EE": 20, "ES": 24, "FI": 18, "FR": 27, "GB": 22, "GR": 27, "HR": 21, "HU": 28,
+    "IE": 22, "IL": 23, "IS": 26, "IT": 27, "KW": 30, "KZ": 20, "LI": 21, "LT": 20, "LU": 20, "LV": 21,
+    "MC": 27, "MT": 31, "MX": 18, "NL": 18, "NO": 15, "PK": 24, "PL": 28, "PT": 25, "QA": 29, "RO": 24,
+    "RS": 22, "SA": 24, "SE": 24, "SI": 19, "SK": 24, "SM": 27, "TR": 26, "UA": 29,
+}
+
+
+def _contains(words, alias):
+    return any(words[i:i + len(alias)] == alias for i in range(len(words)))
+
+
+def luhn_valid(digits):
+    """Luhn mod 10: from the rightmost digit, double every second digit (minus 9 if over 9); sum % 10 == 0."""
+    total = 0
+    for position, char in enumerate(reversed(digits)):
+        digit = int(char)
+        if position % 2:
+            digit = digit * 2 - 9 if digit > 4 else digit * 2
+        total += digit
+    return total % 10 == 0
+
+
+def card_number(value):
+    """(digits, grouped) for a plausible payment card number, else None."""
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
+        return None
+    text = str(value).strip()
+    if not CARD_TEXT.fullmatch(text):
+        return None
+    digits = re.sub(r"[ -]", "", text)
+    if not any(prefix.match(digits) and len(digits) in lengths for prefix, lengths in CARD_NETWORKS):
+        return None
+    if not luhn_valid(digits):
+        return None
+    return digits, bool(GROUPED_CARD.fullmatch(text))
+
+
+def iban_valid(value):
+    if not isinstance(value, str):
+        return False
+    text = value.replace(" ", "")
+    if not re.fullmatch(r"[A-Z]{2}\d{2}[A-Z0-9]{11,30}", text) or IBAN_LENGTHS.get(text[:2]) != len(text):
+        return False
+    rearranged = text[4:] + text[:4]
+    return int("".join(str(int(char, 36)) for char in rearranged)) % 97 == 1
+
+
+def aba_routing_valid(value):
+    text = str(value).strip() if isinstance(value, (str, int)) and not isinstance(value, bool) else ""
+    if not re.fullmatch(r"\d{9}", text):
+        return False
+    d = [int(char) for char in text]
+    return (3 * (d[0] + d[3] + d[6]) + 7 * (d[1] + d[4] + d[7]) + d[2] + d[5] + d[8]) % 10 == 0
+
+
+def _financial(reason):
+    return {"category": "financial", "severity": SEVERITY["financial"],
+            "confidence": VALUE_RULE_CONFIDENCE, "reason": reason}
+
+
+def financial_value_match(words, value):
+    """Structural payment detection. Card numbers need issuer prefix, length, and Luhn, plus either a
+    payment context in the path or card-style digit grouping; the other checks need the field's own context."""
+    context = bool(PAYMENT_CONTEXT & set(words))
+    card = card_number(value)
+    if card and (context or card[1]):
+        return _financial("value is a Luhn-valid payment card number")
+    if iban_valid(value):
+        return _financial("value is a checksum-valid IBAN")
+    text = str(value).strip() if isinstance(value, (str, int)) and not isinstance(value, bool) else ""
+    if any(_contains(words, alias) for alias in CVC_WORDS) and re.fullmatch(r"\d{3,4}", text):
+        return _financial("value is a 3-4 digit card security code")
+    if context and EXPIRY_WORDS & set(words) and EXPIRY_VALUE.fullmatch(text):
+        return _financial("value is a card expiration date")
+    if ROUTING_WORDS & set(words) and aba_routing_valid(value):
+        return _financial("value is a checksum-valid ABA routing number")
+    return None
+
 
 def _ip_address(value):
     if not isinstance(value, str) or not re.fullmatch(r"[0-9A-Fa-f:.]{7,45}", value) or value.count(":") == 1:
@@ -62,13 +171,22 @@ def _ip_address(value):
 
 
 def rule_match(path, value):
-    """Deterministic detection: key vocabulary first, then value signatures."""
+    """Deterministic detection: structural payment values, key vocabulary, then value signatures."""
     words = tokens(path)
+    structural = financial_value_match(words, value)
+    if structural:
+        return structural
     for category, severity, aliases in RULES:
         for alias in aliases:
-            if any(words[i:i + len(alias)] == alias for i in range(len(words))):
+            if _contains(words, alias):
                 return {"category": category, "severity": severity, "confidence": PATH_RULE_CONFIDENCE,
                         "reason": f"field name contains '{' '.join(alias)}'"}
+    if PAYMENT_CONTEXT & set(words):
+        for alias in CONTEXTUAL_FINANCIAL:
+            if _contains(words, alias):
+                return {"category": "financial", "severity": SEVERITY["financial"],
+                        "confidence": PATH_RULE_CONFIDENCE,
+                        "reason": f"field name contains '{' '.join(alias)}' in a payment context"}
     if isinstance(value, str):
         for category, label, pattern in VALUE_SIGNATURES:
             if pattern.fullmatch(value):

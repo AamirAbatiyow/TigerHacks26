@@ -51,6 +51,11 @@ PROTOTYPES = {
         "health insurance", "insurance member id", "insurance policy number", "health plan provider",
         "insurance carrier", "insurance group number", "medicaid or medicare number",
     ],
+    "financial": [
+        "credit card number", "debit card number", "card verification code", "card security code",
+        "card expiration date", "cardholder name on card", "bank account number", "bank routing number",
+        "international bank account number", "swift bic bank code", "payment card token",
+    ],
     "biometrics": [
         "body weight", "height", "body mass index bmi", "blood pressure reading", "heart rate",
         "blood glucose level", "body temperature", "oxygen saturation", "vital signs", "sleep hours",
@@ -107,6 +112,7 @@ ABBREVIATIONS = {
     "ttc": "trying to conceive", "phq": "phq depression questionnaire", "gad": "gad anxiety questionnaire",
     "sti": "sexually transmitted infection", "std": "sexually transmitted disease", "ip": "ip address",
     "ua": "user agent", "etoh": "alcohol", "num": "number", "qty": "quantity",
+    "cvc": "card verification code", "cvv": "card security code", "iban": "international bank account number",
 }
 
 _SAFE_VALUE = re.compile(r"[A-Za-z][A-Za-z0-9 .,'/+-]{0,47}")
