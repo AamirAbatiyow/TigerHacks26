@@ -94,7 +94,7 @@ export function PrivacyPolicy() {
               <h2>Analytics opt-out requests</h2>
               <p>
                 A request to stop future analytics sharing may be submitted to
-                our privacy contact at {" "}
+                our privacy contact at{" "}
                 <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>. An
                 opt-out request cannot recall information that was already
                 transmitted before the request was processed.
@@ -107,9 +107,9 @@ export function PrivacyPolicy() {
             <div>
               <h2>Health privacy and demo limits</h2>
               <p>
-                {BRAND.name} is a fictional hackathon demonstration, not a
-                healthcare provider, pharmacy, insurer, or payment service. It
-                does not provide medical advice and does not claim that this
+                {BRAND.name} is a hackathon demonstration, not a healthcare
+                provider, pharmacy, insurer, or payment service. It does not
+                provide medical advice and does not claim that this
                 demonstration establishes a HIPAA violation or HIPAA compliance.
               </p>
               <p>
