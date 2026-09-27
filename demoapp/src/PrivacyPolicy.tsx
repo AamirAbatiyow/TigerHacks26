@@ -94,7 +94,7 @@ export function PrivacyPolicy() {
               <h2>Analytics opt-out requests</h2>
               <p>
                 A request to stop future analytics sharing may be submitted to
-                our privacy contact at{" "}
+                our privacy contact at {" "}
                 <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>. An
                 opt-out request cannot recall information that was already
                 transmitted before the request was processed.
