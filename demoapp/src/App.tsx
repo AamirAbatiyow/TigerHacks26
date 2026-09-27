@@ -42,6 +42,15 @@ const icons = {
   sun: Sun,
   wind: Wind,
 };
+const featuredMedicationIds = new Set([
+  "sertraline",
+  "atorvastatin",
+  "metformin",
+  "albuterol",
+]);
+const featuredMedications = medications.filter((medication) =>
+  featuredMedicationIds.has(medication.id),
+);
 export default function App() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -191,29 +200,6 @@ export default function App() {
                       Find savings <ArrowRight size={17} />
                     </button>
                   </form>
-                  <div className="popular">
-                    Popular searches:{" "}
-                    {["Atorvastatin", "Sertraline", "Metformin"].map((name) => (
-                      <button
-                        key={name}
-                        onClick={() => {
-                          setQuery(name);
-                          setCategory("");
-                          setSearched(true);
-                        }}
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="hero-checks">
-                    <span>
-                      <Check size={16} /> No membership needed
-                    </span>
-                    <span>
-                      <Check size={16} /> Easy price comparisons
-                    </span>
-                  </div>
                 </div>
                 <div className="hero-art" aria-hidden="true">
                   <div className="art-ring" />
@@ -284,11 +270,10 @@ export default function App() {
                       key={c.id}
                       onClick={() => browse(c.id)}
                     >
-                      <span className={`condition-icon ${c.id}`}>
+                      <span className={`condition-icon ${c.tone}`}>
                         <Icon size={25} />
                       </span>
                       <strong>{c.name}</strong>
-                      <span>{c.description}</span>
                       <ArrowRight size={18} />
                     </button>
                   );
@@ -331,7 +316,7 @@ export default function App() {
                 dosage choices belong with your clinician.
               </p>
               <div className="medication-grid">
-                {(searched ? results : medications.slice(0, 4)).map((m) => (
+                {(searched ? results : featuredMedications).map((m) => (
                   <button
                     className="medication-card"
                     key={m.id}
@@ -352,7 +337,7 @@ export default function App() {
                     </span>
                     <span className="medication-price">
                       <span>
-                        Illustrative price from <b>{money(m.price)}</b>
+                        Price from <b>{money(m.price)}</b>
                       </span>
                       <span className="arrow-circle">
                         <ArrowRight size={18} />

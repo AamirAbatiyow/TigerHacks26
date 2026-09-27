@@ -234,32 +234,6 @@ small {
 .dark-btn:hover {
   background: #385b48;
 }
-.popular {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 10px;
-  margin-top: 12px;
-  color: #626744;
-  align-items: center;
-}
-.popular button {
-  padding: 0;
-  border-bottom: 1px solid #9a9b6d;
-  background: none;
-  font-size: 10px;
-}
-.hero-checks {
-  display: flex;
-  gap: 24px;
-  margin-top: 27px;
-  font-size: 11px;
-}
-.hero-checks span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 .hero-art {
   position: relative;
   height: 390px;
@@ -471,7 +445,7 @@ small {
 }
 .condition-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 .condition-card {
@@ -506,33 +480,29 @@ small {
   margin-bottom: 20px;
   background: #f6e9d9;
 }
-.condition-icon.mental {
+.condition-icon.lavender {
   background: #ece9f5;
 }
-.condition-icon.diabetes {
+.condition-icon.mint,
+.condition-icon.green {
   background: #e8f0da;
 }
-.condition-icon.allergy {
+.condition-icon.yellow {
   background: #fbefd5;
 }
-.condition-icon.skin {
+.condition-icon.rose,
+.condition-icon.pink {
   background: #f7e6e3;
 }
-.condition-icon.respiratory {
+.condition-icon.blue {
   background: #e3eff0;
 }
 .condition-card strong {
   font-size: 13px;
   font-weight: 650;
 }
-.condition-card > span:not(.condition-icon) {
-  font-size: 10px;
-  color: #7c827a;
-  margin-top: 5px;
-  min-height: 30px;
-}
 .condition-card > svg {
-  margin-top: 15px;
+  margin-top: 12px;
   color: #6c796b;
 }
 .medication-section {
@@ -983,13 +953,6 @@ small {
   }
   .search .dark-btn {
     width: 100%;
-  }
-  .popular {
-    gap: 9px;
-  }
-  .hero-checks {
-    gap: 14px;
-    font-size: 9px;
   }
   .trust-strip {
     gap: 20px;

@@ -49,7 +49,7 @@ test("bridge transport sends the entered nested JSON exactly once", async () => 
         pharmacyPreference: "lowest_price",
         payment: { ...DEMO_PAYMENT },
       },
-      medications[2],
+      medications.find((medication) => medication.id === "sertraline")!,
       pharmacies[0],
       "anxiety",
     );
