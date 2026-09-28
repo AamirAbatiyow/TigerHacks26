@@ -60,7 +60,7 @@ React · TypeScript · Chrome · Python · Three.js · an on-device model
 <p align="center">
   <a href="https://github.com/asyaafv"><strong>Asya Erdogan</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/gnichol479"><strong>Nichol</strong></a>
+  <a href="https://github.com/gnichol479"><strong>Gibson Nichol</strong></a>
   &nbsp;·&nbsp;
   <a href="https://github.com/AamirAbatiyow"><strong>Aamir Abatiyow</strong></a>
   &nbsp;·&nbsp;
