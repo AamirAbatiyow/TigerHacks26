@@ -39,9 +39,9 @@ class OriginRecognitionTests(unittest.TestCase):
         origins = parse_origins('https://scriptwell-test.example, *.fly.dev, https://*.fly.dev, ftp://x.test')
         self.assertEqual(origins, {('https', 'scriptwell-test.example', 443)})
         with patch.object(demo_config, 'SCRIPTWELL_ORIGINS', origins):
-            self.assertTrue(is_demo_relevant({'host': 'other.test', 'initiator': 'https://scriptwell-test.example'}))
-            self.assertFalse(is_demo_relevant({'host': 'other.test', 'initiator': DEPLOYED}))
-            self.assertFalse(is_demo_relevant({'host': 'other.test', 'initiator': LOCAL}))
+            self.assertTrue(is_scriptwell_origin('https://scriptwell-test.example'))
+            self.assertFalse(is_scriptwell_origin(DEPLOYED))
+            self.assertFalse(is_scriptwell_origin(LOCAL))
 
     def test_friendly_label_keeps_address(self):
         self.assertEqual(_origin_label(LOCAL), 'ScriptWell (localhost:5173)')
@@ -57,14 +57,24 @@ class FilterAndThirdPartyTests(unittest.TestCase):
         self.assertTrue(is_demo_relevant({'host': 'scriptwell.fly.dev', 'destination_port': 443}))
         self.assertTrue(is_demo_relevant({'host': 'localhost:5173'}))
 
-    def test_filter_still_suppresses_unrelated_traffic(self):
+    def test_filter_accepts_unrelated_traffic(self):
         for event in [{'host': 'www.google.com', 'initiator': 'https://www.google.com', 'destination_port': 443},
                       {'host': 'api2.cursor.sh', 'destination_port': 443},
                       {'host': 'gateway.icloud.com', 'initiator': None},
                       {'host': 'other-app.fly.dev', 'initiator': 'https://other-app.fly.dev'},
-                      {'host': 'scriptwell.fly.dev', 'destination_port': 80},
-                      {'host': '127.0.0.1', 'destination_port': 8765, 'initiator': DEPLOYED}]:
-            self.assertFalse(is_demo_relevant(event), event)
+                      {'host': 'scriptwell.fly.dev', 'destination_port': 80}]:
+            self.assertTrue(is_demo_relevant(event), event)
+
+    def test_filter_still_suppresses_patientprivy_local_services(self):
+        for port in [8765, 8080, 5174]:
+            for host in ['localhost', '127.0.0.1', '::1']:
+                for initiator in [None, DEPLOYED, 'https://www.google.com']:
+                    event = {'host': host, 'destination_port': port, 'initiator': initiator}
+                    self.assertFalse(is_demo_relevant(event), event)
+                    event['host'] = f'[{host}]:{port}' if host == '::1' else f'{host}:{port}'
+                    event.pop('destination_port')
+                    self.assertFalse(is_demo_relevant(event), event)
+        self.assertFalse(is_demo_relevant(None))
 
     def test_third_party_derives_from_hostnames(self):
         self.assertIs(_third_party(LOCAL, RECEIVER), True)

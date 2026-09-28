@@ -1,5 +1,6 @@
 import { privacyIssues } from "../../../extension/privacy-issues.mjs";
 import { privacyIssueCount, sensitiveFieldCount, simpleObservations } from "../../../extension/sensitive-count.mjs";
+import { isScriptWellEvent, SCRIPTWELL_COLOR } from "./scriptwell.js";
 
 export const LOCAL_API = "http://127.0.0.1:8765";
 export { privacyIssueCount, privacyIssues, sensitiveFieldCount, simpleObservations };
@@ -25,6 +26,7 @@ export function toSession(allObservations, { simple = false } = {}) {
   const groups = new Map();
   const events = observations.map((event, index) => {
     const host = event.host || "unknown";
+    const scriptwell = isScriptWellEvent(event);
     const findings = Array.isArray(event.findings) ? event.findings : [];
     const issues = privacyIssues(findings);
     const sensitive = (simple ? issues : findings).length > 0;
@@ -52,6 +54,7 @@ export function toSession(allObservations, { simple = false } = {}) {
       findings,
       privacyIssues: issues,
       sensitive,
+      scriptwell,
       message,
       fields: simple ? issues.map((issue) => ({ name: issue.title, value: issue.summary })) : rawFields(findings),
     };
@@ -69,6 +72,8 @@ export function toSession(allObservations, { simple = false } = {}) {
     const node = groups.get(host);
     node.requests.push(request);
     node.sensitive ||= sensitive;
+    node.scriptwell ||= scriptwell;
+    if (node.scriptwell) node.color = SCRIPTWELL_COLOR;
     const stamp = when(event);
     return {
       id,
@@ -78,7 +83,9 @@ export function toSession(allObservations, { simple = false } = {}) {
       title: request.name,
       timestamp: event.timestamp,
       sensitive,
+      scriptwell,
     };
   });
-  return { source: { name: "ScriptWell" }, destinations: [...groups.values()], events };
+  const destinations = [...groups.values()];
+  return { source: { name: destinations.some((node) => !node.scriptwell) ? "This device" : "ScriptWell" }, destinations, events };
 }

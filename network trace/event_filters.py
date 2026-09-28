@@ -1,8 +1,6 @@
 import json
 from urllib.parse import urlsplit
 
-from demo_config import RECEIVER_HOSTS, is_scriptwell_host, is_scriptwell_origin
-
 COMPRESSED_ENCODINGS = {"gzip", "x-gzip", "br", "deflate", "zstd", "compress", "x-compress"}
 BINARY_TYPES = {
     "application/octet-stream",
@@ -21,6 +19,8 @@ def host_port(value):
     """Split a Host-style value like 'localhost:5173'. Port is None when absent."""
     if not isinstance(value, str) or not value.strip():
         return None, None
+    if value.strip() == "::1":
+        return "::1", None
     try:
         parts = urlsplit("//" + value.strip())
         port = parts.port
@@ -55,11 +55,8 @@ def _port(value):
         return None
 
 
-# Demo filter:
-# The collectors see every request on the interface or proxy, including Cursor,
-# Apple, and Google background traffic. Only surface requests involving
-# ScriptWell (local or deployed, see demo_config.py) or the synthetic-data
-# receiver so the stream stays readable.
+# Keep PatientPrivy's local services out of the stream, while allowing observed
+# traffic from any website. Simple-view noise suppression remains in the UI.
 def is_demo_relevant(event):
     if not isinstance(event, dict):
         return False
@@ -67,14 +64,7 @@ def is_demo_relevant(event):
     host, explicit_port = host_port(event.get("host"))
     if host in {"localhost", "127.0.0.1", "::1"} and (explicit_port or _port(event.get("destination_port"))) in {8765, 8080, 5174}:
         return False
-    if host and host.lower() in RECEIVER_HOSTS:
-        return True
-
-    port = explicit_port if explicit_port is not None else _port(event.get("destination_port"))
-    if is_scriptwell_host(host, port):
-        return True
-
-    return is_scriptwell_origin(event.get("initiator"))
+    return True
 
 
 def _encoded_size(value):

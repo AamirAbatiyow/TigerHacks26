@@ -44,7 +44,8 @@ test('contact lookup checks a few obvious same-origin pages and keeps manual fal
     scripting:{executeScript:async()=>{throw Error('blocked');}}}), {host:'example.test',contacts:[]});
 });
 
-test('popup opens an editable review and never sends until Send is clicked', async () => {
+for (const host of ['fly-analytics.fly.dev', 'scriptwell.fly.dev', 'example.test']) {
+test(`popup fixes the demo recipient for ${host} and only sends after review`, async () => {
   const nodes = new Map();
   const ids = ['closePopup','fileForMe','viewDetails','optOutDialog','recipientEmail','emailSubject','emailBody',
     'sendEmail','sendStatus','contactStatus','currentWebsite','emailjsService','emailjsTemplate',
@@ -53,25 +54,41 @@ test('popup opens an editable review and never sends until Send is clicked', asy
     addEventListener(name, handler){this.listeners[name]=handler;},reportValidity(){return Boolean(this.value);},
     showModal(){this.open=true;},close(){this.open=false;this.listeners.close?.();}});
   const sent = [];
+  let contactLookups = 0;
   const bodyClasses = new Set();
   vm.runInNewContext(fs.readFileSync(new URL('../popup.js', import.meta.url), 'utf8').replace(/^import[^\n]+\n/gm, ''), {
     privacyIssueCount,
     document:{getElementById:id=>nodes.get(id),addEventListener(){},body:{classList:{add:name=>bodyClasses.add(name),remove:name=>bodyClasses.delete(name)}}},window:{close(){},open(){}},URL,
-    chrome:{tabs:{query:async()=>[{id:1,url:'https://fly-analytics.fly.dev/'}],create(){}},
+    chrome:{tabs:{query:async()=>[{id:1,url:`https://${host}/`}],create(){}},
       storage:{local:{get:async()=>({emailjsConfig:{serviceId:'service_1',templateId:'template_1',publicKey:'public_1'}}),set:async()=>{}}},
       runtime:{getURL:path=>path}},
-    DEFAULT_EMAILJS_CONFIG, buildOptOutEmail, discoverCurrentSite:async()=>({host:'fly-analytics.fly.dev',contacts:[]}),
+    DEFAULT_EMAILJS_CONFIG, buildOptOutEmail, discoverCurrentSite:async()=>{
+      contactLookups += 1;
+      return {host,contacts:[{email:'privacy@example.test',source_url:`https://${host}/privacy`}]};
+    },
     sendWithEmailJS:async (...args)=>{sent.push(args);},
     fetch:async()=>({ok:true,json:async()=>({events:[]})}),
   });
   await nodes.get('privacyOptOut').listeners.click();
   assert.equal(nodes.get('optOutDialog').open,true);
   assert.equal(bodyClasses.has('review-open'),true);
-  assert.match(nodes.get('contactStatus').textContent,/Enter the recipient/);
+  assert.match(nodes.get('contactStatus').textContent,/Hackathon demo/);
+  assert.equal(nodes.get('recipientEmail').value,'scriptwellcontact@gmail.com');
+  assert.equal(nodes.get('recipientEmail').readOnly,true);
+  assert.equal(contactLookups,0);
+  assert.equal(nodes.get('emailSubject').value,buildOptOutEmail(host).subject);
+  assert.equal(nodes.get('emailBody').value,buildOptOutEmail(host).body);
   assert.equal(sent.length,0);
+  // Even a programmatic change must not override the demo send destination.
   nodes.get('recipientEmail').value='privacy@example.test';
+  nodes.get('emailSubject').value='Reviewed subject';
+  nodes.get('emailBody').value='Reviewed body';
   await nodes.get('sendEmail').listeners.click();
   assert.equal(sent.length,1);
-  assert.equal(sent[0][1].to,'privacy@example.test');
+  assert.equal(nodes.get('recipientEmail').value,'scriptwellcontact@gmail.com');
+  assert.deepEqual({...sent[0][1]}, {
+    to:'scriptwellcontact@gmail.com',subject:'Reviewed subject',body:'Reviewed body',
+  });
   assert.equal(nodes.get('sendEmail').textContent,'Sent ✓');
 });
+}

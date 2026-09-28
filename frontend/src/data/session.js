@@ -1,5 +1,9 @@
+import { SCRIPTWELL_COLOR } from "./scriptwell.js";
+
 export const FLIGHT_SECONDS = 3.5;
 const colors = { Analytics: "#8b5cf6", Advertising: "#ec4899", API: "#2dd4bf", "First party": "#22d3ee", Unknown: "#fbbf24" };
+
+const isDemoReceiver = (node) => node?.domain === "fly-analytics.fly.dev" || node?.id === "fly-analytics.fly.dev";
 
 function fieldsFrom(value = []) {
   if (!value || typeof value !== "object") return [];
@@ -29,10 +33,11 @@ export function normalizeSession(input = {}) {
     }));
     return {
       ...destination, id, category, requests,
+      scriptwell: Boolean(destination.scriptwell || isDemoReceiver(destination)),
       name: destination.name || destination.domain || id,
       domain: destination.domain || "Destination not provided",
       message: destination.message || "Select a request to see the fields sent to this destination.",
-      color: destination.color || colors[category] || colors.Unknown,
+      color: isDemoReceiver(destination) ? SCRIPTWELL_COLOR : destination.color || colors[category] || colors.Unknown,
       position: destination.position || [Math.cos(angle) * 2.9, Math.sin(angle) * 2.3, Math.sin(angle * 2) * .5],
       fields: [...new Map(requests.flatMap((request) => request.fields).map((field) => [field.name, field])).values()],
     };
@@ -41,9 +46,9 @@ export function normalizeSession(input = {}) {
   const events = (Array.isArray(input.events) ? input.events : []).map((event, index) => {
     const nodeId = String(event.destinationId ?? event.nodeId ?? "");
     const node = nodes.find((item) => item.id === nodeId);
-    return { ...event, id: String(event.id ?? `event-${index}`), nodeId, at: Math.max(0, Number(event.at) || 0), requestId: event.requestId || node?.requests[0]?.id, title: event.title || "Data sent", sensitive: Boolean(event.sensitive ?? node?.sensitive) };
+    return { ...event, scriptwell: Boolean(event.scriptwell || isDemoReceiver(node)), id: String(event.id ?? `event-${index}`), nodeId, at: Math.max(0, Number(event.at) || 0), requestId: event.requestId || node?.requests[0]?.id, title: event.title || "Data sent", sensitive: Boolean(event.sensitive ?? node?.sensitive) };
   }).filter((event) => ids.has(event.nodeId)).sort((a, b) => a.at - b.at);
-  return { source: { name: input.source?.name || "MyHealth App" }, nodes, events };
+  return { source: { name: "This device" }, nodes, events };
 }
 
 export function eventAtTime(events, time) {

@@ -8,6 +8,7 @@ export default function DetailsPanel({ selectedNode: node, selectedRequest: requ
   return <aside className="details-panel data-inspector" style={{ "--service-color": node.color }}>
     <div className="inspector-heading"><div className="inspector-symbol"><ServiceSymbol category={node.category} /></div><div><h2>{node.name}</h2><p>{node.category}</p></div></div>
     <p className="inspector-domain">{node.domain}</p>
+    {(request ? request.scriptwell : node.scriptwell) && <p className="scriptwell-indicator">ScriptWell demo{request ? " request" : " traffic"}</p>}
     {request && <button className="all-fields" onClick={() => onSelectRequest(null)}>← All fields for this destination</button>}
     <section className="detail-section"><h3>{request ? request.name.replaceAll("_", " ") : "Information received"}</h3><p>{request?.message || node.message}</p></section>
     {(mode !== "technical" || !request) && <section className="detail-section"><h3>{issueView ? "Privacy issues" : "Data fields"} <span className="field-total">{fields.length}</span></h3>
@@ -15,7 +16,7 @@ export default function DetailsPanel({ selectedNode: node, selectedRequest: requ
     </section>}
     {mode === "technical" && request && <section className="detail-section"><h3>Request details</h3><dl className="field-list"><div><dt>Method</dt><dd>{request.method}</dd></div><div><dt>Endpoint</dt><dd>{request.endpoint}</dd></div><div><dt>Recorded timestamp</dt><dd>{request.timestamp}</dd></div></dl></section>}
     {mode === "technical" && request && <PayloadEvidence observation={request} showUnavailable />}
-    {!request && <section className="detail-section request-list"><h3>Requests</h3>{node.requests.map((item) => <button key={item.id} onClick={() => onSelectRequest(item)}><span>{item.name.replaceAll("_", " ")}</span><small>{item.fields.length} {issueView ? (item.fields.length === 1 ? "privacy issue" : "privacy issues") : `fields / ${item.method} ${item.endpoint}`}</small><span className="request-chevron" aria-hidden="true">›</span></button>)}</section>}
+    {!request && <section className="detail-section request-list"><h3>Requests</h3>{node.requests.map((item) => <button key={item.id} className={item.scriptwell ? "scriptwell" : ""} onClick={() => onSelectRequest(item)}><span>{item.name.replaceAll("_", " ")}</span><small>{item.fields.length} {issueView ? (item.fields.length === 1 ? "privacy issue" : "privacy issues") : `fields / ${item.method} ${item.endpoint}`}</small><span className="request-chevron" aria-hidden="true">›</span></button>)}</section>}
     {(request?.sensitive ?? node.sensitive) && <p className="sensitive-note">Contains sensitive information</p>}
   </aside>;
 }

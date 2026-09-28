@@ -1,5 +1,8 @@
-import {DEFAULT_EMAILJS_CONFIG, buildOptOutEmail, discoverCurrentSite, sendWithEmailJS} from './email-opt-out.mjs';
+import {DEFAULT_EMAILJS_CONFIG, buildOptOutEmail, sendWithEmailJS} from './email-opt-out.mjs';
 import { privacyIssueCount } from './sensitive-count.mjs';
+
+// Hackathon/demo recipient: replace when the EmailJS demo ends.
+const DEMO_EMAIL_RECIPIENT = 'scriptwellcontact@gmail.com';
 
 document.getElementById('closePopup').addEventListener('click', () => window.close());
 document.getElementById('fileForMe').addEventListener('click', () => {
@@ -18,6 +21,8 @@ document.getElementById('viewDetails').addEventListener('click', () => {
 });
 const dialog = document.getElementById('optOutDialog');
 const recipient = document.getElementById('recipientEmail');
+recipient.value = DEMO_EMAIL_RECIPIENT;
+recipient.readOnly = true;
 const subject = document.getElementById('emailSubject');
 const body = document.getElementById('emailBody');
 const sendButton = document.getElementById('sendEmail');
@@ -29,16 +34,13 @@ const configFields = {
   templateId: document.getElementById('emailjsTemplate'),
   publicKey: document.getElementById('emailjsPublicKey'),
 };
-let lookupVersion = 0;
-let recipientEdited = false;
 let sending = false;
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !dialog.open) window.close();
 });
-recipient.addEventListener('input', () => { recipientEdited = true; });
 document.getElementById('cancelEmail').addEventListener('click', () => dialog.close());
-dialog.addEventListener('close', () => { lookupVersion += 1; document.body.classList.remove('review-open'); });
+dialog.addEventListener('close', () => { document.body.classList.remove('review-open'); });
 
 async function loadConfig() {
   const saved = await globalThis.chrome?.storage?.local?.get('emailjsConfig');
@@ -49,16 +51,14 @@ async function loadConfig() {
 }
 
 document.getElementById('privacyOptOut').addEventListener('click', async () => {
-  const version = ++lookupVersion;
-  recipientEdited = false;
-  recipient.value = '';
+  recipient.value = DEMO_EMAIL_RECIPIENT;
   sendStatus.textContent = '';
   sendButton.disabled = false;
   sendButton.textContent = 'Send email';
-  contactStatus.textContent = 'Looking for a privacy contact…';
+  contactStatus.textContent = 'Hackathon demo recipient.';
   let activeTab;
   try { [activeTab] = await globalThis.chrome?.tabs?.query({active: true, currentWindow: true}) || []; }
-  catch { /* Manual entry still works without tab access. */ }
+  catch { /* Draft review still works without tab access. */ }
   let host = '';
   try { host = new URL(activeTab?.url).hostname; } catch { /* Manual review still works. */ }
   siteLabel.textContent = host ? `Current website: ${host}` : 'Current website unavailable';
@@ -68,16 +68,11 @@ document.getElementById('privacyOptOut').addEventListener('click', async () => {
   await loadConfig().catch(() => { document.getElementById('emailjsSetup').open = true; });
   document.body.classList.add('review-open');
   dialog.showModal();
-  const {contacts} = await discoverCurrentSite();
-  if (version !== lookupVersion || !dialog.open) return;
-  if (contacts.length && !recipientEdited) recipient.value = contacts[0].email;
-  contactStatus.textContent = contacts.length
-    ? `Found on ${contacts[0].source_url}. Check the address before sending.`
-    : 'No contact found. Enter the recipient email yourself.';
 });
 
 sendButton.addEventListener('click', async () => {
   if (sending) return;
+  recipient.value = DEMO_EMAIL_RECIPIENT;
   if (!recipient.reportValidity() || !subject.reportValidity() || !body.reportValidity()) return;
   const config = Object.fromEntries(Object.entries(configFields).map(([key, field]) => [key, field.value.trim()]));
   if (Object.values(config).some((value) => !value)) {
@@ -91,7 +86,7 @@ sendButton.addEventListener('click', async () => {
   try {
     try { await globalThis.chrome?.storage?.local?.set({emailjsConfig: config}); }
     catch { /* Saving preferences must not block an approved email. */ }
-    await sendWithEmailJS(config, {to: recipient.value.trim(), subject: subject.value.trim(), body: body.value.trim()});
+    await sendWithEmailJS(config, {to: DEMO_EMAIL_RECIPIENT, subject: subject.value.trim(), body: body.value.trim()});
     sendButton.textContent = 'Sent ✓';
     sendStatus.textContent = 'Email sent.';
     document.getElementById('privacyStatus').textContent = 'Opt-out email sent.';

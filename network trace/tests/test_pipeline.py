@@ -58,9 +58,9 @@ class PipelineTests(unittest.TestCase):
 
     def test_filter_and_binary(self):
         self.assertTrue(is_demo_relevant({'host': 'other.test', 'initiator': 'http://localhost:5173'}))
-        self.assertFalse(is_demo_relevant({'host': 'apple.com'}))
-        self.assertFalse(is_demo_relevant({'host': 'localhost', 'destination_port': 3000}))
-        self.assertFalse(is_demo_relevant({'host': 'other.test', 'initiator': 'http://localhost:3000'}))
+        self.assertTrue(is_demo_relevant({'host': 'apple.com'}))
+        self.assertTrue(is_demo_relevant({'host': 'localhost', 'destination_port': 3000}))
+        self.assertTrue(is_demo_relevant({'host': 'other.test', 'initiator': 'http://localhost:3000'}))
         self.assertFalse(is_demo_relevant({'host': '127.0.0.1', 'destination_port': 8765, 'initiator': 'http://localhost:5173'}))
         for body, content_type, encoding in [(b'\x1f\x8babc', None, None), (b'abc', 'image/png', None), (b'abc', None, 'gzip')]:
             self.assertIsNone(sanitize_body(body, content_type, encoding)[0])

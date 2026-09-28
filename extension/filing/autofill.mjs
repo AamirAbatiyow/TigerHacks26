@@ -46,8 +46,8 @@ export async function autofill(document, wait = pause, scroll = scrollToField) {
     { selector: '[name="question-2"][value="Yes"]', label: 'Question 2', answer: 'Yes' },
     { selector: '[name="question-3"][value="No"]', label: 'Question 3', answer: 'No' },
     { selector: '[name="question-4"][value="Yes"]', label: 'Question 4', answer: 'Yes' },
-    { selector: '#signature', label: 'Signature', answer: 'Adem Erdogan' },
-    { selector: '#name', label: 'Name', answer: 'Adem Erdogan' },
+    { selector: '#signature', label: 'Signature', answer: 'Avery Example' },
+    { selector: '#name', label: 'Name', answer: 'Avery Example' },
     { selector: '#date', label: 'Date', answer: '2026-09-27' },
   ];
 

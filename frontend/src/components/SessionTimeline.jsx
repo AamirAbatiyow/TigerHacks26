@@ -16,7 +16,7 @@ export default function SessionTimeline({ playback, events, nodes, activeEvent, 
     </div>
     <div className="session-events" ref={listRef}>
       {events.length === 0 && <p>No transfers recorded yet.</p>}
-      {events.map((event) => <button key={event.id} className={`session-event ${activeEvent?.id === event.id ? "selected" : ""} ${event.at > playback.cursor ? "future" : ""}`} aria-pressed={activeEvent?.id === event.id} onClick={() => onReplay(event)}>
+      {events.map((event) => <button key={event.id} className={`session-event ${event.scriptwell ? "scriptwell" : ""} ${activeEvent?.id === event.id ? "selected" : ""} ${event.at > playback.cursor ? "future" : ""}`} aria-pressed={activeEvent?.id === event.id} onClick={() => onReplay(event)}>
         <time>{formatTime(event.at)}</time><strong>{nodes.find((node) => node.id === event.nodeId)?.name}</strong><span>{event.title}</span>
       </button>)}
     </div>

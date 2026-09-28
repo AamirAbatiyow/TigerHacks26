@@ -33,7 +33,7 @@ function Transfer({ node, progress }) {
   useFrame(() => {
     if (ref.current) ref.current.position.copy(curve.getPoint(progress));
   });
-  return <group ref={ref}><mesh><sphereGeometry args={[.05, 16, 16]} /><meshBasicMaterial color={node.sensitive ? "#ff94be" : "#a8f4ff"} /></mesh><Glow color={node.color} radius={.10} opacity={.22} /></group>;
+  return <group ref={ref}><mesh><sphereGeometry args={[.05, 16, 16]} /><meshBasicMaterial color={node.scriptwell ? node.color : node.sensitive ? "#ff94be" : "#a8f4ff"} /></mesh><Glow color={node.color} radius={.10} opacity={.22} /></group>;
 }
 
 function DestinationNode({ node, active, onSelect }) {

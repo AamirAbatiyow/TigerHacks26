@@ -107,9 +107,27 @@ class CentralIngestionTests(unittest.TestCase):
         [stored] = self.stored()
         self.assertEqual((stored['body'], stored['body_type'], stored['findings']), (None, 'compressed', []))
 
-    def test_unrelated_traffic_is_filtered_and_not_stored(self):
+    def test_unrelated_traffic_is_classified_and_stored_for_the_ui(self):
         mitm_collector.response(mitm_flow('www.google.com', b'{"q":"anxiety"}', origin='https://www.google.com'))
-        self.assertFalse(local_sink.send_event(parse_tshark_line('GET\t/\t1.2.3.4\t80\tapple.com\t\t\t'), 'tshark'))
+        self.assertTrue(local_sink.send_event(parse_tshark_line('GET\t/\t1.2.3.4\t80\tapple.com\t\t\t'), 'tshark'))
+        metadata = {'host': 'example.org', 'path': '/news', 'method': 'GET', 'initiator': 'https://example.org'}
+        response = urlopen(Request(f'http://127.0.0.1:{self.server.server_port}/events', data=json.dumps(metadata).encode(),
+                                   headers={'Origin': EXTENSION, 'Content-Type': 'application/json'}))
+        self.assertTrue(json.load(response)['accepted'])
+        stored = self.stored()
+        self.assertEqual([(event['host'], event['source']) for event in stored],
+                         [('www.google.com', 'mitm'), ('apple.com', 'tshark'), ('example.org', 'browser_extension')])
+        self.assertEqual(stored[0]['body'], {'q': 'anxiety'})
+        response = urlopen(f'http://127.0.0.1:{self.server.server_port}/events')
+        self.assertEqual(json.load(response)['events'], stored)
+
+    def test_internal_traffic_is_filtered_at_central_ingestion(self):
+        for port in [8765, 8080, 5174]:
+            for host in ['127.0.0.1', 'localhost', '::1']:
+                event = {'host': host, 'destination_port': port, 'initiator': 'https://scriptwell.fly.dev'}
+                response = urlopen(Request(f'http://127.0.0.1:{self.server.server_port}/events', data=json.dumps(event).encode(),
+                                           headers={'Origin': EXTENSION, 'Content-Type': 'application/json'}))
+                self.assertFalse(json.load(response)['accepted'])
         self.assertEqual(self.stored(), [])
         self.assertNotIn('local classifier', self.output.getvalue())
 
@@ -133,6 +151,7 @@ class CentralIngestionTests(unittest.TestCase):
         real_open = local_sink._opener.open
         with patch.object(local_sink._opener, 'open', side_effect=lambda req, timeout: sent.append(req.full_url) or real_open(req, timeout=timeout)):
             mitm_collector.response(mitm_flow('fly-analytics.fly.dev', DEMO))
+            mitm_collector.response(mitm_flow('example.org', b'{}', origin='https://example.org'))
         self.assertEqual({urlsplit(url).hostname for url in sent}, {'127.0.0.1'})
         for name in ['mitm_collector.py', 'tshark_collector.py', 'local_sink.py']:
             self.assertNotIn('fly.dev', (ROOT / 'collectors' / name).read_text())

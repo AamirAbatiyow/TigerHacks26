@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { normalizeSession, advancePlayback, flightProgress, eventAtTime } from "./session.js";
 import { privacyIssues } from "../../../extension/privacy-issues.mjs";
 import { privacyIssueCount, privacyIssues as sharedIssues, sensitiveFieldCount, simpleObservations, toSession } from "./liveEvents.js";
+import { isScriptWellEvent, SCRIPTWELL_COLOR } from "./scriptwell.js";
 
 // One ScriptWell submission as the local API stores it (shape of real captures, synthetic values).
 const at = (seconds) => new Date(Date.UTC(2026, 8, 27, 0, 0, seconds)).toISOString();
@@ -18,6 +19,69 @@ const submission = [
   { event_id: "post-mitm", source: "mitm", host: "fly-analytics.fly.dev", method: "POST", path: "/collect", timestamp: at(21), body: { payment: { card_number: "4242424242424242" } }, findings: [finding] },
 ];
 const ids = (observations) => observations.map((event) => event.event_id);
+
+test("ScriptWell highlighting matches exact origins, hosts, and the disclosure POST", () => {
+  for (const event of [
+    { host: "other.test", initiator: "https://scriptwell.fly.dev" },
+    { host: "other.test", origin: "https://ScriptWell.fly.dev:443/" },
+    { host: "SCRIPTWELL.fly.dev:443" },
+    { host: "localhost:5173" },
+    { host: "127.0.0.1", destination_port: 5173 },
+    { host: "other.test", initiator: "http://localhost:5173" },
+    { host: "fly-analytics.fly.dev", method: "POST", path: "/collect?demo=1" },
+  ]) assert.equal(isScriptWellEvent(event), true, JSON.stringify(event));
+  for (const event of [
+    {}, { host: "other.test", findings: [finding] },
+    { initiator: "https://scriptwell.fly.dev.evil.test" },
+    { initiator: "https://evil.test/?next=https://scriptwell.fly.dev" },
+    { host: "scriptwell.fly.dev.evil.test" },
+    { host: "localhost:8765" },
+    { host: "fly-analytics.fly.dev", method: "OPTIONS", path: "/collect" },
+    { host: "fly-analytics.fly.dev", method: "POST", path: "/other" },
+  ]) assert.equal(isScriptWellEvent(event), false, JSON.stringify(event));
+});
+
+test("unrelated meaningful traffic joins both views without changing noise suppression or findings", () => {
+  const extra = [
+    { ...submission[6], event_id: "other-ext", host: "news.example.test", timestamp: at(23), path: "/api/preferences" },
+    { ...submission[7], event_id: "other-mitm", host: "news.example.test", timestamp: at(24), path: "/api/preferences", body: { theme: "dark" }, findings: [] },
+    { ...submission[7], event_id: "other-sensitive", host: "account.example.test", timestamp: at(25), path: "/profile" },
+    { ...submission[0], event_id: "other-page", host: "news.example.test" },
+    { ...submission[2], event_id: "other-css", host: "news.example.test" },
+  ];
+  const observations = [...submission, ...extra];
+  const simple = normalizeSession(toSession(observations, { simple: true }));
+  assert.deepEqual(simple.events.map((event) => event.id), ["post-mitm", "other-mitm", "other-sensitive"]);
+  assert.equal(simple.source.name, "This device");
+  assert.equal(simple.nodes.length, 3);
+  const demo = simple.nodes.find((node) => node.id === "fly-analytics.fly.dev");
+  assert.equal(demo.color, SCRIPTWELL_COLOR);
+  assert.equal(demo.scriptwell, true);
+  assert.equal(demo.requests[0].scriptwell, true);
+  assert.deepEqual(demo.requests[0].findings, submission[7].findings);
+  const unrelated = simple.nodes.find((node) => node.id === "account.example.test");
+  assert.equal(unrelated.sensitive, true);
+  assert.equal(unrelated.scriptwell, false);
+  assert.notEqual(unrelated.color, SCRIPTWELL_COLOR);
+  assert.equal(simple.events.find((event) => event.id === "other-sensitive").scriptwell, false);
+  const technical = normalizeSession(toSession(observations));
+  assert.equal(technical.events.length, observations.length);
+  const raw = technical.nodes.find((node) => node.id === demo.id).requests.find((request) => request.id === "post-mitm");
+  assert.deepEqual(raw.body, submission[7].body);
+  assert.deepEqual(raw.findings, submission[7].findings);
+});
+
+test("a shared destination highlights only its ScriptWell-associated requests and timeline entries", () => {
+  const observations = [
+    { ...submission[6], event_id: "demo-associated", host: "shared.example.test", initiator: "https://scriptwell.fly.dev" },
+    { ...submission[6], event_id: "unrelated", host: "shared.example.test", initiator: "https://other.example.test", timestamp: at(40) },
+  ];
+  const session = normalizeSession(toSession(observations));
+  assert.equal(session.nodes[0].color, SCRIPTWELL_COLOR);
+  assert.deepEqual(session.nodes[0].requests.map((request) => request.scriptwell), [true, false]);
+  assert.deepEqual(session.events.map((event) => event.scriptwell), [true, false]);
+  assert.equal(session.nodes[0].sensitive, false);
+});
 
 test("simple view keeps the sensitive POST and hides preflights, assets, page loads, and its metadata twin", () => {
   assert.deepEqual(ids(simpleObservations(submission)), ["post-mitm"]);

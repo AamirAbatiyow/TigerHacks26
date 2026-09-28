@@ -84,6 +84,12 @@
 .session-event.selected { border-color: #699eb8; background: #1c354a; }
 .session-event.future { opacity: .5; }
 .session-event:hover { border-color: #82bed3; opacity: 1; }
+/* ScriptWell demo emphasis is independent of sensitive-field severity. */
+.destination-row.scriptwell, .session-event.scriptwell, .request-list button.scriptwell { border-color: #ef4444; box-shadow: inset 3px 0 #ef4444; }
+.destination-row.scriptwell::before { border-color: #ef4444; }
+.destination-row.scriptwell.selected, .session-event.scriptwell.selected { background: #3b1922; }
+.destination-row.scriptwell strong, .session-event.scriptwell strong, .request-list button.scriptwell > span:first-child { color: #ff8585; }
+.details-panel .scriptwell-indicator { color: #ff8585; border-left: 3px solid #ef4444; padding: 8px 10px; background: #3b1922; }
 .simple-destinations, .session-events { scrollbar-width: thin; scrollbar-color: #364f69 transparent; }
 @media (max-width: 1100px) { .simple-source::after { top: 54px; left: calc(50% + 54px); } }
 @media (max-width: 780px) { .simple-source::after { display: none; } }
